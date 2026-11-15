@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pixel World: Thế giới OOP</title>
+<link rel="stylesheet" href="../css/PIxelW.css">
+</head><body><main>
+<h1>Pixel World: Thế giới OOP</h1>
+<p class="sub">Bấm vào bản đồ để tạo và đặt tên nhân vật, rồi bấm Bắt đầu. Trong thời gian đã chọn (1–10 phút), mỗi người lần lượt chọn một vật phẩm để xây và trả lời câu hỏi. Đúng thì vật phẩm xuất hiện ở vị trí ngẫu nhiên trên bản đồ, sai thì thiên tai ập đến. Hết giờ sẽ có bảng tổng kết.</p>
+<div class="box hud" id="hud"></div>
+<div class="box hud" id="roster"></div>
+<div class="tools" id="tools"></div>
+<div id="wrap"><canvas id="c"></canvas><div id="names"></div>
+<div class="ov" id="qov"><div class="box panel"><h2 id="qt"></h2><div id="qo"></div></div></div>
+<div class="ov" id="end"><div class="box panel" style="max-width:640px"><h2 id="sumh"></h2><div style="overflow-x:auto"><table id="sumt"></table></div><p id="sumw" style="font-size:18px"></p><p><button class="btn" id="again">Chơi lại</button></p></div></div><div class="ov" id="nov"><div class="box panel"><h2>Đặt tên cho nhân vật</h2><input id="nm" maxlength="12" autocomplete="off"><p><button class="btn" id="nok">Tạo người</button> <button class="btn" id="ncancel">Hủy</button></p></div></div>
+</div>
+<div class="box" id="log"></div>
+<p class="hint"><button class="btn" id="reset">Thế giới mới</button></p>
+</main>
+<script src="../js/pixelW.js"></script>
+</body></html>
