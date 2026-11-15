@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dead Island</title>
+<link rel="stylesheet" href="../css/deadisland.css">
+</head><body><main>
+<div id="stage">
+  <canvas id="c"></canvas>
+  <h1 id="title">DEAD ISLAND</h1>
+  <div id="cap"></div>
+  <button class="btn" id="start">Bắt đầu</button>
+  <div id="ask" hidden>
+    <label for="np">Nhập số người chơi (1–6)</label>
+    <input id="np" type="number" min="1" max="6" value="1" inputmode="numeric">
+    <button class="btn" id="ok">OK</button>
+    <p id="err" role="alert"></p>
+    <p class="tip">Nhấn Enter để xác nhận</p>
+  </div>
+  <div id="hud" hidden></div>
+  <button class="btn" id="again" hidden>Về màn hình chính</button>
+</div>
+</main>
+<script src="../js/deadisland.js"></script>
+</body></html>

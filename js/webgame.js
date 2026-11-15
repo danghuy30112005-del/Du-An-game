@@ -9,6 +9,7 @@ let current=null, cleanup=()=>{};
 /* ===== Danh sách game: thêm game mới chỉ cần thêm 1 object ở đây ===== */
 const GAMES=[
   {id:'pixel',icon:'🖼️',name:'Pixel World',desc:'Chi thức dẫn tới chiến thắng.',noBest:true,start:pixelWorld},
+  {id:'dead',icon:'🏝️',name:'Dead Island',desc:'Thuyền đắm, hòn đảo hoang đang chờ bạn.',noBest:true,start:deadIsland},
   {id:'snake',icon:'🐍',name:'Rắn săn mồi',desc:'Ăn táo, đừng cắn vào đuôi.',unit:'điểm',start:snake},
   {id:'ttt',icon:'⭕',name:'Cờ ca-rô 3×3',desc:'Bạn (X) đấu với máy (O).',unit:'ván thắng',start:ttt},
   {id:'mem',icon:'🃏',name:'Lật thẻ ghi nhớ',desc:'Tìm đủ 8 cặp với ít lượt nhất.',unit:'lượt (ít hơn là tốt)',start:memory}
@@ -43,6 +44,17 @@ function pixelWorld(area,info){
   f.title='Pixel World: Thế giới OOP';
   area.appendChild(f);
   info.textContent='Bấm vào bản đồ để tạo nhân vật, rồi bấm Bắt đầu.';
+  return()=>f.remove();
+}
+
+/* ===== Dead Island (nhúng từ deadisland.html) ===== */
+function deadIsland(area,info){
+  const f=document.createElement('iframe');
+  f.className='pw';
+  f.src='deadisland.html';
+  f.title='Dead Island';
+  area.appendChild(f);
+  info.textContent='Bấm Bắt đầu, nhập số người chơi (1–6) rồi nhấn Enter.';
   return()=>f.remove();
 }
 
@@ -142,7 +154,7 @@ function memory(area,info){
     if(lock||i===first||cards[i].classList.contains('done'))return;
     show(i);
     if(first===null){first=i;return}
-    moves++;info.textContent=`Lượt: ${moves}`;
+    moves++;info.textContent=`Lượt: ${moves}`
     if(deck[first]===deck[i]){
       cards[first].classList.add('done');cards[i].classList.add('done');first=null;pairs++;
       if(pairs===em.length){
