@@ -1,8 +1,8 @@
 :root{color-scheme:dark;--ink:#f4efe2;--bd:#0b0f1a;--red:#d8392b;--sun:#ffd23f}
 *{box-sizing:border-box}
 html,body{margin:0;background:#0b1020;color:var(--ink);font:600 15px/1.4 "Courier New",ui-monospace,Menlo,monospace}
-main{max-width:1560px;margin:0 auto;padding:10px}
-#stage{position:relative;border:3px solid var(--ink);box-shadow:5px 5px 0 #000;line-height:0;overflow:hidden}
+main{max-width:none;margin:0 auto;padding:6px}
+#stage{width:min(100%,calc((100vh - 18px)*1.6));margin:0 auto;position:relative;border:3px solid var(--ink);box-shadow:5px 5px 0 #000;line-height:0;overflow:hidden}
 canvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
 #title{position:absolute;top:6%;left:0;right:0;margin:0;text-align:center;line-height:1.1;font-size:clamp(28px,8vw,72px);letter-spacing:.08em;color:var(--red);text-shadow:3px 3px 0 #000,-1px -1px 0 #000}
 #cap{position:absolute;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(0,0,0,.6);line-height:1.4;text-align:center;min-height:36px}
