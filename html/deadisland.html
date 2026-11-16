@@ -8,7 +8,15 @@
   <canvas id="c"></canvas>
   <h1 id="title">DEAD ISLAND</h1>
   <div id="cap"></div>
-  <button class="btn" id="start">Bắt đầu</button>
+  <div id="menu"><button class="btn" id="start">Bắt đầu</button><button class="btn" id="cont" hidden>Tiếp tục</button></div>
+  <div id="lv" hidden>
+    <h2>Chọn màn chơi</h2>
+    <div class="cards">
+      <button class="card" id="lv1"><b>MÀN 1</b><span>Castle In Land</span></button>
+      <div class="card lock"><b>MÀN 2</b><span>To be continued...</span></div>
+    </div>
+    <button class="btn alt" id="lvX">Quay lại</button>
+  </div>
   <div id="ask" hidden>
     <label for="np">Nhập số người chơi (1–6)</label>
     <input id="np" type="number" min="1" max="6" value="1" inputmode="numeric">
@@ -17,7 +25,14 @@
     <p class="tip">Nhấn Enter để xác nhận</p>
   </div>
   <div id="hud" hidden></div>
-  <button class="btn" id="again" hidden>Về màn hình chính</button>
+  <div id="tools" hidden><button class="btn" id="rsBtn">Reset</button><button class="btn" id="again">Về màn hình chính</button></div>
+  <div id="rs" hidden>
+    <p>Chọn mốc muốn quay lại:</p>
+    <button class="btn" data-r="day"></button>
+    <button class="btn" data-r="week"></button>
+    <button class="btn" data-r="all"></button>
+    <button class="btn alt" id="rsX">Hủy</button>
+  </div>
 </div>
 </main>
 <script src="../js/deadisland.js"></script>
