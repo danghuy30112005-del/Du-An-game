@@ -284,7 +284,7 @@ function rock(x,y){const px=x*T,py=y*T,R=(c,a,b,w,hh)=>{cx.fillStyle=c;cx.fillRe
 const SW=24,SH=30,OX=12,OY=28,SPR=new Map();
 const ROLELOOK={'Quản gia':'butler','Chủ nhân':'master','Phu nhân':'madam','Cậu chủ':'boy','Tiểu thư':'miss'};
 const lookOf=p=>p.look||ROLELOOK[p.role]||(p.pl?['pA','pB','pC','pD'][(p.pl-1)%4]:null);
-const LOOKHT={pA:18,pB:18,pC:20,pD:18,butler:18,miss:18,boy:16,master:19,madam:22};
+const LOOKHT={pA:18,pB:18,pC:20,pD:18,pE:18,pF:19,pG:18,butler:18,miss:18,boy:16,master:19,madam:22};
 const hOf=p=>{const l=lookOf(p);if(LOOKHT[l])return LOOKHT[l];if(p.k==='child')return 16;
   return {'Đầu bếp':22,'Làm vườn':20,'Thợ săn':20}[p.role]||18};
 const LG=(R,c,sh,s)=>{const a=s===2?1:0,b=s===1?1:0;R(c,-2,-4,2,3-a);R(sh,-2,-1-a,2,1);R(c,0,-4,2,3-b);R(sh,0,-1-b,2,1)};
@@ -325,6 +325,29 @@ const LOOKS={
   R(sk,-3,-15,6,5);R(h,-3,-17,6,2);R(h,-4,-16,1,5);R(h,3,-16,1,5);R(pk,-4,-13,1,3);R(h,-3,-15,2,1);R(h,1,-15,2,1);
   R('#1a1420',-2,-13,1,2);R('#1a1420',1,-13,1,2)},
  /* Ảnh 9: quản gia già, bịt mắt, vest xám */
+  /* Kai: tóc nâu đen, áo khoác đen, áo thun trắng, quần tối (ảnh 2) */
+ pE:(R,s)=>{const sk='#e8c9a8',h='#2a1f1a';
+  LG(R,'#2b2b33','#111',s);
+  R('#1b1b20',-4,-10,8,6);R('#1b1b20',-5,-10,1,6);R('#1b1b20',4,-10,1,6);R('#2c2c34',2,-10,2,6);
+  R('#f2f2f2',-1,-9,2,5);R(sk,-5,-4,1,1);R(sk,4,-4,1,1);
+  R(sk,-3,-15,6,5);R(h,-3,-17,6,2);R(h,-2,-18,3,1);R(h,-4,-16,1,4);R(h,3,-16,1,4);R(h,-3,-15,2,1);R(h,1,-15,2,1);
+  R('#1d1d22',-2,-13,1,1);R('#1d1d22',1,-13,1,1)},
+ /* Silas: tóc trắng, vest đen, sơ mi trắng, cà vạt tối (ảnh 3) */
+ pF:(R,s)=>{const sk='#efd9cc',h='#e6e8ee';
+  LG(R,'#17171c','#0a0a0d',s);
+  R('#222228',-4,-10,8,6);R('#222228',-5,-10,1,6);R('#222228',4,-10,1,6);R('#34343c',2,-10,2,6);
+  R('#f4f4f6',-1,-10,2,4);R('#111',0,-9,1,4);R(sk,-5,-4,1,1);R(sk,4,-4,1,1);
+  R(sk,-3,-15,6,5);R(h,-3,-17,6,2);R(h,-2,-18,3,1);R(h,-4,-16,1,4);R(h,3,-16,1,4);R(h,-3,-15,3,1);R(h,1,-15,2,1);
+  R('#1d1d22',-2,-13,1,1);R('#1d1d22',1,-13,1,1)},
+ /* Lumi: tóc vàng hai búi + bím, áo dây vàng, cười nhắm mắt (ảnh 1) */
+ pG:R=>{const sk='#fde8da',h='#e8c26a',h2='#c99a3e';
+  R(sk,-2,-4,2,3);R(sk,0,-4,2,3);R('#6b4a2a',-2,-1,2,1);R('#6b4a2a',0,-1,2,1);
+  R('#5a4630',-4,-6,8,2);R('#5a4630',-5,-5,10,1);
+  R(sk,-4,-10,8,2);R('#f3ead6',-4,-8,8,4);R('#e8c33a',-3,-10,1,2);R('#e8c33a',2,-10,1,2);R(sk,-5,-9,1,3);R(sk,4,-9,1,3);
+  R(h,-4,-14,1,8);R(h,3,-14,1,8);R(h2,-4,-10,1,1);R(h2,3,-8,1,1);
+  R(h,-6,-17,2,4);R(h,4,-17,2,4);R(h2,-6,-15,1,1);R(h2,5,-15,1,1);
+  R(sk,-3,-15,6,5);R(h,-3,-17,6,2);R(h2,-1,-17,2,1);R(h,-3,-15,2,2);R(h,1,-15,2,2);
+  R('#3a2a1a',-2,-13,2,1);R('#3a2a1a',1,-13,2,1);R('#e87a7a',-1,-11,2,1)},
  butler:(R,s)=>{const sk='#e8cdbd',h='#dcdce0';
   LG(R,'#1b1b20','#0c0c10',s);
   R('#3e3e46',-4,-10,8,6);R('#2b2b31',-2,-9,4,4);R('#f2f2f2',-1,-10,2,2);R('#c9b46a',0,-8,1,1);R('#c9b46a',0,-6,1,1);
@@ -860,7 +883,7 @@ function submit(){
   cfg=Array.from({length:v},()=>({look:null}));ci=0;
   $('chr').hidden=false;showChr(1)}
 /* ===== Chọn nhân vật cho từng người chơi ===== */
-const CHARS=[{id:'pA',n:'Aster',k:'man'},{id:'pB',n:'Seraphina',k:'woman'},{id:'pC',n:'Ash',k:'man'},{id:'pD',n:'Aurora',k:'woman'}],
+const CHARS=[{id:'pA',n:'Aster',k:'man'},{id:'pB',n:'Seraphina',k:'woman'},{id:'pC',n:'Ash',k:'man'},{id:'pD',n:'Aurora',k:'woman'},{id:'pE',n:'Kai',k:'man'},{id:'pF',n:'Silas',k:'man'},{id:'pG',n:'Lumi',k:'woman'}],
   CHM=Object.fromEntries(CHARS.map(c=>[c.id,c]));
 function pvDraw(){const c=$('pv').getContext('2d');c.clearRect(0,0,24,30);const l=cfg[ci].look;if(l)c.drawImage(sprite({look:l},0),0,0)}
 function showChr(f){
