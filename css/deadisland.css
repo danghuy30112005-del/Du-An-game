@@ -20,9 +20,20 @@ canvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rend
 #ask{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(90%,360px);padding:14px;background:rgba(10,14,28,.92);border:3px solid var(--ink);box-shadow:4px 4px 0 #000;text-align:center;line-height:1.4}
 #ask label{display:block;margin-bottom:8px}
 #ask input{font:inherit;width:80px;padding:8px;text-align:center;border:3px solid var(--ink);background:#1b2238;color:var(--ink);margin-right:8px}
+#chr{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94%,440px);max-height:96%;overflow:auto;padding:12px;background:rgba(10,14,28,.95);border:3px solid var(--ink);box-shadow:4px 4px 0 #000;text-align:center;line-height:1.4}
+#chr h2{margin:0 0 6px;font-size:16px}
+#pv{width:96px;height:120px;image-rendering:pixelated;display:block;margin:0 auto 8px;background:#26304f;border:3px solid var(--ink)}
+#chr .row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;margin:8px 0}
+.opt{font:inherit;color:var(--ink);background:#26304f;border:3px solid var(--ink);padding:6px 10px;cursor:pointer;box-shadow:2px 2px 0 #000;display:flex;align-items:center;gap:6px}
+.opt.on{background:var(--red);border-color:var(--sun)}
+.opt .sw{margin:0}
+#chC{width:40px;height:30px;padding:0;border:3px solid var(--ink);background:none;cursor:pointer}
 #err{color:#ff8a7a;min-height:1.4em;margin:8px 0 0}
 .tip{margin:4px 0 0;font-weight:400;font-size:13px}
-#hud{position:absolute;top:8px;left:8px;padding:6px 10px;background:rgba(0,0,0,.6);line-height:1.4;font-size:13px}
+#hud{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:48%;line-height:1.4;font-size:13px;pointer-events:none}
+.pnl{padding:6px 10px;background:rgba(0,0,0,.6);border:2px solid var(--ink)}
+#gd{font-weight:400}
+#clk{font-size:14px}
 .sw{display:inline-block;width:10px;height:10px;margin:0 3px 0 6px;border:2px solid var(--ink);vertical-align:-1px}
 #tools{position:absolute;right:8px;top:8px;display:flex;gap:6px;line-height:1.4}
 #tools .btn{padding:6px 12px;font-size:13px}
@@ -30,5 +41,4 @@ canvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rend
 #rs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92%,380px);padding:14px;background:rgba(10,14,28,.95);border:3px solid var(--ink);box-shadow:4px 4px 0 #000;line-height:1.4}
 #rs p{margin:0 0 8px}
 #rs .btn{display:block;width:100%;margin:8px 0;padding:8px 12px;font-size:14px;text-align:left}
-#clk{margin-bottom:4px;font-size:14px}
 [hidden]{display:none!important}
