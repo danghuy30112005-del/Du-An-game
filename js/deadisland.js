@@ -860,13 +860,13 @@ function submit(){
   cfg=Array.from({length:v},()=>({look:null}));ci=0;
   $('chr').hidden=false;showChr(1)}
 /* ===== Chọn nhân vật cho từng người chơi ===== */
-const CHARS=[{id:'pA',n:'Bạch Dạ',k:'man'},{id:'pB',n:'Tuyết Linh',k:'woman'},{id:'pC',n:'Kiên',k:'man'},{id:'pD',n:'Hồng Vân',k:'woman'}],
+const CHARS=[{id:'pA',n:'Aster',k:'man'},{id:'pB',n:'Seraphina',k:'woman'},{id:'pC',n:'Ash',k:'man'},{id:'pD',n:'Aurora',k:'woman'}],
   CHM=Object.fromEntries(CHARS.map(c=>[c.id,c]));
 function pvDraw(){const c=$('pv').getContext('2d');c.clearRect(0,0,24,30);const l=cfg[ci].look;if(l)c.drawImage(sprite({look:l},0),0,0)}
 function showChr(f){
   const taken=cfg.slice(0,ci).map(c=>c.look),P=cfg[ci];
   if(!P.look||taken.includes(P.look))P.look=(CHARS.find(c=>!taken.includes(c.id))||{}).id;
-  $('chG').hidden=true;$('chC').parentElement.hidden=true;/* ẩn phần chọn giới tính / màu da cũ */
+ 
   $('chT').textContent='Người chơi P'+(ci+1)+' / '+nPl+': chọn nhân vật';
   const box=$('chS');box.innerHTML='';
   CHARS.forEach(ch=>{
