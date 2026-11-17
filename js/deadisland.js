@@ -79,8 +79,8 @@ const SKINS=[['Trắng','#ffe0c8'],['Vàng','#f1c27d'],['Đen','#4a2f1e'],['Nâu
 function mkPeople(){
   const ks=['man','woman','child','elder'],all=[],n=nPl+ri(10,20);
   for(let i=0;i<n;i++){
-    const pl=i<nPl,k=pl?((cfg[i]&&cfg[i].k)||['man','woman'][rnd(2)]):(i-nPl<4?ks[i-nPl]:ks[rnd(4)]);
-    all.push({k,pl:pl?i+1:0,c:pl?PC[i]:SHIRT[rnd(SHIRT.length)],skin:pl&&cfg[i]?cfg[i].skin:SKIN[rnd(5)],hair:k==='elder'?'#cfd3d8':HAIR[rnd(5)],
+    const pl=i<nPl,k=pl?((cfg[i]&&CHM[cfg[i].look]&&CHM[cfg[i].look].k)||['man','woman'][rnd(2)]):(i-nPl<4?ks[i-nPl]:ks[rnd(4)]);
+    all.push({k,look:pl&&cfg[i]?cfg[i].look:undefined,pl:pl?i+1:0,c:pl?PC[i]:SHIRT[rnd(SHIRT.length)],skin:pl?'#f1c27d':SKIN[rnd(5)],hair:k==='elder'?'#cfd3d8':HAIR[rnd(5)],
       x:0,y:0,sp:(k==='child'?.4:.5)+Math.random()*.1,path:[],ph:0,wait:0,moving:0,vis:0,
       cls:'g',n:newNeeds(),act:'idle',t:0,cd:0,goal:null,say:''})}
   all.sort(()=>Math.random()-.5).forEach((p,i)=>{
@@ -280,25 +280,123 @@ function tree(x,y){
   R('rgba(0,0,0,.22)',5,0,3,4)}
 function rock(x,y){const px=x*T,py=y*T,R=(c,a,b,w,hh)=>{cx.fillStyle=c;cx.fillRect(px+a,py+b,w,hh)};
   R('#8a8f98',2,4,4,3);R('#b9bec6',2,4,2,1);R('#5b606a',2,6,4,1)}
+/* ===== Sprite pixel-art có viền + đổ bóng ===== */
+const SW=24,SH=30,OX=12,OY=28,SPR=new Map();
+const ROLELOOK={'Quản gia':'butler','Chủ nhân':'master','Phu nhân':'madam','Cậu chủ':'boy','Tiểu thư':'miss'};
+const lookOf=p=>p.look||ROLELOOK[p.role]||(p.pl?['pA','pB','pC','pD'][(p.pl-1)%4]:null);
+const LOOKHT={pA:18,pB:18,pC:20,pD:18,butler:18,miss:18,boy:16,master:19,madam:22};
+const hOf=p=>{const l=lookOf(p);if(LOOKHT[l])return LOOKHT[l];if(p.k==='child')return 16;
+  return {'Đầu bếp':22,'Làm vườn':20,'Thợ săn':20}[p.role]||18};
+const LG=(R,c,sh,s)=>{const a=s===2?1:0,b=s===1?1:0;R(c,-2,-4,2,3-a);R(sh,-2,-1-a,2,1);R(c,0,-4,2,3-b);R(sh,0,-1-b,2,1)};
+const KID=(R,s,o)=>{const a=s===2?1:0,b=s===1?1:0;
+  R(o.bt,-2,-3,2,2-a);R(o.sh,-2,-1-a,2,1);R(o.bt,0,-3,2,2-b);R(o.sh,0,-1-b,2,1);
+  R(o.top,-3,-8,6,4);R(o.top,-4,-8,1,3);R(o.top,3,-8,1,3);R(o.sk,-4,-5,1,1);R(o.sk,3,-5,1,1);
+  if(o.bt!==o.top){R(o.bt,-2,-7,4,4);R(o.bt,-3,-4,6,1)}
+  R(o.sk,-3,-13,6,5);R(o.h,-3,-15,6,3);R(o.h,-4,-14,1,3);R(o.h,3,-14,1,3);R(o.h,-1,-16,2,1);
+  R('#2a1c14',-2,-11,1,1);R('#2a1c14',1,-11,1,1);R('#c25a4a',-1,-9,2,1)};
+const LOOKS={
+ /* Ảnh 2: tóc bạc, áo khoác dài nâu, quần trắng */
+ pA:R=>{const sk='#fbe6da',h='#c8ccd4';
+  R('#f4f4f6',-2,-4,4,3);R('#d8d8de',-2,-2,4,1);R('#1d1d22',-2,-1,2,1);R('#1d1d22',0,-1,2,1);
+  R('#a9794a',-4,-10,8,7);R('#85582f',2,-10,2,7);R('#85582f',-4,-4,8,1);R('#a9794a',-5,-10,1,6);R('#a9794a',4,-10,1,6);
+  R('#fff',-1,-9,2,5);R('#1d1d22',-1,-10,2,1);R('#d4a85f',-3,-8,1,1);R('#d4a85f',-3,-6,1,1);R(sk,-5,-4,1,1);R(sk,4,-4,1,1);
+  R(sk,-3,-15,6,5);R(h,-3,-17,6,2);R(h,-4,-16,1,3);R(h,3,-16,1,3);R(h,-3,-15,2,1);R(h,1,-15,2,1);R(h,-2,-18,2,1);R(h,1,-18,2,1);
+  R('#1d1d22',-2,-13,1,1);R('#1d1d22',1,-13,1,1);R('#555',-3,-14,2,1)},
+ /* Ảnh 3: tóc trắng dài, áo thun trắng, váy đỏ rượu */
+ pB:R=>{const sk='#fde6da',h='#eceef4';
+  R(sk,-2,-4,2,3);R(sk,0,-4,2,3);R('#e6e6ea',-2,-1,2,1);R('#e6e6ea',0,-1,2,1);
+  R(h,-4,-12,1,7);R(h,3,-12,1,7);
+  R('#8e1f35',-4,-7,8,3);R('#8e1f35',-5,-5,10,1);R('#6e1527',-4,-5,8,1);
+  R('#f7f7f9',-3,-10,6,3);R('#f7f7f9',-4,-10,1,2);R('#f7f7f9',3,-10,1,2);R('#d5d5dc',2,-10,1,3);R(sk,-5,-9,1,3);R(sk,4,-9,1,3);
+  R(sk,-3,-15,6,5);R(h,-3,-17,6,2);R(h,-4,-16,1,5);R(h,3,-16,1,5);R(h,-3,-15,3,1);R(h,1,-15,1,1);
+  R('#b5172e',-2,-13,1,2);R('#b5172e',1,-13,1,2)},
+ /* Ảnh 4: tóc búi, sơ mi trắng, cà vạt đen */
+ pC:R=>{const sk='#f2d2ae',h='#1b1b22';
+  LG(R,'#2a2530','#111',0);
+  R('#eceff2',-4,-10,8,6);R('#c8ccd2',2,-10,2,6);R('#eceff2',-5,-9,1,5);R('#eceff2',4,-9,1,5);R(sk,-5,-4,1,1);R(sk,4,-4,1,1);
+  R('#16161c',-1,-10,2,1);R('#16161c',-1,-9,1,5);R('#2a2530',-4,-5,8,1);
+  R(sk,-3,-15,6,5);R(h,-3,-17,6,2);R(h,-1,-19,2,3);R('#3a3a46',-3,-15,1,2);R('#3a3a46',2,-15,1,2);R(h,-2,-15,4,1);
+  R('#16161c',-2,-13,1,1);R('#16161c',1,-13,1,1);R(h,-3,-14,2,1)},
+ /* Ảnh 5: tóc bob đen có mảng hồng, áo trắng, váy đen */
+ pD:R=>{const sk='#f7ddd0',h='#241c2b',pk='#e8548a';
+  R(sk,-2,-4,2,3);R(sk,0,-4,2,3);R('#2a2a30',-2,-1,2,1);R('#2a2a30',0,-1,2,1);
+  R('#1d1d24',-4,-7,8,3);R('#1d1d24',-5,-5,10,1);R('#f4f4f6',-3,-10,6,3);R('#f4f4f6',-4,-10,1,2);R('#f4f4f6',3,-10,1,2);R('#d5d5db',2,-10,1,3);
+  R('#14141a',-1,-7,2,1);R(sk,-5,-9,1,3);R(sk,4,-9,1,3);
+  R(sk,-3,-15,6,5);R(h,-3,-17,6,2);R(h,-4,-16,1,5);R(h,3,-16,1,5);R(pk,-4,-13,1,3);R(h,-3,-15,2,1);R(h,1,-15,2,1);
+  R('#1a1420',-2,-13,1,2);R('#1a1420',1,-13,1,2)},
+ /* Ảnh 9: quản gia già, bịt mắt, vest xám */
+ butler:(R,s)=>{const sk='#e8cdbd',h='#dcdce0';
+  LG(R,'#1b1b20','#0c0c10',s);
+  R('#3e3e46',-4,-10,8,6);R('#2b2b31',-2,-9,4,4);R('#f2f2f2',-1,-10,2,2);R('#c9b46a',0,-8,1,1);R('#c9b46a',0,-6,1,1);
+  R('#3e3e46',-5,-10,1,6);R('#3e3e46',4,-10,1,6);R(sk,-5,-4,1,1);R(sk,4,-4,1,1);
+  R(sk,-3,-15,6,5);R(h,-3,-17,6,2);R(h,-4,-16,1,3);R(h,3,-16,1,8);R(h,-3,-15,1,2);
+  R('#111',-3,-14,3,2);R('#b0273a',1,-13,1,1);R('#6a4a46',0,-12,1,1);R('#6a4a46',2,-14,1,1);R('#b79a8a',-1,-11,2,1)},
+ /* Ảnh 10: con gái cả, tóc tím-hồng, choker, váy đen hở vai */
+ miss:R=>{const sk='#fbe2d4',h1='#b890dc',h2='#eaa6bd',dr='#1c1a22';
+  R(sk,-2,-4,2,3);R(sk,0,-4,2,3);R('#18161d',-2,-1,2,1);R('#18161d',0,-1,2,1);
+  R(dr,-4,-9,8,5);R(dr,-5,-5,10,1);R(sk,-4,-10,8,1);R(sk,-5,-9,1,3);R(sk,4,-9,1,3);
+  R(sk,-3,-15,6,5);R(h1,-3,-17,6,2);R(h1,-4,-16,1,2);R(h1,3,-16,1,2);R(h2,-4,-14,1,5);R(h2,3,-14,1,5);R(h1,-3,-15,2,1);R(h1,1,-15,2,1);
+  R('#15121a',-2,-10,4,1);R('#9b5de5',0,-10,1,1);R('#7a3fc8',-4,-11,1,2);R('#7a3fc8',3,-11,1,2);
+  R('#3a3030',-2,-13,1,2);R('#3a3030',1,-13,1,2);R('#5a4a5a',-3,-14,2,1)},
+ /* Ảnh 11: cậu chủ nhỏ, yếm jean, kẹo mút */
+ boy:(R,s)=>{KID(R,s,{sk:'#fde0cc',h:'#5a4030',top:'#f2ead0',bt:'#7090b6',sh:'#6b6f7a'});
+  R('#fff',-1,-6,2,2);R('#222',-1,-6,1,1);R('#ddd',4,-8,1,4);R('#e0453a',3,-11,3,3);R('#ffd23f',4,-10,1,1)},
+ /* Ảnh 12: chủ đảo, tóc vàng, áo đuôi tôm, nơ đỏ */
+ master:(R,s)=>{const sk='#f6dcc4',h='#dcb870',co='#22222b',ma='#7a1a2a';
+  LG(R,'#1a1a20','#0b0b0e',s);
+  R(co,-4,-10,8,5);R(co,-4,-5,2,3);R(co,2,-5,2,3);R(ma,-4,-4,1,2);R(ma,3,-4,1,2);
+  R('#f4f4f4',-1,-9,2,3);R('#6c6c78',-1,-7,2,3);R(ma,-3,-10,1,5);R(ma,2,-10,1,5);
+  R(co,-5,-10,1,6);R(co,4,-10,1,6);R(sk,-5,-4,1,1);R(sk,4,-4,1,1);R('#a3202a',-2,-10,4,1);
+  R(sk,-3,-15,6,5);R(h,-3,-17,6,2);R(h,-4,-16,1,3);R(h,3,-16,1,3);R(h,-3,-15,2,1);R(h,2,-15,1,1);R(h,-2,-18,2,1);R(h,1,-18,1,1);
+  R('#8a8450',-2,-13,1,1);R('#8a8450',1,-13,1,1)},
+ /* Ảnh 13: phu nhân, mũ rộng vành, váy đen, bế em bé */
+ madam:(R,s)=>{const sk='#f6dcc8',dr='#1d1b22';
+  R(dr,-2,-4,2,3);R(dr,0,-4,2,3);R('#0c0b0f',-2,-1,2,1);R('#0c0b0f',0,-1,2,1);
+  R(dr,-4,-10,8,7);R(dr,-5,-4,10,2);R('#2c2a34',2,-10,2,7);
+  R('#e8e8ec',-1,-10,2,1);R('#e8e8ec',-2,-9,1,1);R('#e8e8ec',1,-9,1,1);R('#e8e8ec',0,-8,1,1);
+  R(dr,-5,-10,1,5);R(dr,4,-9,1,3);R('#f4f4f6',2,-8,4,3);R('#fbe6da',5,-9,2,2);
+  R(sk,-3,-15,6,5);R('#2b2018',-3,-16,6,1);R('#2b2018',-4,-15,1,3);R('#2b2018',-6,-14,2,2);
+  R('#14121a',-8,-17,16,2);R('#14121a',-4,-21,8,5);R('#2e2b36',-4,-18,8,1);
+  R('#222',-2,-13,1,1);R('#222',1,-13,1,1);R('#c2605a',-1,-11,2,1)}
+};
+function generic(R,s,p){
+  const k=p.k,sk=p.skin,h=p.hair,c=p.c,r=p.role,wm=k==='woman';
+  if(k==='child'){KID(R,s,{sk,h,top:c,bt:'#4a5a8a',sh:'#2b2b33'});return}
+  if(wm)LG(R,sk,'#2b2b33',s);else LG(R,r==='Thợ săn'?'#4a3a22':'#2b2b33','#111',s);
+  if(wm){R(c,-4,-10,8,6);R(c,-5,-5,10,1)}else R(c,-4,-10,8,6);
+  R('rgba(255,255,255,.2)',-4,-10,1,5);R('rgba(0,0,0,.22)',3,-10,1,5);
+  R(c,-5,-10,1,5);R(c,4,-10,1,5);R(sk,-5,-5,1,1);R(sk,4,-5,1,1);
+  R(sk,-3,-15,6,5);R(h,-3,-17,6,2);R(h,-4,-16,1,wm?7:3);R(h,3,-16,1,wm?7:3);R(h,-3,-15,2,1);
+  R('#222',-2,-13,1,1);R('#222',1,-13,1,1);
+  if(k==='elder')R('#6b4423',5,-8,1,8);
+  if(r==='Giúp việc'){R('#f4f4f4',-2,-9,4,5);R('#f4f4f4',-3,-17,6,1)}
+  if(r==='Đầu bếp'){R('#fff',-3,-10,6,6);R('#fff',-3,-20,6,3);R('#fff',-2,-21,4,1)}
+  if(r==='Thợ săn'){R('#4a2f17',-4,-17,8,1);R('#6b4423',-3,-19,6,2);R('#2b2b33',5,-14,1,10);R('#8b5a2b',5,-6,1,3)}
+  if(r==='Làm vườn'){R('#c9a64b',-5,-17,10,1);R('#c9a64b',-3,-19,6,2)}}
+function sprite(p,s){
+  const l=lookOf(p),key=l?l+'|'+s:[p.k,p.role||'',p.c,p.skin,p.hair,s].join('|');
+  let c=SPR.get(key);if(c)return c;
+  c=document.createElement('canvas');c.width=SW;c.height=SH;const g=c.getContext('2d');
+  const R=(col,a,b,w,h)=>{g.fillStyle=col;g.fillRect(OX+a,OY+b,w,h)};
+  (LOOKS[l]||((R,s)=>generic(R,s,p)))(R,s);
+  const id=g.getImageData(0,0,SW,SH),d=id.data,A=(x,y)=>x>=0&&y>=0&&x<SW&&y<SH&&d[(y*SW+x)*4+3]>=128,o=[];
+  for(let y=0;y<SH;y++)for(let x=0;x<SW;x++)if(!A(x,y)&&(A(x+1,y)||A(x-1,y)||A(x,y+1)||A(x,y-1)))o.push(y*SW+x);
+  o.forEach(i=>{d[i*4]=23;d[i*4+1]=18;d[i*4+2]=31;d[i*4+3]=255});
+  g.putImageData(id,0,0);SPR.set(key,c);return c}
 function person(p){
-  const x=Math.round(p.x),y=Math.round(p.y),R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(x+a,y+b,w,h)},
-    [H0,L,w]={man:[10,3,6],woman:[10,3,6],child:[7,2,4],elder:[9,3,6]}[p.k],hx=-(w>>1),sb=p.moving?(frame>>3)&1:0;
-  cx.globalAlpha=1;
-  if(p.act==='sleep'){R('rgba(0,0,0,.25)',-6,-1,12,2);R(p.skin,-6,-4,3,3);R(p.hair,-6,-4,3,1);R(p.c,-3,-4,6,3);R('#2b2b33',3,-4,3,3);
-    cx.font='6px monospace';cx.textAlign='center';cx.lineWidth=2;cx.strokeStyle='#000';cx.strokeText('Zzz',x,y-8-((frame>>5)&1));cx.fillStyle='#fff';cx.fillText('Zzz',x,y-8-((frame>>5)&1));return}
-  R('rgba(0,0,0,.18)',-4,-1,8,2);R('rgba(0,0,0,.2)',-3,-2,6,1);if(p.pl&&p.pl===sel&&state==='island')R('#fff',-4,0,8,1);
-  R('#2b2b33',-2,-L,2,L-sb);R('#2b2b33',0,-L,2,L-(1-sb));
-  if(p.k==='woman'){R(p.c,hx+1,-7,w-2,1);R(p.c,hx,-6,w,5)}else R(p.c,hx,-H0+3,w,H0-3-L);
-  {const bt=p.k==='woman'?-6:-H0+3,bh=p.k==='woman'?5:H0-3-L;R('rgba(255,255,255,.22)',hx,bt,1,bh);R('rgba(0,0,0,.24)',hx+w-1,bt,1,bh);R('rgba(0,0,0,.18)',hx,bt+bh-1,w,1)}
-  R(p.skin,hx-1,-H0+4,1,2);R(p.skin,hx+w,-H0+4,1,2);
-  R(p.skin,-2,-H0,4,3);R(p.hair,-2,-H0,4,1);R('#2a1c14',-1,-H0+1,1,1);R('#2a1c14',1,-H0+1,1,1);
-  if(p.k==='woman'){R(p.hair,-3,-H0,1,5);R(p.hair,2,-H0,1,5)}
-  if(p.k==='elder')R('#6b4423',hx+w+1,-6,1,6);
-  if(p.role==='Quản gia')R('#fff',-1,-H0+3,2,2);if(p.role==='Giúp việc')R('#fff',-1,-5,2,3);if(p.role==='Đầu bếp')R('#fff',-2,-H0-2,4,2);if(p.role==='Làm vườn'){R('#c9a64b',-3,-H0,6,1);R('#c9a64b',-2,-H0-1,4,1)}
-  if(p.role==='Thợ săn'){R('#4a2f17',-3,-H0,6,1);R('#6b4423',-2,-H0-1,4,1);R('#2b2b33',hx+w+1,-H0+1,1,9);R('#8b5a2b',hx+w+1,-H0+7,1,3)}
-  if(p.loot&&(p.loot.meat||p.loot.pelt)){R('#8a6a3a',hx-4,-H0+3,3,5);R('#c0392b',hx-4,-H0+5,3,2);R('#e8a0a0',hx-3,-H0+5,1,1)}
+  const x=Math.round(p.x),y=Math.round(p.y),H0=hOf(p),R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(x+a,y+b,w,h)},
+    s=p.moving?1+((frame>>3)&1):0,spr=sprite(p,p.act==='sleep'?0:s);
+  cx.globalAlpha=1;cx.imageSmoothingEnabled=false;
+  if(p.act==='sleep'){
+    R('rgba(0,0,0,.25)',-9,-1,18,2);
+    cx.save();cx.translate(x+8,y-3);cx.rotate(-Math.PI/2);cx.drawImage(spr,-OX,-OY);cx.restore();
+    cx.font='6px monospace';cx.textAlign='center';cx.lineWidth=2;cx.strokeStyle='#000';
+    cx.strokeText('Zzz',x,y-14-((frame>>5)&1));cx.fillStyle='#fff';cx.fillText('Zzz',x,y-14-((frame>>5)&1));return}
+  R('rgba(0,0,0,.2)',-5,-1,10,2);
+  if(p.pl&&p.pl===sel&&state==='island')R('#fff',-5,0,10,1);
+  cx.drawImage(spr,x-OX,y-OY);
+  if(p.loot&&(p.loot.meat||p.loot.pelt)){R('#8a6a3a',-9,-H0+6,3,5);R('#c0392b',-9,-H0+8,3,2);R('#e8a0a0',-8,-H0+8,1,1)}
   if(p.role){cx.font='6px monospace';cx.textAlign='center';cx.lineWidth=2;cx.strokeStyle='#000';cx.strokeText(p.role,x,y-H0-3);cx.fillStyle='#ffe9a8';cx.fillText(p.role,x,y-H0-3)}
-  /* Mũi tên tam giác trên đầu: NPC có thể đối thoại */
   if(p.owner&&p.os==='meet'&&!TK){const bb=(frame>>4)&1,y0=-H0-17+bb;R('#000',-4,y0-1,9,1);for(let i=0;i<4;i++){const ww=7-2*i;R('#000',-(ww>>1)-1,y0+i,ww+2,1);R('#ffd23f',-(ww>>1),y0+i,ww,1)}R('#000',0,y0+4,1,1)}
   if(p.pl){const b=(frame>>4)&1;R(p.c,-2,-H0-6-b,5,1);R(p.c,-1,-H0-5-b,3,1);R(p.c,0,-H0-4-b,1,1);
     cx.font='bold 6px monospace';cx.textAlign='center';cx.lineWidth=2;cx.strokeStyle='#000';cx.strokeText('P'+p.pl,x,y-H0-8-b);cx.fillStyle='#fff';cx.fillText('P'+p.pl,x,y-H0-8-b)}
@@ -725,7 +823,7 @@ function showHud(){
 
 /* ===== Lưu tiến trình & reset ===== */
 function snapP(){
-  const K=['k','pl','c','skin','hair','x','y','sp','role','cls','own','clean','hb','ate','fl','loot','acc'];
+  const K=['k','look','pl','c','skin','hair','x','y','sp','role','cls','own','clean','hb','ate','fl','loot','acc'];
   return people.filter(p=>!p.owner).concat(ins.filter(p=>!p.pl)).map(p=>{const o={};K.forEach(k=>{if(p[k]!==undefined)o[k]=p[k]});if(p.n)o.n={...p.n};if(p.loot)o.loot={...p.loot};o.inn=ins.includes(p)?1:0;return o})}
 const snapshot=()=>({gm,people:snapP()});
 function restore(s){
@@ -759,28 +857,29 @@ function submit(){
   const v=Number($('np').value);
   if(!Number.isInteger(v)||v<1||v>6){$('err').textContent='Chỉ nhập số từ 1 đến 6.';$('np').select();return}
   nPl=v;sel=1;$('err').textContent='';$('ask').hidden=true;
-  cfg=Array.from({length:v},(_,i)=>({k:i%2?'woman':'man',skin:SKINS[1][1],cus:false}));ci=0;
+  cfg=Array.from({length:v},()=>({look:null}));ci=0;
   $('chr').hidden=false;showChr(1)}
-/* ===== Chọn giới tính & màu da cho từng người chơi ===== */
-function pvDraw(){
-  const c=$('pv').getContext('2d'),P=cfg[ci],col=PC[ci],hair='#2b1b0f',R=(cc,x,y,w,h)=>{c.fillStyle=cc;c.fillRect(12+x,24+y,w,h)};
-  c.clearRect(0,0,24,30);R('rgba(0,0,0,.3)',-4,-1,8,2);
-  R('#2b2b33',-2,-3,2,3);R('#2b2b33',0,-3,2,3);
-  if(P.k==='woman'){R(col,-2,-7,4,1);R(col,-3,-6,6,5)}else R(col,-3,-7,6,4);
-  R(P.skin,-4,-6,1,2);R(P.skin,3,-6,1,2);R(P.skin,-2,-10,4,3);R(hair,-2,-10,4,1);
-  if(P.k==='woman'){R(hair,-3,-10,1,5);R(hair,2,-10,1,5)}}
+/* ===== Chọn nhân vật cho từng người chơi ===== */
+const CHARS=[{id:'pA',n:'Bạch Dạ',k:'man'},{id:'pB',n:'Tuyết Linh',k:'woman'},{id:'pC',n:'Kiên',k:'man'},{id:'pD',n:'Hồng Vân',k:'woman'}],
+  CHM=Object.fromEntries(CHARS.map(c=>[c.id,c]));
+function pvDraw(){const c=$('pv').getContext('2d');c.clearRect(0,0,24,30);const l=cfg[ci].look;if(l)c.drawImage(sprite({look:l},0),0,0)}
 function showChr(f){
-  const P=cfg[ci];$('chT').textContent='Người chơi P'+(ci+1)+' / '+nPl+': chọn giới tính & màu da';
-  document.querySelectorAll('#chG [data-g]').forEach(b=>b.classList.toggle('on',b.dataset.g===P.k));
-  $('chS').innerHTML='';
-  SKINS.forEach(([n,c])=>{const b=document.createElement('button');b.className='opt'+(!P.cus&&P.skin===c?' on':'');
-    b.innerHTML='<span class="sw" style="background:'+c+'"></span>'+n;b.onclick=()=>{P.skin=c;P.cus=false;showChr(1)};$('chS').append(b)});
-  const b=document.createElement('button');b.className='opt'+(P.cus?' on':'');
-  b.innerHTML='<span class="sw" style="background:'+(P.cus?P.skin:$('chC').value)+'"></span>Tùy chỉnh';
-  b.onclick=()=>{P.skin=$('chC').value;P.cus=true;showChr(1)};$('chS').append(b);
-  if(P.cus)$('chC').value=P.skin;
-  $('chOk').textContent=ci<nPl-1?'Tiếp':'Bắt đầu';pvDraw();if(f)$('chOk').focus()}
+  const taken=cfg.slice(0,ci).map(c=>c.look),P=cfg[ci];
+  if(!P.look||taken.includes(P.look))P.look=(CHARS.find(c=>!taken.includes(c.id))||{}).id;
+  $('chG').hidden=true;$('chC').parentElement.hidden=true;/* ẩn phần chọn giới tính / màu da cũ */
+  $('chT').textContent='Người chơi P'+(ci+1)+' / '+nPl+': chọn nhân vật';
+  const box=$('chS');box.innerHTML='';
+  CHARS.forEach(ch=>{
+    const b=document.createElement('button'),used=taken.includes(ch.id),cv2=document.createElement('canvas');
+    b.className='opt'+(P.look===ch.id?' on':'');b.disabled=used;b.style.flexDirection='column';
+    cv2.width=SW;cv2.height=SH;cv2.style.cssText='width:48px;height:60px;image-rendering:pixelated';
+    cv2.getContext('2d').drawImage(sprite({look:ch.id},0),0,0);
+    b.append(cv2,document.createTextNode(used?ch.n+' (đã chọn)':ch.n));
+    b.onclick=()=>{P.look=ch.id;for(let j=ci+1;j<cfg.length;j++)if(cfg[j].look===ch.id)cfg[j].look=null;showChr(1)};
+    box.append(b)});
+  $('chOk').textContent=ci<nPl-1?'Tiếp':'Bắt đầu';$('chOk').disabled=!P.look;pvDraw();if(f)$('chOk').focus()}
 function chNext(){
+  if(!cfg[ci].look)return;
   if(ci<nPl-1){ci++;showChr(1);return}
   $('chr').hidden=true;$('title').hidden=true;
   state='sail';cap('Thuyền lao thẳng về phía một hòn đảo hoang...')}
@@ -790,8 +889,6 @@ $('lv1').onclick=()=>{$('lv').hidden=true;$('ask').hidden=false;$('np').value=1;
 $('lvX').onclick=()=>{$('lv').hidden=true;$('menu').hidden=false};
 $('np').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submit()}};
 $('ok').onclick=submit;
-document.querySelectorAll('#chG [data-g]').forEach(b=>b.onclick=()=>{cfg[ci].k=b.dataset.g;showChr(1)});
-$('chC').oninput=()=>{const P=cfg[ci];P.skin=$('chC').value;P.cus=true;showChr(0)};
 $('chOk').onclick=chNext;
 $('chBack').onclick=()=>{if(ci>0){ci--;showChr(1)}else{$('chr').hidden=true;$('ask').hidden=false;$('np').focus();$('np').select()}};
 addEventListener('keydown',e=>{if(!$('chr').hidden&&e.key==='Enter'){e.preventDefault();chNext()}});
@@ -815,9 +912,9 @@ addEventListener('blur',()=>{keys={}});
 cv.addEventListener('pointerdown',e=>{
   if(state!=='island'||trans||TK)return;
   const r=cv.getBoundingClientRect(),wx=(e.clientX-r.left)/r.width*CW/(inside?IS:1)+camX,wy=(e.clientY-r.top)/r.height*CH/(inside?IS:1)+camY,
-    L=(inside?ins:people).filter(p=>p.pl&&(!inside||p.fl===curF)),c=L.find(p=>Math.abs(p.x-wx)<6&&Math.abs(p.y-5-wy)<8);
+    L=(inside?ins:people).filter(p=>p.pl&&(!inside||p.fl===curF)),c=L.find(p=>Math.abs(p.x-wx)<6&&Math.abs(p.y-8-wy)<8);
   if(c){setSel(c.pl);return}
-  const nq=(inside?ins:people).find(p=>!p.pl&&p.n&&p.vis&&!p.hide&&(!inside||p.fl===curF)&&Math.abs(p.x-wx)<6&&Math.abs(p.y-5-wy)<8);
+  const nq=(inside?ins:people).find(p=>!p.pl&&p.n&&p.vis&&!p.hide&&(!inside||p.fl===curF)&&Math.abs(p.x-wx)<6&&Math.abs(p.y-8-wy)<8);
   if(nq){const a={sleep:'đang ngủ',eat:'đang ăn',rest:'đang nghỉ',chat:'đang trò chuyện',clean:'đang dọn dẹp'}[nq.act]||'đang rảnh';cap((nq.role||'Người lạ')+' '+a+' · Đói '+Math.round(nq.n.hu)+'% · Mệt '+Math.round(nq.n.fa)+'% · Buồn ngủ '+Math.round(nq.n.sl)+'%');return}
   const P=L.find(p=>p.pl===sel);if(P){P.tx=wx;P.ty=wy;P.path=[]}});
 const togHud=()=>{hudOn=!hudOn;$('gd').hidden=!hudOn};$('hudBtn').onclick=togHud;

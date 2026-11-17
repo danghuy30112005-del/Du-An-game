@@ -49,3 +49,8 @@ canvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rend
 #dlg p{margin:6px 0 10px;font-weight:400}
 #dlg .btn{display:block;width:100%;margin:6px 0;padding:8px 12px;font-size:14px;text-align:left}
 [hidden]{display:none!important}
+.opt.pk{flex-direction:column;font-size:12px;width:92px;padding:6px 4px}
+.opt.pk canvas{width:36px;height:45px;image-rendering:pixelated}
+.opt:disabled{opacity:.35;cursor:not-allowed;text-decoration:line-through}
+.opt:disabled{opacity:.4;cursor:not-allowed}
+.opt canvas{display:block}

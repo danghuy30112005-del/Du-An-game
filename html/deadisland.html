@@ -18,7 +18,7 @@
     <button class="btn alt" id="lvX">Quay lại</button>
   </div>
   <div id="ask" hidden>
-    <label for="np">Nhập số người chơi (1–6)</label>
+    <label for="np">Nhập số người chơi (1–4)</label>
     <input id="np" type="number" min="1" max="6" value="1" inputmode="numeric">
     <button class="btn" id="ok">OK</button>
     <p id="err" role="alert"></p>
@@ -27,11 +27,10 @@
   <div id="chr" hidden>
     <h2 id="chT"></h2>
     <canvas id="pv" width="24" height="30"></canvas>
-    <div class="row" id="chG"><button class="opt" data-g="man">Nam</button><button class="opt" data-g="woman">Nữ</button></div>
     <div class="row" id="chS"></div>
-    <div class="row"><label for="chC">Chọn màu da tùy chỉnh:</label><input type="color" id="chC" value="#c68642"></div>
     <div class="row"><button class="btn alt" id="chBack">Quay lại</button><button class="btn" id="chOk">Tiếp</button></div>
     <p class="tip">Nhấn Enter để xác nhận</p>
+  </div>
   </div>
   <div id="hud" hidden>
     <div class="pnl" id="clk"></div>
