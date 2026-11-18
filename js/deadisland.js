@@ -1,4 +1,4 @@
-const W=180,H=96,T=8,CW=500,CH=300,WW=W*T,WH=H*T,BR=48,CX0=65,CY0=34,SEA=0,SAND=1,GRASS=2,TREE=3,MTN=4,ROCK=5,FLOW=6,CAS=7,DOOR=8,COURT=9,CLF=10,PATH=11,PLAT=12,HUT=13,WELL=14,PIT=15,HSE=16,HSX=86,HSY=37,HDX=87,HDY=43;
+const W=180,H=136,T=8,CW=500,CH=300,WW=W*T,WH=H*T,BR=48,CX0=65,CY0=34,SEA=0,SAND=1,GRASS=2,TREE=3,MTN=4,ROCK=5,FLOW=6,CAS=7,DOOR=8,COURT=9,CLF=10,PATH=11,PLAT=12,HUT=13,WELL=14,PIT=15,HSE=16,HSX=86,HSY=37,HDX=87,HDY=43,SWAMP=17,POOL=18,DTREE=19,CAVE=20,SIGN=21,CROCK=22,CVX=80,CVY=121,SGX=78,SGY=120;
 const cv=document.getElementById('c'),cx=cv.getContext('2d');cv.width=CW;cv.height=CH;
 const $=id=>document.getElementById(id),rnd=n=>Math.floor(Math.random()*n),ri=(a,b)=>a+rnd(b-a+1);
 const PC=['#e0533d','#3b6fd6','#e0b030','#8e44ad','#16a085','#ff7ab6'];
@@ -9,6 +9,7 @@ const KEY='deadisland:save5',mul=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a
 let HX=0,HY=0,WX=0,WY=0,camX=0,camY=0,inside=false,im=[],ins=[],sel=1,trans=null,keys={},seed=0,gm=0,snap={},lastMin=-1,last=performance.now(),confirmKey='';
 let m,hg,state='title',frame=0,bx=40,by=BR*T+3,tbx=0,iAlpha=0,shake=0,crashT=-1,people=[],nPl=1,shoreX=0,parts=[];
 let OW=null,TK=null,NPCD=0,ACC={},sd=[],BTOT=0,MTOT=0;
+let GH=null,BL=[],SGN=0,flash=0;const CHB=[[54,28],[20,12],[88,12],[18,43],[90,43],[54,7]];
 /* Lửa trại: nay nằm trên bãi cỏ gần chỗ thuyền cập bờ (vị trí được đặt lại trong gen() theo bờ đảo) */
 let CAMPX=40,CAMPY=53,CAMPN=0;
 const CSP=[[-2,0],[2,0],[0,2],[-2,2],[2,2],[-3,1],[3,1],[-1,-2],[1,-2],[-3,-1],[3,-1],[0,-3]];
@@ -18,12 +19,13 @@ function campGoal(p,kind){
   return walkT(x,y)?{out:1,x,y,kind}:{out:1,x:CAMPX,y:CAMPY+2,kind}}
 const hs=(x,y)=>{let h=(x*374761393+y*668265263)>>>0;h=((h^(h>>>13))*1274126177)>>>0;return(h^(h>>>16))>>>0};
 const cap=t=>$('cap').textContent=t;
-const walkT=(tx,ty,fl,npc)=>{if(fl){const t=(FL[fl].im[ty]||[])[tx];return t===0||t===2||t===6||t===30||t===32||t===33||t===36||t===44|| t===45||t===50||(npc&&t===21)}const t=m[ty]&&m[ty][tx];return t===SAND||t===GRASS||t===FLOW||t===COURT||t===DOOR||t===PLAT||t===PATH};
+const walkT=(tx,ty,fl,npc)=>{if(fl){const t=(FL[fl].im[ty]||[])[tx];return t===0||t===2||t===6||t===30||t===32||t===33||t===36||t===44|| t===45||t===50||t===57||(npc&&t===21)}const t=m[ty]&&m[ty][tx];return t===SAND||t===GRASS||t===FLOW||t===COURT||t===DOOR||t===PLAT||t===PATH||t===SWAMP||t===CAVE};
 
 const walk=(x,y,p)=>walkT(Math.floor(x/T),Math.floor(y/T),p&&p.fl,p&&!p.pl);
 
 /* ===== Tạo đảo: bãi cát, đồng cỏ, rừng, núi ===== */
 function gen(sd){
+  BL=[];GH=null;SGN=0;
   seed=sd||(1+rnd(2e9));const rg=mul(seed),p=[0,1,2,3,4,5].map(()=>rg()*6);m=[];hg=[];
   for(let y=0;y<H;y++){m[y]=[];hg[y]=[];for(let x=0;x<W;x++){
     const dx=(x+.5-80)/55,dy=(y+.5-48)/37,a=Math.atan2(dy,dx),
@@ -42,6 +44,7 @@ function gen(sd){
   /* Đặt lửa trại gần bãi đổ bộ và dọn cây/đá quanh đó */
   CAMPX=shoreX+7;CAMPY=BR+5;
   for(let y=CAMPY-5;y<=CAMPY+5;y++)for(let x=CAMPX-5;x<=CAMPX+5;x++){if(m[y]&&(m[y][x]===TREE||m[y][x]===ROCK))m[y][x]=GRASS}
+  genLobes(p);
   const hcx=72,hcy=41;
   for(let y=hcy-20;y<=hcy+20;y++)for(let x=hcx-28;x<=hcx+28;x++){
     if(m[y][x]===SEA)continue;
@@ -71,8 +74,40 @@ function gen(sd){
   for(let y=HSY;y<HSY+6;y++)for(let x=HSX;x<HSX+8;x++)m[y][x]=HSE;
   for(let x=66;x<=HSX+9;x++)if(m[43][x]!==SEA)m[43][x]=COURT;
   for(let x=HSX-1;x<=HSX+9;x++)if(m[44][x]!==SEA)m[44][x]=COURT;
+  genPaths();
   calcSea();genIn();
 }
+
+/* ===== Mở rộng đảo: cánh rừng phía bắc, rừng + đầm lầy phía nam, đường mòn, cửa hang ===== */
+function genLobes(p){
+  const nSea=(x,y)=>[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>(m[y+b]||[])[x+a]===SEA);
+  for(let y=0;y<=24;y++)for(let x=0;x<W;x++){
+    const dx=(x+.5-80)/40,dy=(y+.5-11)/11,a=Math.atan2(dy,dx),r=1+.1*Math.sin(4*a+p[3])+.07*Math.sin(7*a+p[4]),d=Math.hypot(dx,dy)/r;
+    if(d<1&&m[y][x]===SEA)m[y][x]=hs(x,y)%100<55?TREE:GRASS}
+  for(let y=70;y<H;y++)for(let x=0;x<W;x++){
+    const dx=(x+.5-80)/46,dy=(y+.5-104)/29,a=Math.atan2(dy,dx),r=1+.1*Math.sin(3*a+p[3])+.07*Math.sin(5*a+p[4]),d=Math.hypot(dx,dy)/r;
+    if(d>=1)continue;
+    const h=hs(x,y)%100,f=Math.sin(x*.5+p[0])+Math.sin(y*.6+p[1])+Math.sin((x+y)*.3+p[2]),sw=y>=98||(y>=93&&h<(y-92)*16);
+    if(!sw)m[y][x]=h<(y<90?52:38)?TREE:GRASS;
+    else m[y][x]=(y>=97&&f>1.7)?POOL:h<9?DTREE:SWAMP}
+  for(let y=0;y<H;y++){if(y>24&&y<70)continue;for(let x=0;x<W;x++){const t=m[y][x];
+    if((t===GRASS||t===TREE||t===SWAMP||t===DTREE||t===POOL)&&nSea(x,y))m[y][x]=SAND}}}
+function genPaths(){
+  const fix=(x,y,t)=>{if(m[y]&&m[y][x]!==undefined&&(m[y][x]===TREE||m[y][x]===ROCK||m[y][x]===DTREE||m[y][x]===POOL))m[y][x]=t};
+  /* đường mòn phía nam: từ đường chính xuống rừng, qua đầm lầy (đường gỗ) tới cửa hang */
+  const sx=y=>{const t=(y-60)/(CVY-1-60);return Math.round(72+8*t+4*Math.sin((y-60)*.22)*(1-t))};
+  for(let y=60;y<=CVY-1;y++){const px=sx(y);
+    for(let dx=-3;dx<=3;dx++)fix(px+dx,y,y>=96?SWAMP:GRASS);
+    for(let dx=-1;dx<=1;dx++)m[y][px+dx]=PATH}
+  for(let y=CVY-4;y<=CVY+3;y++)for(let x=CVX-7;x<=CVX+7;x++)fix(x,y,SWAMP);
+  for(let x=CVX-3;x<=CVX+3;x++)for(let y=CVY;y<=CVY+2;y++)m[y][x]=CROCK;
+  m[CVY][CVX]=CAVE;m[SGY][SGX]=SIGN;
+  /* đường mòn phía bắc: từ sân dinh thự lên cánh rừng phía bắc */
+  const nx=y=>96+Math.round(3*Math.sin((y-44)*.2));
+  for(let y=44;y>=3;y--){const px=nx(y);
+    for(let dx=-3;dx<=3;dx++)fix(px+dx,y,GRASS);
+    for(let dx=-1;dx<=1;dx++)m[y][px+dx]=PATH}
+  for(let y=2;y<=12;y++)for(let x=nx(7)-5;x<=nx(7)+5;x++)if(m[y]&&m[y][x]!==undefined&&m[y][x]!==SEA&&m[y][x]!==PATH&&Math.hypot((x-nx(7))/5,(y-7)/4)<1)m[y][x]=FLOW}
 function calcSea(){
   sd=Array.from({length:H},()=>Array(W).fill(99));const q=[];
   for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(m[y][x]!==SEA){sd[y][x]=0;q.push([x,y])}
@@ -188,7 +223,7 @@ function roomTile(f,id){
 const roomGoal=(f,ids)=>{const t=roomTile(f,ids[rnd(ids.length)]);return t&&{fl:f,x:t[0],y:t[1],kind:'walk'}};
 function indoorGoal(p,f){const ids=[];FL[f].RM.forEach((r,i)=>{if(r&&canEnter(p,f,i))ids.push(i)});return roomGoal(f,ids)}
 function landNear(cx0,cy0,r){for(let i=0;i<40;i++){const x=cx0+ri(-r,r),y=cy0+ri(-r,r);if(walkT(x,y))return{out:1,x,y,kind:'walk'}}return null}
-function randLand(){for(let i=0;i<60;i++){const x=ri(5,W-5),y=ri(3,93);if(walkT(x,y))return{out:1,x,y,kind:'walk'}}return null}
+function randLand(){for(let i=0;i<60;i++){const x=ri(5,W-5),y=ri(3,H-3);if(walkT(x,y))return{out:1,x,y,kind:'walk'}}return null}
 const mansionGoal=()=>({fl:1,x:59,y:50,kind:'walk'});
 const outGoal=p=>p.role==='Làm vườn'?landNear(76,48,12):{out:1,x:67+rnd(11),y:41,kind:'walk'};
 /* Quản gia / giúp việc thỉnh thoảng vào phòng gia chủ để kiểm tra, dọn dẹp (ban ngày, lúc chủ phòng vắng) */
@@ -298,7 +333,17 @@ function land(x,y){
     if(!dn)R('#3c4048',0,6,T,2);
     if(h%4===0)R('#4f7a3a',(h>>2)&7,(h>>4)&5,2,1);
     return}
-  if(t===PATH){R(h%2?'#b89b6a':'#a98c5c',0,0,T,T);if(h%3===0)R('#d9c39a',(h>>3)&7,(h>>6)&7,2,1);if(h%5===0)R('#7d6a45',(h>>4)&7,(h>>8)&7,1,1);return}
+  if(t===POOL){R('#1f352b',0,0,T,T);if([[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>(m[y+b]||[])[x+a]!==POOL)){R('#37503a',0,0,T,1);R('#2a4231',0,T-1,T,1)}
+    if((x*5+y*3+(frame>>5))%9===0)R('#4a7a52',(h>>3)&5,(h>>6)&5,3,1);if(h%13===0){R('#3f7a34',(h>>4)&5,(h>>8)&5,3,2);R('#5fa044',(h>>4)&5,(h>>8)&5,1,1)}return}
+  if(t===CROCK){R('#6b6f78',0,0,T,T);R('#868c96',(h>>3)&3,0,4,2);R('#4b4f57',0,6,T,2);R('#55595f',(h>>5)&7,(h>>8)&5,2,2);return}
+  if(t===SWAMP||t===DTREE||t===SIGN||t===CAVE){
+    R(['#4d5a36','#465230','#53613a'][h%3],0,0,T,T);
+    if(h%7===0)R('#2f3b2a',(h>>3)&5,(h>>6)&5,3,2);if(h%5===0)R('#6f8a3a',(h>>4)&7,(h>>8)&7,1,1);if(h%11===0)R('#7a8a3a',(h>>3)&7,2,1,4);
+    if((x*7+y*3+(frame>>4))%29===0)R('#8fa86a',(h>>4)&5,(h>>7)&5,1,1);
+    if(t===CAVE){R('#5b606a',0,0,T,T);R('#7e8794',0,0,T,2);R('#07060b',1,2,6,6);R('#1a1822',1,2,6,1);if((frame>>4)%6===0)R('#aab4c2',3+((frame>>6)&1),4,1,1)}
+    return}
+  if(t===PATH){if(y>=96){R(h%2?'#7a5a38':'#6e5030',0,0,T,T);R('#8a6a44',0,0,T,1);R('#3e2a16',0,T-1,T,1);if(h%4===0)R('#3e2a16',(h>>3)&7,3,1,1);return}
+    R(h%2?'#b89b6a':'#a98c5c',0,0,T,T);if(h%3===0)R('#d9c39a',(h>>3)&7,(h>>6)&7,2,1);if(h%5===0)R('#7d6a45',(h>>4)&7,(h>>8)&7,1,1);return}
   R((t===PLAT||t===FLOW?['#6bb04e','#64a748','#6fb552']:['#5aa845','#55a141','#5fae4a'])[h%3],0,0,T,T);
   if(h%5===0)R('#3f8a35',(h>>3)&7,(h>>6)&6,1,2);if(h%9===0)R('#7cc462',(h>>4)&7,(h>>8)&7,1,1);
   if(h%13===0){const sw=((frame>>5)+x+y)&1;R('#3a8230',(h>>4)&5,3,1,3);R('#78cc5e',((h>>4)&5)+1+sw,2,1,2)}
@@ -481,6 +526,7 @@ function step(){
     if(state==='land'&&people.every(p=>p.ph)&&OW&&OW.os!=='out'){
       state='island';gm=0;snap.day=snap.week=snapshot();save();showHud();cap('Chủ đảo đã tới! Lại gần người có mũi tên ▼ rồi bấm E để nói chuyện.')}
     if(state==='island'){
+      ghostTick();signTick();
       if(!trans){doors();if(inside)roomCheck()}const d0=day();gm+=dt;dineTick();
       if(day()!==d0){snap.day=snapshot();if((day()-1)%7===0)snap.week=snap.day;save();cap('Ngày '+day()+' bắt đầu.')}
       if(Math.floor(gm)!==lastMin){lastMin=Math.floor(gm);clockUI()}
@@ -663,7 +709,7 @@ function buildOwn(f){
   }
   return{im,rid,RM}}
 function genIn(){
-FL=[null,build(1),build(2),buildHut(),buildOwn(1),buildOwn(2)];SEATS=[];BEDS=[];
+FL=[null,build(1),build(2),buildHut(),buildOwn(1),buildOwn(2),buildCave()];SEATS=[];BEDS=[];
   const nb=(M,x,y)=>[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>{const t=(M[y+b]||[])[x+a];return t===0||t===2});
   [1,2,3].forEach(f=>{const{im,RM}=FL[f];
     RM.forEach((r,id)=>{if(!r)return;const pk=[];
@@ -734,11 +780,13 @@ function drawIn(){
       else if(t===54){R('#6b4423',px,py+4,T,4);R('#cfd3d6',px,py,T,4);R('#8a8f98',px,py,T,1);if(x%3===0){R('#8ec6ee',px+2,py+1,4,2);R('#555',px+4,py-1,1,2)}}
       else if(t===55){R('#6b4423',px,py+4,T,4);R('#3a3a40',px,py,T,4);R('#111',px+1,py+1,2,2);R('#111',px+5,py+1,2,2);if((frame>>3)%2)R('#ff8a3d',px+1,py,2,1)}
       else if(t===56){R('#e8eef2',px+1,py-4,6,T+4);R('#b9c2cf',px+1,py+1,6,1);R('#8a8f98',px+5,py-2,1,2);R('#8a8f98',px+5,py+3,1,2)}
+      else if(t===58){R('rgba(0,0,0,.3)',px,py+6,T,2);R('#4a4852',px+2,py,4,8);R('#5f5d6a',px+3,py-4,2,5);R('#6d6b7a',px+3,py-4,1,9)}
     }else if(near(x,y)){
-      if(t===6||t===45||t===50){R('#6b4423',px,py,T,T);R('#ffd23f',px+5,py+3,1,1)}
+      if(t===57){R('#b9d4ee',px,py,T,T);R('#e8f4ff',px+1,py+1,6,3)}
+      else if(t===6||t===45||t===50){R('#6b4423',px,py,T,T);R('#ffd23f',px+5,py+3,1,1)}
       else if(t===30||t===32)drDoor(t,px,py,x);
       else if(t===1||t===7||t===25||t===31||(t>=40&&t<=43)||(t>=46&&t<=48)){
-        if(curF===3){R('#7a5230',px,py,T,T);R('#5a3a1e',px,py+6,T,2);R('#6b4423',px,py+3,T,1)}else{R('#8d8576',px,py,T,T);R('#6f6859',px,py+6,T,2)}
+        if(curF===3){R('#7a5230',px,py,T,T);R('#5a3a1e',px,py+6,T,2);R('#6b4423',px,py+3,T,1)}else if(curF===6){R('#2a2830',px,py,T,T);R('#1b1a21',px,py+6,T,2);R('#3a3844',px,py,T,1)}else{R('#8d8576',px,py,T,T);R('#6f6859',px,py+6,T,2)}
         if(t===25){R('#d8d0bc',px+1,py+1,6,5);R('#8ec6ee',px+2,py+2,4,3);R('#fff',px+2,py+2,1,1);R('#d8d0bc',px+4,py+2,1,3)}
         if(t===31){R('#8e1f2a',px+1,py,6,7);R('#d4a63a',px+3,py+1,2,4)}
         if(t>=40&&t<=43)pics.push([px,py,t,(rid[y-1]||[])[x]===curR]);
@@ -750,7 +798,9 @@ function drawIn(){
   if(curR===1&&curF<=2)(curF===1?[24,34,46]:[20,27]).forEach(y=>{const X=476,Y=y*T;cx.globalAlpha=.1;R('#ffcc66',X-34,Y-14,68,40);R('#ffcc66',X-20,Y-22,40,56);cx.globalAlpha=1;R('#ffd23f',X-5,Y,10,1);R('#fff2a8',X-1,Y+1,2,2)});
   cx.globalAlpha=1;
 
-  cartDraw();ins.filter(p=>p.fl===curF&&ridAt(p)===curR).sort((a,b)=>a.y-b.y).forEach(person)}
+  if(curF===6)BL.forEach(([bx2,by2])=>{R('#4a0b10',bx2-5,by2-1,10,3);R('#7a1a20',bx2-3,by2-2,6,2);R('#7a1a20',bx2+4,by2+1,2,1)});
+  cartDraw();ins.filter(p=>p.fl===curF&&ridAt(p)===curR).sort((a,b)=>a.y-b.y).forEach(person);
+  if(curF===6)caveLight()}
 function draw(){
   cx.save();
   if(inside){cx.fillStyle='#000';cx.fillRect(0,0,CW,CH);cx.scale(IS,IS);cx.translate(-Math.round(camX),-Math.round(camY));drawIn()}
@@ -763,18 +813,19 @@ function draw(){
     clouds();boat();if(iAlpha>0){cx.globalAlpha=iAlpha;castle();owHouse();cx.globalAlpha=1}
     for(let y=y0;y<=Math.min(H-1,y1+1);y++){
       cx.globalAlpha=iAlpha;
-      for(let x=x0;x<=x1;x++){const t=m[y][x];if(t===TREE)tree(x,y);else if(t===ROCK)rock(x,y)}
+      for(let x=x0;x<=x1;x++){const t=m[y][x];if(t===TREE)tree(x,y);else if(t===ROCK)rock(x,y);else if(t===DTREE)dtree(x,y);else if(t===SIGN)sign(x,y)}
       cx.globalAlpha=iAlpha;if(y===HY+2)hut();if(y===WY+1)well();if(y===CAMPY)camp();cx.globalAlpha=1;
       people.filter(p=>p.vis&&!p.hide&&Math.floor(p.y/T)===y).sort((a,b)=>a.y-b.y).forEach(person)}
-    glow();
+    glow();mist(x0,x1,y0,y1);
     parts.forEach(q=>{cx.globalAlpha=Math.min(1,q.l/20);cx.fillStyle=q.c;cx.fillRect(Math.round(q.x),Math.round(q.y),q.s,q.s)})}
   cx.globalAlpha=1;cx.restore();
   if(state==='title'){const g=cx.createLinearGradient(0,0,0,CH);g.addColorStop(0,'rgba(60,20,90,.55)');g.addColorStop(.6,'rgba(255,120,80,.12)');g.addColorStop(1,'rgba(10,10,40,.35)');cx.fillStyle=g;cx.fillRect(0,0,CW,CH)}
   else{const c=tint();cx.fillStyle='rgba('+c[0]+','+c[1]+','+c[2]+','+(c[3]*(inside?.35:1)).toFixed(3)+')';cx.fillRect(0,0,CW,CH)}
   cx.drawImage(VG,0,0);
+  if(flash>0){cx.fillStyle='rgba(190,0,0,'+(flash/24*.5).toFixed(3)+')';cx.fillRect(0,0,CW,CH);flash--}
   if(trans){cx.fillStyle='rgba(0,0,0,'+Math.max(0,Math.min(1,trans.t<1?trans.t:2-trans.t))+')';cx.fillRect(0,0,CW,CH)}}
 /* ===== Điều khiển, camera, ra vào lâu đài ===== */
-function setSel(n){if(inside&&!ins.some(p=>p.pl===n)){const q=ins.find(p=>p.pl);if(q)n=q.pl}sel=n;infoUI()}
+function setSel(n){if(!people.some(p=>p.pl===n)){const q=people.find(p=>p.pl);if(q)n=q.pl}if(inside&&!ins.some(p=>p.pl===n)){const q=ins.find(p=>p.pl);if(q)n=q.pl}sel=n;infoUI()}
 function infoUI(){
   const e=$('sl');if(!e)return;
   const n=sel,P=people.find(p=>p.pl===n),all=people.concat(ins),
@@ -786,7 +837,7 @@ function infoUI(){
     people.filter(p=>p.pl).map(p=>'<span class="sw" style="background:'+p.c+'"></span>P'+p.pl).join('')+
     '<br><b>Sống sót</b><br>Người chơi: <b>'+pa+'/'+nPl+'</b><br>NPC thuyền: <b>'+ba+'/'+BTOT+'</b><br>NPC dinh thự: <b>'+ma+'/'+MTOT+'</b>'}
 function cam(){
-  if(inside){const P=ins.find(p=>p.pl===sel)||{x:0,y:0};camX+=(Math.max(0,Math.min(IW*T-CW/IS,P.x-CW/IS/2))-camX)*.15;camY+=(Math.max(0,Math.min(IH*T-CH/IS,P.y-CH/IS/2))-camY)*.15;return}
+  if(inside){const P=ins.find(p=>p.pl===sel)||ins.find(p=>p.pl);if(!P)return;camX+=(Math.max(0,Math.min(IW*T-CW/IS,P.x-CW/IS/2))-camX)*.15;camY+=(Math.max(0,Math.min(IH*T-CH/IS,P.y-CH/IS/2))-camY)*.15;return}
   let fx=CW/2,fy=by;
   if(state==='sail'||state==='crash'){fx=bx+17}
   else if(state==='land'||state==='island'){const P=people.find(p=>p.pl===sel&&p.vis);if(state==='land'&&OW&&OW.vis&&OW.os==='out'){fx=OW.x;fy=OW.y}else if(P){fx=P.x;fy=P.y}else fx=bx+17}
@@ -794,17 +845,19 @@ function cam(){
 function ctrl(){
   const P=(inside?ins:people).find(p=>p.pl===sel);if(!P||trans||TK)return;wf=P.fl||1;
   const dx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0),dy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);
-  if(dx||dy){const l=Math.hypot(dx,dy),nx=P.x+dx/l,ny=P.y+dy/l;P.path=[];if(walk(nx,P.y,P))P.x=nx;if(walk(P.x,ny,P))P.y=ny;P.tx=P.x;P.ty=P.y;P.moving=1}}
+  if(dx||dy){const l=Math.hypot(dx,dy),sf=(!inside&&(m[Math.floor(P.y/T)]||[])[Math.floor(P.x/T)]===SWAMP)?.7:1,nx=P.x+dx/l*sf,ny=P.y+dy/l*sf;P.path=[];if(walk(nx,P.y,P))P.x=nx;if(walk(P.x,ny,P))P.y=ny;P.tx=P.x;P.ty=P.y;P.moving=1}}
 function doors(){
   const at=(p,t)=>{const r=FL[p.fl]&&FL[p.fl].im[Math.floor(p.y/T)];return r&&r[Math.floor(p.x/T)]===t};
   const pd=!inside&&people.find(p=>p.pl&&(m[Math.floor(p.y/T)]||[])[Math.floor(p.x/T)]===DOOR);
   if(pd){if(ACC[pd.pl])enter();else{pd.x=pd.tx=72*T+4;pd.y=pd.ty=41*T+4;pd.path=[];cap('Vui lòng đối thoại với chủ dinh thự trước khi vào.')}}
   else if(!inside&&people.some(p=>p.pl&&Math.floor(p.x/T)===HX+2&&Math.floor(p.y/T)===HY+3))enterHut();
   else if(!inside&&ownDoor()){}
+  else if(!inside&&caveDoor()){}
   else if(inside){
     if(ins.some(p=>p.pl&&at(p,6)))leave();
     else if(ins.some(p=>p.pl&&at(p,45)))leaveHut();
     else if(ins.some(p=>p.pl&&at(p,50)))leaveOwn();
+    else if(ins.some(p=>p.pl&&at(p,57)))leaveCave();
     else{const q=ins.find(p=>p.pl&&at(p,36));if(q)stairs(q)}}}
 function stairs(q){trans={t:0,cb:()=>{
   if(q.fl>=4){q.fl=q.fl===4?5:4;q.x=q.tx=(49+rnd(2))*T+4;q.y=q.ty=20*T+4}
@@ -1199,3 +1252,135 @@ function tbl(px,py,x,y){
   if(y===37&&(x-55)%4===0&&x<=Math.min(DISH.top,DISH.bot)){R('#d8dce2',1,2,6,4);R('#b5651d',2,2,4,3);R('#5aa845',1,2,2,1);R('#c0392b',5,3,1,1)}
   const pl=(y===36&&x%2===0&&x>=54&&x<=66&&x<=DISH.top)||(y===38&&x%2===0&&x>=54&&x<=66&&x<=DISH.bot)||(x===67&&y===37&&DISH.head);
   if(pl){R('#fff',1,2,6,4);R('#cfd3d8',1,5,6,1);R(['#c0392b','#d4a63a','#5aa845'][(x+y)%3],3,3,2,2)}}
+
+
+/* ===== HANG ĐỘNG CẤM + OAN HỒN ===== */
+function buildCave(){
+  const im=Array.from({length:IH},()=>Array(IW).fill(1)),rid=Array.from({length:IH},()=>Array(IW).fill(0)),RM=[];
+  const carve=(x,y)=>{if(x>0&&y>0&&x<IW-1&&y<IH-1){im[y][x]=0;rid[y][x]=1}};
+  const ell=(a0,b0,rx,ry,k)=>{for(let y=b0-ry-2;y<=b0+ry+2;y++)for(let x=a0-rx-2;x<=a0+rx+2;x++){const a=Math.atan2((y-b0)/ry,(x-a0)/rx),r=1+.12*Math.sin(3*a+k)+.08*Math.sin(5*a+k*2),d=Math.hypot((x-a0)/rx,(y-b0)/ry)/r;if(d<1)carve(x,y)}};
+  const tun=(x0,y0,x1,y1,w)=>{const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0))*2;for(let i=0;i<=n;i++){const x=Math.round(x0+(x1-x0)*i/n),y=Math.round(y0+(y1-y0)*i/n);for(let a=-w;a<=w;a++)for(let b=-w;b<=w;b++)carve(x+a,y+b)}};
+  ell(54,28,20,11,1);/* hang lớn */
+  ell(20,12,10,6,2);ell(88,12,10,6,3);ell(18,43,10,7,4);ell(90,43,10,7,5);ell(54,7,9,4,6);/* các hang nhỏ */
+  ell(54,50,9,4,7);/* sảnh vào */
+  tun(54,36,54,48,1);tun(42,22,26,15,1);tun(66,22,82,15,1);tun(42,35,24,40,1);tun(66,35,84,40,1);tun(54,19,54,10,1);
+  tun(30,10,45,7,1);tun(63,7,78,10,1);tun(28,46,46,50,1);tun(80,46,62,50,1);
+  [[46,23],[62,23],[44,31],[64,32],[54,33],[50,19],[16,10],[24,14],[84,10],[92,14],[14,41],[22,45],[86,41],[94,45],[50,6],[58,8]].forEach(([x,y])=>{if(im[y][x]===0)im[y][x]=58});
+  im[54][54]=57;/* lối ra */
+  RM[1]={n:'Hang động (nguy hiểm!)',f:['#3a3742','#34313c'],x0:0,y0:0,x1:IW-1,y1:IH-1,s:1};
+  return{im,rid,RM}}
+function caveDoor(){const q=people.find(p=>p.pl&&Math.floor(p.x/T)===CVX&&Math.floor(p.y/T)===CVY);if(!q)return false;enterCave();return true}
+function enterCave(){trans={t:0,cb:()=>{
+  inside=true;curF=6;curR=1;
+  const al=people.filter(p=>p.pl);
+  al.forEach(p=>{p.x=p.tx=CVX*T+4;p.y=p.ty=(CVY-1)*T+4;p.path=[]});
+  ins=ins.filter(p=>!p.pl).concat(al.map((p,i)=>({...p,fl:6,x:(51+i*1.5)*T,y:52*T,tx:(51+i*1.5)*T,ty:52*T,path:[],ph:1,moving:0,vis:1,delay:0})));
+  const w=CHB[rnd(CHB.length)];GH={x:w[0]*T+4,y:w[1]*T+4,path:[],st:'patrol',t:0,wait:2,dir:1,tgt:null,lost:0,rt:0};
+  setSel(sel);snapCam();
+  cap('Bạn đã bước vào hang động tối tăm... đâu đó có tiếng cười vọng lại.')}}}
+function leaveCave(){trans={t:0,cb:()=>{
+  inside=false;ins=ins.filter(p=>!p.pl);
+  people.filter(p=>p.pl).forEach((p,i)=>{p.x=CVX*T+4+(i-2)*6;p.y=(CVY-2)*T+4;p.tx=p.x;p.ty=p.y;p.path=[]});
+  if(GH){GH.st='patrol';GH.path=[];GH.wait=2}
+  cap('Bạn đã thoát khỏi hang động.')}}}
+function signTick(){
+  if(inside||frame%8)return;
+  const n=people.some(p=>p.pl&&Math.hypot(p.x-(SGX*T+4),p.y-(SGY*T+4))<26);
+  if(n&&!SGN)cap('Bảng cấm: "NGUY HIỂM! CẤM VÀO HANG ĐỘNG." Có thứ gì đó đang canh giữ bên trong...');
+  SGN=n?1:0}
+function los(a,b){
+  const dx=b.x-a.x,dy=b.y-a.y,n=Math.ceil(Math.hypot(dx,dy)/3),M=FL[6].im;
+  for(let i=1;i<n;i++){const t=(M[Math.floor((a.y+dy*i/n)/T)]||[])[Math.floor((a.x+dx*i/n)/T)];if(t!==0&&t!==57)return false}
+  return true}
+function gmove(G,tx,ty,sp){
+  const dx=tx-G.x,dy=ty-G.y,d=Math.hypot(dx,dy);if(Math.abs(dx)>.3)G.dir=dx>0?1:-1;
+  if(d<=sp){G.x=tx;G.y=ty;return true}G.x+=dx/d*sp;G.y+=dy/d*sp;return false}
+function ghostTick(){
+  if(!GH||!inside||curF!==6)return;
+  const G=GH,A=ins.filter(p=>p.pl&&p.fl===6);if(!A.length)return;
+  const dt=Math.min(DM,.1);let P=null,d=1e9;
+  A.forEach(p=>{const q=Math.hypot(p.x-G.x,p.y-G.y);if(q<d){d=q;P=p}});
+  const see=d<110&&los(G,P);
+  if(G.st==='patrol'){/* đi quanh các hang nhỏ, chậm hơn người chơi */
+    if(see){G.st='laugh';G.t=0;G.tgt=P;G.path=[];cap('Oan hồn đã nhìn thấy bạn... nó đang cười!');return}
+    if(G.wait>0){G.wait-=dt;return}
+    if(!G.path.length){const w=CHB[rnd(CHB.length)],a=bfs(6,Math.floor(G.x/T),Math.floor(G.y/T),w[0],w[1]);if(a&&a.length)G.path=a;else{G.wait=1;return}}
+    if(gmove(G,G.path[0][0],G.path[0][1],.45))G.path.shift();
+    if(!G.path.length)G.wait=1+Math.random()*2.5}
+  else if(G.st==='laugh'){/* cười 1,5 giây rồi mới đuổi */
+    G.t+=dt;G.dir=P.x>=G.x?1:-1;
+    if(G.t>=1.5){G.st='chase';G.rt=0;G.lost=0;G.path=[];cap('Oan hồn đuổi theo bạn! Chạy đi!')}}
+  else if(G.st==='chase'){
+    if(see||d<140)G.lost=0;else G.lost+=dt;
+    if(G.lost>3.5){G.st='patrol';G.wait=1;G.path=[];return}
+    if(d<10){G.st='slash';G.t=0;G.tgt=P;return}
+    if(los(G,P))gmove(G,P.x,P.y,.85);/* chạy chậm hơn người chơi một chút */
+    else{if(--G.rt<=0||!G.path.length){G.rt=10;const a=bfs(6,Math.floor(G.x/T),Math.floor(G.y/T),Math.floor(P.x/T),Math.floor(P.y/T));G.path=a||[]}
+      if(G.path.length&&gmove(G,G.path[0][0],G.path[0][1],.85))G.path.shift()}}
+  else if(G.st==='slash'){
+    G.t+=dt;const V=A.find(p=>G.tgt&&p.pl===G.tgt.pl);
+    if(V)G.dir=V.x>=G.x?1:-1;
+    if(G.t>=.45){
+      if(V&&Math.hypot(V.x-G.x,V.y-G.y)<24){killPlayer(V.pl);G.st='patrol';G.wait=1.5;G.path=[]}
+      else{G.st='chase';G.path=[];G.rt=0}}}}
+function killPlayer(n){
+  const V=ins.find(p=>p.pl===n)||people.find(p=>p.pl===n);if(!V)return;
+  BL.push([V.x,V.y]);flash=24;
+  people=people.filter(p=>p.pl!==n);ins=ins.filter(p=>p.pl!==n);
+  const L=people.filter(p=>p.pl);
+  if(!L.length){gameOver();return}
+  cap('P'+n+' đã bị oan hồn chém chết!');
+  if(sel===n)setSel(L[0].pl);else infoUI()}
+function gameOver(){
+  cap('Oan hồn đã chém chết người chơi cuối cùng. Trò chơi kết thúc...');infoUI();
+  state='over';setTimeout(()=>{reset()},6000)}
+function caveLight(){
+  const P=ins.find(p=>p.pl&&p.pl===sel)||ins.find(p=>p.pl),x0=Math.round(camX)-4,y0=Math.round(camY)-4;
+  if(P){const g=cx.createRadialGradient(P.x,P.y-6,36,P.x,P.y-6,140);g.addColorStop(0,'rgba(2,2,12,0)');g.addColorStop(1,'rgba(2,2,12,.9)');cx.fillStyle=g}
+  else cx.fillStyle='rgba(2,2,12,.9)';
+  cx.fillRect(x0,y0,CW/IS+8,CH/IS+8);ghostDraw()}
+function ghostDraw(){
+  const G=GH;if(!G)return;
+  let md=999;ins.forEach(p=>{if(p.pl&&p.fl===6)md=Math.min(md,Math.hypot(p.x-G.x,p.y-G.y))});
+  const st=G.st,al=st==='patrol'?Math.max(.3,Math.min(1,1.25-md/190)):1,x=Math.round(G.x),y=Math.round(G.y),bob=Math.round(Math.sin(frame*.08)*1.5);
+  cx.fillStyle='rgba(0,0,0,.3)';cx.fillRect(x-7,y-1,14,2);
+  cx.save();cx.translate(x+(st==='laugh'?Math.round(Math.sin(frame*.9)):0),y+bob-3);cx.scale(G.dir,1);
+  const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(a,b,w,h)};
+  cx.globalAlpha=al*(.14+.06*Math.sin(frame*.1));R('#cfe6ff',-12,-32,24,36);cx.globalAlpha=al;
+  /* cây liềm sau lưng (khi chém thì vung ra phía trước) */
+  if(st==='slash'){const p=Math.min(1,G.t/.45),a1=-2.6+p*3.4;
+    for(let a=-2.6;a<=a1;a+=.12){cx.globalAlpha=al*(.25+.6*(a+2.6)/3.4);R('#e8f0ff',Math.round(Math.cos(a)*17)-1,Math.round(-14+Math.sin(a)*17)-1,2,2)}
+    cx.globalAlpha=al;for(let i=0;i<8;i++)R(i<2?'#8a95a3':'#dfe6ee',Math.round(Math.cos(a1)*(10+i*1.2)),Math.round(-14+Math.sin(a1)*(10+i*1.2)),2,2)}
+  else{for(let i=0;i<27;i++)R('#4a3b2c',-8+Math.round(i*.55),-1-i,2,1);
+    for(let i=0;i<15;i++){const bx2=7+i,by2=-27+Math.round(i*i*.055);R('#dfe6ee',bx2,by2,2,i>10?1:2);R('#8a95a3',bx2,by2+2,2,1)}}
+  /* váy trắng rách */
+  for(let j=0;j<10;j++){const w=8+Math.round(j*.9);R(j%3?'#f0efea':'#e2e0d8',-(w>>1),-9+j,w,1)}
+  for(let i=0;i<9;i++){const hh=1+((i*7+(frame>>5))%3);R(i%2?'#e2e0d8':'#f0efea',-8+i*2,1,2,hh)}
+  R('#a9a79f',-3,-6,2,3);R('#8f8d86',2,-2,2,2);R('#7a7870',-5,-1,1,3);R('#a9a79f',4,-7,1,2);R('#8f8d86',-1,-1,1,2);
+  R('#f0efea',-4,-18,8,10);R('#d8d6ce',3,-18,1,10);R('#e2e0d8',-5,-18,10,2);R('#a9a79f',-4,-12,2,1);R('#a9a79f',1,-15,1,2);
+  /* tay */
+  R('#ece0da',-6,-16,2,9);R('#ddd0c8',-6,-8,2,2);
+  if(st==='chase'||st==='slash'){R('#ece0da',4,-16,6,2);R('#ddd0c8',10,-16,2,2)}else{R('#ece0da',4,-17,2,8);R('#ddd0c8',4,-9,2,2)}
+  /* đầu: tóc đen dài che một bên mắt */
+  R('#f3e8e2',-3,-25,6,6);R('#15121a',-4,-28,8,3);R('#15121a',-5,-26,2,17);R('#15121a',3,-26,2,15);R('#15121a',-3,-25,4,3);
+  R('#15121a',-6,-12,2,4);R('#15121a',4,-12,2,3);
+  R(st==='chase'||st==='slash'?'#ff5a4a':'#ff2a2a',1,-22,2,1);
+  if(st==='chase'||st==='slash'||st==='laugh')R('#ff2a2a',-2,-22,2,1);
+  if(st==='laugh'){R('#14070b',-2,-20,5,3);R('#f4f4f4',-2,-20,5,1)}else R('#6a3a3a',-1,-19,2,1);
+  cx.restore();cx.globalAlpha=1;
+  if(st==='laugh')bub(x,y-38+bob,[(frame>>3)%2?'Hi hi hi hi!':'Ha ha ha ha!'])}
+/* ===== Cây chết, bảng cấm, sương mù đầm lầy ===== */
+function dtree(x,y){
+  const h=hs(x,y),px=x*T,py=y*T,R=(c,a,b,w,hh)=>{cx.fillStyle=c;cx.fillRect(px+a,py+b,w,hh)};
+  R('rgba(0,0,0,.25)',0,6,8,2);R('#2c2216',3,-6,2,13);R('#3d2f1f',3,-6,1,13);
+  R('#2c2216',1,-5,2,1);R('#2c2216',0,-6,1,2);R('#2c2216',5,-3,2,1);R('#2c2216',6,-5,1,2);R('#2c2216',2,-2,1,1);
+  if(h%2)R('#5f7a4a',1,-4,1,2);R('#56703f',5,-2,2,1);R('#6f8a58',4,0,1,4)}
+function sign(x,y){
+  const px=x*T,py=y*T,R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(px+a,py+b,w,h)};
+  R('rgba(0,0,0,.25)',0,7,8,1);R('#4a2f17',3,-1,2,9);R('#3a2410',-1,-9,10,9);R('#a8794a',0,-8,8,7);R('#c89a62',0,-8,8,1);
+  for(let i=0;i<6;i++){R('#d8392b',1+i,-7+i,1,1);R('#d8392b',6-i,-7+i,1,1)}
+  cx.font='bold 5px monospace';cx.textAlign='center';cx.lineWidth=2;cx.strokeStyle='#000';cx.strokeText('CẤM',px+4,py-11);cx.fillStyle='#ff5a4a';cx.fillText('CẤM',px+4,py-11)}
+function mist(x0,x1,y0,y1){
+  for(let y=Math.max(y0,97);y<=y1;y++)for(let x=x0;x<=x1;x++){const t=m[y][x];
+    if(t===SWAMP||t===POOL||t===DTREE||t===CAVE||t===SIGN){cx.globalAlpha=.1+.06*Math.sin(frame*.03+x*.3+y*.5);cx.fillStyle='#b8d4a0';cx.fillRect(x*T,y*T,T,T)}}
+  cx.globalAlpha=1}
