@@ -54,3 +54,8 @@ canvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rend
 .opt:disabled{opacity:.35;cursor:not-allowed;text-decoration:line-through}
 .opt:disabled{opacity:.4;cursor:not-allowed}
 .opt canvas{display:block}
+#meal{position:absolute;right:8px;top:46px;width:min(48%,300px);padding:10px;background:rgba(10,14,28,.95);border:3px solid var(--sun);box-shadow:4px 4px 0 #000;line-height:1.4;font-size:13px;z-index:5}
+#meal b{color:var(--sun)}
+#meal p{margin:0 0 6px;font-weight:400}
+#meal .mrow{display:flex;align-items:center;gap:6px;margin:6px 0}
+#meal .mrow .btn{padding:4px 10px;font-size:13px;flex:1}
