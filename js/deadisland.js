@@ -1,14 +1,16 @@
-const W=150,H=96,T=8,CW=500,CH=300,WW=W*T,WH=H*T,BR=48,CX0=65,CY0=34,SEA=0,SAND=1,GRASS=2,TREE=3,MTN=4,ROCK=5,FLOW=6,CAS=7,DOOR=8,COURT=9,CLF=10,PATH=11,PLAT=12,HUT=13,WELL=14,PIT=15,HSE=16,HSX=86,HSY=37,HDX=87,HDY=43;
+const W=180,H=96,T=8,CW=500,CH=300,WW=W*T,WH=H*T,BR=48,CX0=65,CY0=34,SEA=0,SAND=1,GRASS=2,TREE=3,MTN=4,ROCK=5,FLOW=6,CAS=7,DOOR=8,COURT=9,CLF=10,PATH=11,PLAT=12,HUT=13,WELL=14,PIT=15,HSE=16,HSX=86,HSY=37,HDX=87,HDY=43;
 const cv=document.getElementById('c'),cx=cv.getContext('2d');cv.width=CW;cv.height=CH;
 const $=id=>document.getElementById(id),rnd=n=>Math.floor(Math.random()*n),ri=(a,b)=>a+rnd(b-a+1);
 const PC=['#e0533d','#3b6fd6','#e0b030','#8e44ad','#16a085','#ff7ab6'];
 const SHIRT=['#7f8c8d','#c0392b','#2980b9','#27ae60','#d4ac0d','#8e6bbf','#e67e22','#ecf0f1','#1abc9c'];
 const SKIN=['#f1c27d','#e0ac69','#c68642','#8d5524','#ffdbac'],HAIR=['#2b1b0f','#4a2f17','#d9a441','#7a3b1d','#111'];
+const LCX=140,LRX=36,LRY=40;/* thùy đất phía đông (khu rừng lớn) */
 const KEY='deadisland:save5',mul=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 let HX=0,HY=0,WX=0,WY=0,camX=0,camY=0,inside=false,im=[],ins=[],sel=1,trans=null,keys={},seed=0,gm=0,snap={},lastMin=-1,last=performance.now(),confirmKey='';
 let m,hg,state='title',frame=0,bx=40,by=BR*T+3,tbx=0,iAlpha=0,shake=0,crashT=-1,people=[],nPl=1,shoreX=0,parts=[];
-let OW=null,TK=null,NPCD=0,ACC={},sd=[];
-const CAMPX=111,CAMPY=45;let CAMPN=0;/* lửa trại cạnh khu rừng */
+let OW=null,TK=null,NPCD=0,ACC={},sd=[],BTOT=0,MTOT=0;
+/* Lửa trại: nay nằm trên bãi cỏ gần chỗ thuyền cập bờ (vị trí được đặt lại trong gen() theo bờ đảo) */
+let CAMPX=40,CAMPY=53,CAMPN=0;
 const CSP=[[-2,0],[2,0],[0,2],[-2,2],[2,2],[-3,1],[3,1],[-1,-2],[1,-2],[-3,-1],[3,-1],[0,-3]];
 const HELP=[[76,10],[78,10],[80,10],[82,10],[86,9],[90,9],[84,13]];/* chỗ phụ bếp: khu sơ chế, rửa, bếp phụ */
 function campGoal(p,kind){
@@ -29,14 +31,17 @@ function gen(sd){
     hg[y][x]=d;m[y][x]=d>1?SEA:d>.88?SAND:GRASS}}
   shoreX=m[BR].findIndex(t=>t!==SEA);tbx=shoreX*T+4-34;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const dm=Math.hypot((x-46)/9,(y-66)/6);if(dm<1&&m[y][x]!==SEA){m[y][x]=MTN;hg[y][x]=dm*.4}}
-  for(let y=0;y<H;y++)for(let x=90;x<W;x++)if(Math.hypot((x-122)/24,(y-48)/36)<1&&m[y][x]===SEA)m[y][x]=GRASS;
+  for(let y=0;y<H;y++)for(let x=90;x<W;x++)if(Math.hypot((x-LCX)/LRX,(y-48)/LRY)<1&&m[y][x]===SEA)m[y][x]=GRASS;
   const q=[rg()*9,rg()*9,rg()*9];
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const h=hs(x,y)%100,f=Math.sin(x*.8+q[0])+Math.sin(y*.9+q[1])+Math.sin((x+y)*.45+q[2]);
-    if(m[y][x]===GRASS&&(Math.hypot((x-122)/24,(y-48)/36)<1?h<90:(((x>=78&&hg[y][x]>.45)||(x>=58&&hg[y][x]>.62))?h<84:((f>1.1&&h<60)||h<1))))m[y][x]=TREE;
+    if(m[y][x]===GRASS&&(Math.hypot((x-LCX)/LRX,(y-48)/LRY)<1?h<70:(((x>=78&&hg[y][x]>.45)||(x>=58&&hg[y][x]>.62))?h<84:((f>1.1&&h<60)||h<1))))m[y][x]=TREE;
     else if(m[y][x]===SAND&&h<3)m[y][x]=ROCK}
   for(let y=1;y<H-1;y++)for(let x=90;x<W-1;x++)if(m[y][x]!==SEA&&m[y][x]!==SAND&&[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>m[y+b][x+a]===SEA))m[y][x]=SAND;
   for(let y=BR-2;y<=BR+2;y++)for(let x=shoreX;x<=shoreX+5;x++){if(m[y][x]===TREE)m[y][x]=GRASS;if(m[y][x]===ROCK)m[y][x]=SAND}
+  /* Đặt lửa trại gần bãi đổ bộ và dọn cây/đá quanh đó */
+  CAMPX=shoreX+7;CAMPY=BR+5;
+  for(let y=CAMPY-5;y<=CAMPY+5;y++)for(let x=CAMPX-5;x<=CAMPX+5;x++){if(m[y]&&(m[y][x]===TREE||m[y][x]===ROCK))m[y][x]=GRASS}
   const hcx=72,hcy=41;
   for(let y=hcy-20;y<=hcy+20;y++)for(let x=hcx-28;x<=hcx+28;x++){
     if(m[y][x]===SEA)continue;
@@ -53,12 +58,15 @@ function gen(sd){
   /* Rừng lớn bên phải: đường mòn -> nhà gỗ -> giếng cổ -> hố lớn (cách xa nhau) */
   const py=x=>48+Math.round(3*Math.sin((x-98)*.15)),clr=(x0,y0,x1,y1)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(m[y][x]!==SEA)m[y][x]=GRASS};
   clr(100,py(103)-8,108,py(103)-2);clr(118,py(121)-6,124,py(121)-2);clr(108,42,114,47);clr(110,47,112,49);
-  for(let x=96;x<=136;x++)for(let y=py(x)-1;y<=py(x)+1;y++)if(m[y][x]!==SEA)m[y][x]=PATH;
+  for(let x=96;x<=152;x++)for(let y=py(x)-3;y<=py(x)+3;y++)if(m[y][x]===TREE||m[y][x]===ROCK)m[y][x]=GRASS;/* dọn cây hai bên đường mòn để không bị kẹt */
+  for(let x=96;x<=152;x++)for(let y=py(x)-1;y<=py(x)+1;y++)if(m[y][x]!==SEA)m[y][x]=PATH;
   for(let x=72;x<=98;x++)for(let y=59;y<=61;y++)if(m[y][x]!==SEA)m[y][x]=PATH;
   for(let y=py(97);y<=61;y++)for(let x=96;x<=98;x++)if(m[y][x]!==SEA)m[y][x]=PATH;
   HX=102;HY=py(103)-6;for(let y=HY;y<HY+3;y++)for(let x=HX;x<HX+4;x++)m[y][x]=HUT;
   WX=120;WY=py(121)-4;for(let y=WY;y<WY+2;y++)for(let x=WX;x<WX+2;x++)m[y][x]=WELL;
-  for(let y=40;y<=56;y++)for(let x=130;x<=148;x++)if(Math.hypot((x-140)/6.5,(y-48)/5)<1&&m[y][x]!==SEA)m[y][x]=PIT;
+  for(let y=36;y<=60;y++)for(let x=140;x<=174;x++){const d=Math.hypot((x-156)/10,(y-48)/8.5);if(d<1.5&&m[y][x]!==SEA&&(m[y][x]===TREE||m[y][x]===ROCK))m[y][x]=GRASS}
+  for(let y=40;y<=56;y++)for(let x=146;x<=166;x++)if(Math.hypot((x-156)/6.5,(y-48)/5)<1&&m[y][x]!==SEA)m[y][x]=PIT;
+  for(let y=36;y<=60;y++)for(let x=140;x<=174;x++)if(Math.hypot((x-156)/10,(y-48)/8.5)<1&&m[y][x]!==SEA&&m[y][x]!==PIT)m[y][x]=PATH;/* đường mòn vòng quanh hố lớn */
   /* Nhà 2 tầng của chủ đảo (cạnh dinh thự) + sân đá nối với sân lâu đài */
   for(let y=HSY;y<HSY+6;y++)for(let x=HSX;x<HSX+8;x++)m[y][x]=HSE;
   for(let x=66;x<=HSX+9;x++)if(m[43][x]!==SEA)m[43][x]=COURT;
@@ -92,7 +100,7 @@ function mkPeople(){
       cls:'g',n:newNeeds(),act:'idle',t:0,cd:0,goal:null,say:''})}
   all.sort(()=>Math.random()-.5).forEach((p,i)=>{
     p.delay=i*14;p.x=bx+ri(8,26);p.y=by+2;p.tx=shoreX*T+4;p.ty=by+ri(0,3);p.path=[pickWalk(shoreX+1,BR,5)]});
-  people=all;ins=[];CAMPN=0;initRes();ACC={};NPCD=0;OW=mkOwner();people.push(OW)}
+  BTOT=0;MTOT=0;people=all;ins=[];CAMPN=0;initRes();ACC={};NPCD=0;OW=mkOwner();people.push(OW)}
 function upd(p){
   if(p.delay>0){p.delay--;return}
   p.vis=1;
@@ -145,8 +153,9 @@ function think(p){if(p.evt){p.wait=30;return}
   if(Math.random()<SKIP[p.cls])return;
   const g=idleGoal(p);if(g){p.goal=g;p.path=[]}}
 function goEat(p){
+  if(p.cls==='f')return false;/* gia đình chủ đảo chỉ ăn ở bàn chính trong đại sảnh (bữa ăn lớn), không ăn ở bếp / bàn nhân viên */
   if(p.cls==='g'&&!p.acc)return false;/* người chưa được vào dinh thự ăn tại trại */
-  const pref=p.cls==='h'?[101]:p.cls==='f'?[12,102]:[102,12];let i=-1;
+  const pref=p.cls==='h'?[101]:[102,12];let i=-1;
   for(const r of pref){i=SEATS.findIndex(q=>q.room===r&&!q.o);if(i>=0)break}
   if(i<0)return false;
   const s=SEATS[i];s.o=p;p.si=i;p.goal={fl:s.fl,x:s.x,y:s.y,kind:'eat'};p.path=[];return true}
@@ -156,7 +165,7 @@ function goSleep(p){
     if(!p.acc){p.goal=campGoal(p,'campsleep');p.path=[];return}
     i=BEDS.findIndex(b=>b.fl===1&&b.room>=4&&b.room<=11&&!b.o);/* ngủ chung phòng người làm */
     if(i<0){p.goal=campGoal(p,'campsleep');p.path=[];return}
-  }else if(i<0)i=BEDS.findIndex(b=>b.fl===2&&b.room>=4&&b.room<=11&&!b.o);
+  }else if(i<0)i=BEDS.findIndex(b=>b.fl===1&&b.room>=4&&b.room<=11&&!b.o);/* NPC không được lên phòng khách tầng 2 để ngủ, chỉ ngủ ở tầng 1 */
   if(i>=0&&BEDS[i].o&&BEDS[i].o!==p)i=-1;
   if(i<0){startAct(p,'sleep',0);return}
   const b=BEDS[i];b.o=p;p.bi=i;p.goal={fl:b.fl,x:b.x,y:b.y,kind:'sleep'};p.path=[]}
@@ -179,7 +188,7 @@ function roomTile(f,id){
 const roomGoal=(f,ids)=>{const t=roomTile(f,ids[rnd(ids.length)]);return t&&{fl:f,x:t[0],y:t[1],kind:'walk'}};
 function indoorGoal(p,f){const ids=[];FL[f].RM.forEach((r,i)=>{if(r&&canEnter(p,f,i))ids.push(i)});return roomGoal(f,ids)}
 function landNear(cx0,cy0,r){for(let i=0;i<40;i++){const x=cx0+ri(-r,r),y=cy0+ri(-r,r);if(walkT(x,y))return{out:1,x,y,kind:'walk'}}return null}
-function randLand(){for(let i=0;i<60;i++){const x=ri(5,145),y=ri(3,93);if(walkT(x,y))return{out:1,x,y,kind:'walk'}}return null}
+function randLand(){for(let i=0;i<60;i++){const x=ri(5,W-5),y=ri(3,93);if(walkT(x,y))return{out:1,x,y,kind:'walk'}}return null}
 const mansionGoal=()=>({fl:1,x:59,y:50,kind:'walk'});
 const outGoal=p=>p.role==='Làm vườn'?landNear(76,48,12):{out:1,x:67+rnd(11),y:41,kind:'walk'};
 /* Quản gia / giúp việc thỉnh thoảng vào phòng gia chủ để kiểm tra, dọn dẹp (ban ngày, lúc chủ phòng vắng) */
@@ -190,7 +199,7 @@ function cleanGoal(){
   return t&&{fl:2,x:t[0],y:t[1],kind:'clean'}}
 function idleGoal(p){
   const r=Math.random(),tx=Math.floor(p.x/T),ty=Math.floor(p.y/T);
-  if(p.cls==='h'){if(p.fl===3&&r<.25)return roomGoal(3,[1]);if(r<.85){const g=landNear(128,46,5);if(g)g.kind='hunt';return g}return landNear(HX+2,HY+6,5)}
+  if(p.cls==='h'){if(p.fl===3&&r<.25)return roomGoal(3,[1]);if(r<.85){const g=landNear(140,48,6);if(g)g.kind='hunt';return g}return landNear(HX+2,HY+6,5)}
   if(p.cls==='g'){
     if(!p.acc)return r<.55?landNear(tx,ty,6):r<.8?randLand():campGoal(p,'camp');
     const hr=hour();
@@ -765,10 +774,17 @@ function draw(){
   cx.drawImage(VG,0,0);
   if(trans){cx.fillStyle='rgba(0,0,0,'+Math.max(0,Math.min(1,trans.t<1?trans.t:2-trans.t))+')';cx.fillRect(0,0,CW,CH)}}
 /* ===== Điều khiển, camera, ra vào lâu đài ===== */
-function setSel(n){if(inside&&!ins.some(p=>p.pl===n)){const q=ins.find(p=>p.pl);if(q)n=q.pl}sel=n;const e=$('sl');if(!e)return;
-  const P=people.find(p=>p.pl===n);
+function setSel(n){if(inside&&!ins.some(p=>p.pl===n)){const q=ins.find(p=>p.pl);if(q)n=q.pl}sel=n;infoUI()}
+function infoUI(){
+  const e=$('sl');if(!e)return;
+  const n=sel,P=people.find(p=>p.pl===n),all=people.concat(ins),
+    pa=people.filter(p=>p.pl).length,
+    ba=all.filter(p=>!p.pl&&p.cls==='g').length,
+    ma=all.filter(p=>!p.pl&&p.cls==='s').length;/* toàn bộ nhân viên dinh thự (quản gia, giúp việc, bếp, làm vườn), không tính gia đình chủ đảo */
+  BTOT=Math.max(BTOT,ba);MTOT=Math.max(MTOT,ma);
   e.innerHTML='<b>Nhân vật đang điều khiển</b><br>'+(P?'<span class="sw" style="background:'+P.c+'"></span>':'')+'<b>P'+n+'</b> / '+nPl+' người chơi<br>'+
-    people.filter(p=>p.pl).map(p=>'<span class="sw" style="background:'+p.c+'"></span>P'+p.pl).join('')+'<br>NPC: <b>'+(people.filter(p=>!p.pl&&!p.owner).length+ins.filter(p=>!p.pl).length)+'</b>'}
+    people.filter(p=>p.pl).map(p=>'<span class="sw" style="background:'+p.c+'"></span>P'+p.pl).join('')+
+    '<br><b>Sống sót</b><br>Người chơi: <b>'+pa+'/'+nPl+'</b><br>NPC thuyền: <b>'+ba+'/'+BTOT+'</b><br>NPC dinh thự: <b>'+ma+'/'+MTOT+'</b>'}
 function cam(){
   if(inside){const P=ins.find(p=>p.pl===sel)||{x:0,y:0};camX+=(Math.max(0,Math.min(IW*T-CW/IS,P.x-CW/IS/2))-camX)*.15;camY+=(Math.max(0,Math.min(IH*T-CH/IS,P.y-CH/IS/2))-camY)*.15;return}
   let fx=CW/2,fy=by;
@@ -799,6 +815,7 @@ function fixPos(p){const M=FL[p.fl].im,tx=Math.floor(p.x/T),ty=Math.floor(p.y/T)
   for(let r=0;r<14;r++)for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){const t=(M[ty+j]||[])[tx+i];if(t===0||t===2){p.x=p.tx=(tx+i)*T+4;p.y=p.ty=(ty+j)*T+4;return p}}return p}
 function npcI(role,k,c,tx,ty,fl,cls,o){return fixPos({k,pl:0,role,cls,c,skin:SKIN[rnd(5)],hair:role==='Quản gia'||role==='Chủ nhân'?'#cfd3d6':HAIR[rnd(5)],x:tx*T+4,y:ty*T+4,tx:tx*T+4,ty:ty*T+4,sp:.4,path:[],ph:1,wait:ri(20,90),moving:0,vis:1,delay:0,fl,n:{hu:ri(25,45),fa:ri(5,25),sl:ri(0,15)},act:'idle',t:0,cd:0,goal:null,say:'',...o})}
 function initRes(){
+  const MS=SKINS.map(a=>a[1]).concat(SKIN).sort(()=>Math.random()-.5);let mi=0;
   const used=new Set(),L=[
     ['Quản gia','man','#151515',59,26,1,'s',{clean:1,home:[1,17]}],
     ['Giúp việc','woman','#222',30,23,1,'s',{clean:1,home:[1,4]}],
@@ -815,7 +832,7 @@ function initRes(){
     ['Phu nhân','woman','#8e1f2a',66,22,2,'f',{own:[12],home:[2,12]}],
     ['Cậu chủ','man','#2980b9',54,27,2,'f',{own:[14],home:[2,14]}],
     ['Tiểu thư','woman','#ff7ab6',68,27,2,'f',{own:[15],home:[2,15]}]];
-  L.forEach(a=>{const p=npcI(...a),[f,r]=a[7].home,i=BEDS.findIndex((b,j)=>b.fl===f&&b.room===r&&!used.has(j));if(i>=0){used.add(i);p.hb=i}delete p.home;ins.push(p)})}
+  L.forEach(a=>{const p=npcI(...a),[f,r]=a[7].home;if(a[0]==='Giúp việc')p.skin=MS[mi++%MS.length];const i=BEDS.findIndex((b,j)=>b.fl===f&&b.room===r&&!used.has(j));if(i>=0){used.add(i);p.hb=i}delete p.home;ins.push(p)})}
 function enter(){trans={t:0,cb:()=>{
   inside=true;curF=1;curR=1;
   ins=ins.filter(p=>!p.pl).concat(people.filter(p=>p.pl&&ACC[p.pl]).map((p,i)=>({...p,fl:1,x:(55.5+i*1.5)*T,y:52*T,tx:(55.5+i*1.5)*T,ty:52*T,path:[],ph:1,moving:0,vis:1,delay:0})));
@@ -924,7 +941,7 @@ function tint(){
 function clockUI(){
   const h=(6+gm/60)%24,hh=Math.floor(h),mm=Math.floor((h-hh)*60),
     ph=h>=6&&h<11?['🌅','Sáng']:h>=11&&h<14?['☀️','Trưa']:h>=14&&h<18?['🌇','Chiều']:['🌙','Tối'],c=$('clk');
-  if(c)c.innerHTML=ph[0]+' Ngày <b>'+day()+'</b> · '+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+' · '+ph[1]+(MEAL(h)>=0?' · 🍽 Giờ ăn':'')}
+  if(c)c.innerHTML=ph[0]+' Ngày <b>'+day()+'</b> · '+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+' · '+ph[1]+(MEAL(h)>=0?' · 🍽 Giờ ăn':'');infoUI()}
 function showHud(){
   $('hud').hidden=false;$('tools').hidden=false;lastMin=-1;
   $('gd').hidden=!hudOn;
@@ -937,7 +954,7 @@ function snapP(){
   return people.filter(p=>!p.owner).concat(ins.filter(p=>!p.pl)).map(p=>{const o={};K.forEach(k=>{if(p[k]!==undefined)o[k]=p[k]});if(p.n)o.n={...p.n};if(p.loot)o.loot={...p.loot};o.inn=ins.includes(p)?1:0;return o})}
 const snapshot=()=>({gm,people:snapP()});
 function restore(s){
-  inside=false;trans=null;gm=s.gm;parts=[];people=[];ins=[];SEATS.forEach(q=>q.o=null);BEDS.forEach(q=>q.o=null);
+  BTOT=0;MTOT=0;inside=false;trans=null;gm=s.gm;parts=[];people=[];ins=[];SEATS.forEach(q=>q.o=null);BEDS.forEach(q=>q.o=null);
   s.people.forEach(o=>{const p={...o,tx:o.x,ty:o.y,path:[],goal:null,act:'idle',t:0,cd:0,ph:1,wait:ri(10,60),moving:0,vis:1,delay:0,say:''};if(!p.pl&&!p.n)p.n=newNeeds();if(p.cls==='g'&&p.acc===undefined)p.acc=1;(o.inn?ins:people).push(p)});
   CAMPN=people.concat(ins).reduce((a,p)=>p.cs!=null?Math.max(a,p.cs+1):a,0);
   homeOwner();dineSync()}
@@ -1029,7 +1046,7 @@ cv.addEventListener('pointerdown',e=>{
   const P=L.find(p=>p.pl===sel);if(P){P.tx=wx;P.ty=wy;P.path=[]}});
 const togHud=()=>{hudOn=!hudOn;$('gd').hidden=!hudOn};$('hudBtn').onclick=togHud;
 reset();requestAnimationFrame(loop);
-/* ===== BỮA ĂN LỚN Ở ĐẠI SẢNH (chỉ gia đình chủ đảo + người chơi; NPC thuyền ăn ở bàn nhân viên) ===== */
+/* ===== BỮA ĂN LỚN Ở ĐẠI SẢNH (gia đình chủ đảo + người chơi cùng ngồi bàn chính; NPC thuyền ăn ở bàn nhân viên) ===== */
 const MST=k=>Math.floor(k/3)*1440+[0,330,720][k%3];/* phút game bắt đầu bữa thứ k: 6:00 / 11:30 / 18:00 */
 const MNAME=['bữa sáng','bữa trưa','bữa tối'];
 const SP1=[['Chào mừng mọi người tới với','dinh thự của tôi.'],['1 tháng sau, mọi người có thể đi','thuyền tiếp tế để về đất liền.'],['Trong thời gian này, mong mọi người','cứ tự nhiên hoặc phụ giúp việc','trong dinh thự.'],['Sau đây mời mọi người','bắt đầu dùng bữa.']],
