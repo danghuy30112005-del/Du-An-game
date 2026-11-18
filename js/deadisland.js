@@ -10,8 +10,7 @@ const KEY='deadisland:save5',mul=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a
 let HX=0,HY=0,WX=0,WY=0,camX=0,camY=0,inside=false,im=[],ins=[],sel=1,trans=null,keys={},seed=0,gm=0,snap={},lastMin=-1,last=performance.now(),confirmKey='';
 let m,hg,state='title',frame=0,bx=40,by=BR*T+3,tbx=0,iAlpha=0,shake=0,crashT=-1,people=[],nPl=1,shoreX=0,parts=[];
 let OW=null,TK=null,NPCD=0,ACC={},sd=[],BTOT=0,MTOT=0;
-let GH=null,BL=[],SGN=0,flash=0;const CHB=[[54,28],[20,12],[88,12],[18,43],[90,43],[54,7]];
-/* Lửa trại: nay nằm trên bãi cỏ gần chỗ thuyền cập bờ (vị trí được đặt lại trong gen() theo bờ đảo) */
+const CHB=[[14,10],[94,10],[12,30],[96,30],[14,47],[94,47],[54,6],[34,5],[74,5],[40,24],[68,24],[40,34],[68,34]];/* Lửa trại: nay nằm trên bãi cỏ gần chỗ thuyền cập bờ (vị trí được đặt lại trong gen() theo bờ đảo) */
 let CAMPX=40,CAMPY=53,CAMPN=0;
 const CSP=[[-2,0],[2,0],[0,2],[-2,2],[2,2],[-3,1],[3,1],[-1,-2],[1,-2],[-3,-1],[3,-1],[0,-3]];
 const HELP=[[76,10],[78,10],[80,10],[82,10],[86,9],[90,9],[84,13]];/* chỗ phụ bếp: khu sơ chế, rửa, bếp phụ */
@@ -802,12 +801,12 @@ function drawIn(){
         if(t===7){R('#3a3a40',px+2,py+1,4,5);R((frame>>3)%2?'#ff8a3d':'#ffd23f',px+3,py+2,2,3)}}}}
   if(curF===3)hutRug();
   tall.forEach(([px,py])=>{R('#d8d0bc',px+1,py-6,6,T+6);R('#a9a18c',px+5,py-6,2,T+6)});
-  pics.forEach(a=>drPic(...a));dec.forEach(a=>drDec(...a));
+  pics.forEach(a=>drPic(...a));dec.forEach(a=>drDec(...a));if(curF===6)railDraw(F,x0,y0,x1,y1);
   if(curR===1&&curF<=2)(curF===1?[24,34,46]:[20,27]).forEach(y=>{const X=476,Y=y*T;cx.globalAlpha=.1;R('#ffcc66',X-34,Y-14,68,40);R('#ffcc66',X-20,Y-22,40,56);cx.globalAlpha=1;R('#ffd23f',X-5,Y,10,1);R('#fff2a8',X-1,Y+1,2,2)});
   cx.globalAlpha=1;
 
   if(curF===6)BL.forEach(([bx2,by2])=>{R('#4a0b10',bx2-5,by2-1,10,3);R('#7a1a20',bx2-3,by2-2,6,2);R('#7a1a20',bx2+4,by2+1,2,1)});
-  cartDraw();ins.filter(p=>p.fl===curF&&ridAt(p)===curR).sort((a,b)=>a.y-b.y).forEach(person);
+  if(curF===6)mineCarts(F,x0,y0,x1,y1);cartDraw();ins.filter(p=>p.fl===curF&&ridAt(p)===curR).sort((a,b)=>a.y-b.y).forEach(person);
   if(curF===6)caveLight()}
 function draw(){
   cx.save();
@@ -1293,26 +1292,64 @@ function tbl(px,py,x,y){
 
 /* ===== HANG ĐỘNG CẤM + OAN HỒN ===== */
 function buildCave(){
-  const im=Array.from({length:IH},()=>Array(IW).fill(1)),rid=Array.from({length:IH},()=>Array(IW).fill(0)),RM=[];
-  const carve=(x,y)=>{if(x>0&&y>0&&x<IW-1&&y<IH-1){im[y][x]=0;rid[y][x]=1}};
-  const ell=(a0,b0,rx,ry,k)=>{for(let y=b0-ry-2;y<=b0+ry+2;y++)for(let x=a0-rx-2;x<=a0+rx+2;x++){const a=Math.atan2((y-b0)/ry,(x-a0)/rx),r=1+.12*Math.sin(3*a+k)+.08*Math.sin(5*a+k*2),d=Math.hypot((x-a0)/rx,(y-b0)/ry)/r;if(d<1)carve(x,y)}};
-  const tun=(x0,y0,x1,y1,w)=>{const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0))*2;for(let i=0;i<=n;i++){const x=Math.round(x0+(x1-x0)*i/n),y=Math.round(y0+(y1-y0)*i/n);for(let a=-w;a<=w;a++)for(let b=-w;b<=w;b++)carve(x+a,y+b)}};
-  ell(54,28,20,11,1);/* hang lớn */
-  ell(20,12,10,6,2);ell(88,12,10,6,3);ell(18,43,10,7,4);ell(90,43,10,7,5);ell(54,7,9,4,6);/* các hang nhỏ */
-  ell(54,50,9,4,7);/* sảnh vào */
-  tun(54,36,54,48,1);tun(42,22,26,15,1);tun(66,22,82,15,1);tun(42,35,24,40,1);tun(66,35,84,40,1);tun(54,19,54,10,1);
-  tun(30,10,45,7,1);tun(63,7,78,10,1);tun(28,46,46,50,1);tun(80,46,62,50,1);
-  [[46,23],[62,23],[44,31],[64,32],[54,33],[50,19],[16,10],[24,14],[84,10],[92,14],[14,41],[22,45],[86,41],[94,45],[50,6],[58,8]].forEach(([x,y])=>{if(im[y][x]===0)im[y][x]=58});
+  const im=Array.from({length:IH},()=>Array(IW).fill(1)),rid=Array.from({length:IH},()=>Array(IW).fill(0)),RM=[],rail=new Set(),lamps=[],carts=[];
+  const carve=(x,y,id,keep)=>{if(x>0&&y>0&&x<IW-1&&y<IH-1){im[y][x]=0;if(!(keep&&rid[y][x]))rid[y][x]=id}};
+  const ell=(a0,b0,rx,ry,k,id)=>{for(let y=b0-ry-2;y<=b0+ry+2;y++)for(let x=a0-rx-2;x<=a0+rx+2;x++){const a=Math.atan2((y-b0)/ry,(x-a0)/rx),r=1+.12*Math.sin(3*a+k)+.08*Math.sin(5*a+k*2),d=Math.hypot((x-a0)/rx,(y-b0)/ry)/r;if(d<1)carve(x,y,id)}};
+  const tun=(pts,w)=>{for(let i=1;i<pts.length;i++){const[a,b]=pts[i-1],[c,d]=pts[i],n=Math.max(1,Math.abs(c-a),Math.abs(d-b));for(let j=0;j<=n;j++){const x=a+Math.round((c-a)*j/n),y=b+Math.round((d-b)*j/n);for(let u=-w;u<=w;u++)for(let v=-w;v<=w;v++)carve(x+u,y+v,1,1)}}};
+  /* hang lớn + sảnh vào = phòng 1; mỗi hang nhỏ là một "phòng" riêng (id 2..10) nên bước vào sẽ đen màn */
+  const SC=[[2,14,10,9,6],[3,94,10,9,6],[4,12,30,8,6],[5,96,30,8,6],[6,14,47,9,6],[7,94,47,9,6],[8,54,6,10,4],[9,34,5,6,3],[10,74,5,6,3]];
+  ell(54,28,30,14,1,1);ell(54,49,12,5,7,1);
+  SC.forEach(([id,x,y,rx,ry])=>ell(x,y,rx,ry,id,id));
+  [[[36,22],[24,22],[24,10],[16,10]],[[72,22],[84,22],[84,10],[92,10]],
+   [[36,30],[14,30]],[[72,30],[94,30]],
+   [[36,38],[24,38],[24,47],[18,47]],[[72,38],[84,38],[84,47],[90,47]],
+   [[54,20],[54,5]],[[20,8],[20,5],[32,5]],[[36,5],[50,5]],[[58,5],[72,5]],[[76,5],[88,5],[88,8]],
+   [[12,26],[12,13]],[[96,26],[96,13]],[[12,34],[12,44]],[[96,34],[96,44]],
+   [[20,49],[46,49]],[[88,49],[62,49]],[[54,38],[54,54]]].forEach(p=>tun(p,1));
   im[54][54]=57;/* lối ra */
-  RM[1]={n:'Hang động (nguy hiểm!)',f:['#3a3742','#34313c'],x0:0,y0:0,x1:IW-1,y1:IH-1,s:1};
-  return{im,rid,RM}}
+  /* đường ray xe mỏ: dọc giữa hang, ngang qua hang lớn sang 2 hang bên, ngang sảnh vào, và nhánh phía bắc */
+  const RLS=[[[54,52],[54,5]],[[14,30],[94,30]],[[18,49],[90,49]],[[32,5],[76,5]]];
+  RLS.forEach(([[a,b],[c,d]])=>{const n=Math.max(Math.abs(c-a),Math.abs(d-b));for(let j=0;j<=n;j++)rail.add((b+Math.round((d-b)*j/n))*IW+a+Math.round((c-a)*j/n))});
+  /* nhũ đá: chỉ đặt ở chỗ rộng (8 ô xung quanh đều là sàn) nên không bao giờ chặn đường */
+  const kp=new Set(CHB.map(([x,y])=>y*IW+x));
+  for(let y=2;y<IH-2;y++)for(let x=2;x<IW-2;x++){
+    if(im[y][x]!==0||rail.has(y*IW+x)||kp.has(y*IW+x)||(y>=43&&Math.abs(x-54)<16))continue;
+    if(hs(x*3+1,y*7+2)%100>=4)continue;
+    let ok=1;for(let j=-1;j<=1&&ok;j++)for(let i=-1;i<=1;i++)if(im[y+j][x+i]!==0){ok=0;break}
+    if(ok)im[y][x]=58}
+  /* bóng đèn treo */
+  const addL=(x,y)=>{x=Math.round(x);y=Math.round(y);if(im[y]&&im[y][x]===0&&!rail.has(y*IW+x)&&!lamps.some(l=>l[0]===x&&l[1]===y))lamps.push([x,y,rid[y][x],hs(x,y)%6?1:0])};
+  RLS.forEach(([[a,b],[c,d]])=>{const hz=b===d,n=Math.max(Math.abs(c-a),Math.abs(d-b));for(let j=3;j<=n;j+=7){const x=a+Math.round((c-a)*j/n),y=b+Math.round((d-b)*j/n);addL(hz?x:x-1,hz?y-1:y)}});
+  SC.forEach(([id,x,y,rx,ry])=>{addL(x-rx*.5,y-1);addL(x+rx*.5,y+1);addL(x,y-ry*.5)});
+  for(let y=18;y<=38;y+=10)for(let x=30;x<=78;x+=12)addL(x,y);
+  [[46,46],[62,46],[46,52],[62,52]].forEach(([x,y])=>addL(x,y));
+  /* xe mỏ đặt trên ray (0 = vàng, 1 = than, 2 = kim cương) */
+  [[30,30,0],[80,30,1],[54,36,2],[54,12,0],[24,49,1],[84,49,2],[46,5,0],[16,30,1]].forEach(c=>{if(rail.has(c[1]*IW+c[0]))carts.push(c)});
+  RM[1]={n:'Hang động chính (nguy hiểm!)',f:['#3a3742','#34313c'],x0:0,y0:0,x1:IW-1,y1:IH-1,s:1};
+  SC.forEach(([id],i)=>RM[id]={n:'Nhánh hang nhỏ '+(i+1),f:i%2?['#37343f','#312e3a']:['#3d3a38','#36332f'],x0:0,y0:0,x1:IW-1,y1:IH-1,s:1});
+  return{im,rid,RM,rail,lamps,carts}}
+  function railDraw(F,x0,y0,x1,y1){
+  const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(a,b,w,h)},has=(x,y)=>F.rail.has(y*IW+x);
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+    if(F.rid[y][x]!==curR||!has(x,y))continue;
+    const px=x*T,py=y*T,hz=has(x-1,y)||has(x+1,y),vt=has(x,y-1)||has(x,y+1);
+    if(hz||!vt){R('#4a2f17',px+1,py+1,2,6);R('#4a2f17',px+5,py+1,2,6);R('#aab0ba',px,py+2,T,1);R('#6b7078',px,py+3,T,1);R('#aab0ba',px,py+5,T,1);R('#6b7078',px,py+6,T,1)}
+    if(vt){R('#4a2f17',px+1,py+1,6,2);R('#4a2f17',px+1,py+5,6,2);R('#aab0ba',px+2,py,1,T);R('#aab0ba',px+5,py,1,T)}}}
+function mineCarts(F,x0,y0,x1,y1){
+  F.carts.forEach(([x,y,k])=>{
+    if(x<x0||x>x1||y<y0||y>y1||F.rid[y][x]!==curR)return;
+    const px=x*T,py=y*T,R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(px+a,py+b,w,h)},o=k===0?'#ffd23f':k===1?'#2a2c32':'#5ad1ff';
+    R('rgba(0,0,0,.3)',-1,7,10,2);
+    R('#6b3b22',-1,2,10,5);R('#8a5030',-1,2,10,1);R('#4a2412',-1,6,10,1);R('#8a8f98',2,3,1,3);R('#8a8f98',6,3,1,3);
+    R(o,0,0,3,2);R(o,3,-1,4,3);R(o,6,0,3,2);
+    R('#1b1b20',1,7,2,2);R('#1b1b20',6,7,2,2)})}
 function caveDoor(){const q=people.find(p=>p.pl&&Math.floor(p.x/T)===CVX&&Math.floor(p.y/T)===CVY);if(!q)return false;enterCave();return true}
 function enterCave(){trans={t:0,cb:()=>{
   inside=true;curF=6;curR=1;
   const al=people.filter(p=>p.pl);
   al.forEach(p=>{p.x=p.tx=CVX*T+4;p.y=p.ty=(CVY-1)*T+4;p.path=[]});
   ins=ins.filter(p=>!p.pl).concat(al.map((p,i)=>({...p,fl:6,x:(51+i*1.5)*T,y:52*T,tx:(51+i*1.5)*T,ty:52*T,path:[],ph:1,moving:0,vis:1,delay:0})));
-  const w=CHB[rnd(CHB.length)];GH={x:w[0]*T+4,y:w[1]*T+4,path:[],st:'patrol',t:0,wait:2,dir:1,tgt:null,lost:0,rt:0};
+  const w=CHB[rnd(9)];GH={x:w[0]*T+4,y:w[1]*T+4,path:[],st:'patrol',t:0,wait:2,dir:1,tgt:null,lost:0,rt:0};
   setSel(sel);snapCam();
   cap('Bạn đã bước vào hang động tối tăm... đâu đó có tiếng cười vọng lại.')}}}
 function leaveCave(){trans={t:0,cb:()=>{
@@ -1372,13 +1409,32 @@ function gameOver(){
   cap('Oan hồn đã chém chết người chơi cuối cùng. Trò chơi kết thúc...');infoUI();
   state='over';setTimeout(()=>{reset()},6000)}
 function caveLight(){
-  const P=ins.find(p=>p.pl&&p.pl===sel)||ins.find(p=>p.pl),x0=Math.round(camX)-4,y0=Math.round(camY)-4;
-  if(P){const g=cx.createRadialGradient(P.x,P.y-6,36,P.x,P.y-6,140);g.addColorStop(0,'rgba(2,2,12,0)');g.addColorStop(1,'rgba(2,2,12,.9)');cx.fillStyle=g}
-  else cx.fillStyle='rgba(2,2,12,.9)';
+const DKC=document.createElement('canvas');DKC.width=CW;DKC.height=CH;const DKX=DKC.getContext('2d');
+function lampHole(k,x,y,r,a){const g=k.createRadialGradient(x,y,2,x,y,r);g.addColorStop(0,'rgba(0,0,0,'+a+')');g.addColorStop(.55,'rgba(0,0,0,'+(a*.55)+')');g.addColorStop(1,'rgba(0,0,0,0)');k.fillStyle=g;k.fillRect(x-r,y-r,r*2,r*2)}
+function caveLight(){
+  const P=ins.find(p=>p.pl&&p.pl===sel)||ins.find(p=>p.pl),cX=Math.round(camX),cY=Math.round(camY),k=DKX,vw=CW/IS,vh=CH/IS;
+  const L=FL[6].lamps.filter(l=>l[2]===curR&&l[0]*T>cX-60&&l[0]*T<cX+vw+60&&l[1]*T>cY-60&&l[1]*T<cY+vh+60);
+  /* lớp tối vẽ riêng, khoét sáng quanh người chơi và quanh các bóng đèn đang bật */
+  k.setTransform(1,0,0,1,0,0);k.globalCompositeOperation='source-over';k.clearRect(0,0,CW,CH);
+  k.setTransform(IS,0,0,IS,-cX*IS,-cY*IS);
+  k.fillStyle='rgba(2,2,12,.93)';k.fillRect(cX-4,cY-4,vw+8,vh+8);
+  k.globalCompositeOperation='destination-out';
+  if(P){const g=k.createRadialGradient(P.x,P.y-6,36,P.x,P.y-6,140);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');k.fillStyle=g;k.fillRect(P.x-140,P.y-146,280,280)}
+  L.forEach(l=>{if(l[3])lampHole(k,l[0]*T+4,l[1]*T+2,46,.85+.1*Math.sin(frame*.2+l[0]*1.7))});
+  k.globalCompositeOperation='source-over';
+  cx.save();cx.setTransform(1,0,0,1,0,0);cx.drawImage(DKC,0,0);cx.restore();
+  /* ánh cam ấm + bóng đèn treo */
+  cx.save();cx.globalCompositeOperation='lighter';
+  L.forEach(l=>{if(!l[3])return;const x=l[0]*T+4,y=l[1]*T+2,g=cx.createRadialGradient(x,y,2,x,y,40);g.addColorStop(0,'rgba(255,170,70,.18)');g.addColorStop(1,'rgba(255,170,70,0)');cx.fillStyle=g;cx.fillRect(x-40,y-40,80,80)});
+  cx.restore();
+  L.forEach(l=>{const x=l[0]*T+4,y=l[1]*T,R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(x+a,y+b,w,h)};
+    R('#15151a',0,-26,1,17);R('#3a3a40',-1,-9,3,2);
+    if(l[3]){R('#ffd23f',-1,-7,3,3);R('#fff6c0',0,-6,1,1)}else R('#55525c',-1,-7,3,3)});
+  ghostDraw()}
   cx.fillRect(x0,y0,CW/IS+8,CH/IS+8);ghostDraw()}
 function ghostDraw(){
   const G=GH;if(!G)return;
-  let md=999;ins.forEach(p=>{if(p.pl&&p.fl===6)md=Math.min(md,Math.hypot(p.x-G.x,p.y-G.y))});
+  let md=999;ins.forEach(p=>{if(p.pl&&p.fl===6)md=Math.min(md,Math.hypot(p.x-G.x,p.y-G.y))});const gr=(FL[6].rid[Math.floor(G.y/T)]||[])[Math.floor(G.x/T)];if(gr!==curR&&md>48)return;
   const st=G.st,al=st==='patrol'?Math.max(.3,Math.min(1,1.25-md/190)):1,x=Math.round(G.x),y=Math.round(G.y),bob=Math.round(Math.sin(frame*.08)*1.5);
   cx.fillStyle='rgba(0,0,0,.3)';cx.fillRect(x-7,y-1,14,2);
   cx.save();cx.translate(x+(st==='laugh'?Math.round(Math.sin(frame*.9)):0),y+bob-3);cx.scale(G.dir,1);
