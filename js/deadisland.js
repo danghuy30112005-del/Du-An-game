@@ -10,6 +10,7 @@ const KEY='deadisland:save5',mul=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a
 let HX=0,HY=0,WX=0,WY=0,camX=0,camY=0,inside=false,im=[],ins=[],sel=1,trans=null,keys={},seed=0,gm=0,snap={},lastMin=-1,last=performance.now(),confirmKey='';
 let m,hg,state='title',frame=0,bx=40,by=BR*T+3,tbx=0,iAlpha=0,shake=0,crashT=-1,people=[],nPl=1,shoreX=0,parts=[];
 let OW=null,TK=null,NPCD=0,ACC={},sd=[],BTOT=0,MTOT=0;
+let BL=[],GH=null,SGN=0,flash=0;
 const CHB=[[14,10],[94,10],[12,30],[96,30],[14,47],[94,47],[54,6],[34,5],[74,5],[40,24],[68,24],[40,34],[68,34]];/* Lửa trại: nay nằm trên bãi cỏ gần chỗ thuyền cập bờ (vị trí được đặt lại trong gen() theo bờ đảo) */
 let CAMPX=40,CAMPY=53,CAMPN=0;
 const CSP=[[-2,0],[2,0],[0,2],[-2,2],[2,2],[-3,1],[3,1],[-1,-2],[1,-2],[-3,-1],[3,-1],[0,-3]];
@@ -1408,7 +1409,7 @@ function killPlayer(n){
 function gameOver(){
   cap('Oan hồn đã chém chết người chơi cuối cùng. Trò chơi kết thúc...');infoUI();
   state='over';setTimeout(()=>{reset()},6000)}
-function caveLight(){
+
 const DKC=document.createElement('canvas');DKC.width=CW;DKC.height=CH;const DKX=DKC.getContext('2d');
 function lampHole(k,x,y,r,a){const g=k.createRadialGradient(x,y,2,x,y,r);g.addColorStop(0,'rgba(0,0,0,'+a+')');g.addColorStop(.55,'rgba(0,0,0,'+(a*.55)+')');g.addColorStop(1,'rgba(0,0,0,0)');k.fillStyle=g;k.fillRect(x-r,y-r,r*2,r*2)}
 function caveLight(){
@@ -1431,7 +1432,7 @@ function caveLight(){
     R('#15151a',0,-26,1,17);R('#3a3a40',-1,-9,3,2);
     if(l[3]){R('#ffd23f',-1,-7,3,3);R('#fff6c0',0,-6,1,1)}else R('#55525c',-1,-7,3,3)});
   ghostDraw()}
-  cx.fillRect(x0,y0,CW/IS+8,CH/IS+8);ghostDraw()}
+ 
 function ghostDraw(){
   const G=GH;if(!G)return;
   let md=999;ins.forEach(p=>{if(p.pl&&p.fl===6)md=Math.min(md,Math.hypot(p.x-G.x,p.y-G.y))});const gr=(FL[6].rid[Math.floor(G.y/T)]||[])[Math.floor(G.x/T)];if(gr!==curR&&md>48)return;
