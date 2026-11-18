@@ -77,14 +77,20 @@ function buildVillage(){
   for(let y=0;y<H;y++)for(let x=150;x<W;x++)if(m[y][x]===SEA&&dE(x,y)<1)set(x,y,wood(x,y)?TREE:GRASS,0);
   /* cát bờ cũ của rừng đông nay nằm trong đất liền: đổi lại thành rừng */
   for(let y=0;y<H;y++)for(let x=150;x<W;x++)if(m[y][x]===SAND&&dE(x,y)<1.04&&!nSea(x,y))set(x,y,wood(x,y)?TREE:GRASS,0);
-
+  /* 1b) Dải đất phía bắc: nối đất liền phía trên của đảo chính sang Rừng sâu và làng */
+  const NY=x=>11+Math.round(2.5*Math.sin(x*.07+K));
+  for(let x=112;x<=292;x++){
+    const cy=NY(x),hw=7+Math.round(2*Math.sin(x*.13+K*2));
+    for(let y=Math.max(0,cy-hw);y<=cy+hw;y++){
+      const rag=Math.abs(y-cy)>=hw-1&&hs(x,y)%100<50;/* viền gồ ghề */
+      if(m[y][x]===SEA&&!rag)set(x,y,wood(x,y)?TREE:GRASS,0)}}
   /* 2) Khoảng đất trống giữa rừng cho làng (viền gồ ghề) */
   for(let y=OY-6;y<=OY+46;y++)for(let x=OX-4;x<=OX+101;x++){
     const core=x>=OX+2&&x<=OX+97&&y>=OY&&y<=OY+40,edge=x>=OX-2&&x<=OX+99&&y>=OY-4&&y<=OY+44;
     if((core||(edge&&hs(x,y)%100<55))&&inb(x,y)&&m[y][x]!==SEA)set(x,y,GRASS,0)}
 
   /* 3) Bờ cát quanh khu rừng mới */
-  for(let y=0;y<H;y++)for(let x=150;x<W;x++)if((m[y][x]===GRASS||m[y][x]===TREE)&&nSea(x,y))set(x,y,SAND,0);
+  for(let y=0;y<H;y++)for(let x=110;x<W;x++)if((m[y][x]===GRASS||m[y][x]===TREE)&&nSea(x,y))set(x,y,SAND,0);
 
   /* 4) Vài đảo nhỏ hoang trên vùng biển mới */
   [[190,124,5,3],[252,134,6,4],[322,114,4,3],[326,22,5,3],[300,152,5,3],[198,164,4,3],[160,100,4,3],[170,150,5,3]].forEach(([cx0,cy0,rx,ry])=>{
@@ -139,7 +145,7 @@ function buildVillage(){
         for(let u=-1;u<=1;u++)for(let v=-1;v<=1;v++){const X=x+u,Y=y+v;if(inb(X,Y)&&m[Y][X]!==SEA&&m[Y][X]!==HSE)set(X,Y,PATH,0)}}}};
   const RY0=OY+15;
   trail([[166,48],[172,51],[178,47],[184,46],[OX+6,RY0]]);                       /* TÂY: từ hố sâu, nối về dinh thự */
-  trail([[OX+86,RY0],[OX+84,OY+4],[OX+88,OY-8],[OX+86,OY-22]]);                  /* BẮC: ra bãi biển phía bắc */
+  trail([[100,NY(100)],[OX+86,NY(OX+86)],[OX+86,OY-22]]);                          /* BẮC MỚI: từ đất phía trên của dinh thự tới làng */
   trail([[OX+86,RY0+1],[OX+84,OY+28],[OX+88,OY+42],[OX+86,OY+62]]);              /* NAM: ra bãi biển phía nam */
   trail([[OX+96,RY0],[OX+108,RY0+2],[OX+118,RY0+3],[OX+132,RY0+3]]);             /* ĐÔNG: ra bãi biển phía đông */
   calcSea();

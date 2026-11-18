@@ -855,7 +855,7 @@ function cam(){
   let fx=CW/2,fy=by;
   if(state==='sail'||state==='crash'){fx=bx+17}
   else if(state==='land'||state==='island'){const P=people.find(p=>p.pl===sel&&p.vis);if(state==='land'&&OW&&OW.vis&&OW.os==='out'){fx=OW.x;fy=OW.y}else if(P){fx=P.x;fy=P.y}else fx=bx+17}
-  camX+=(Math.max(0,Math.min(WW-CW,fx-CW/2))-camX)*.08;camY+=(Math.max(0,Math.min(WH-CH,fy-CH/2))-camY)*.08}
+  camX+=(Math.max(0,Math.min(WW-CW,fx-CW/2))-camX)*.08;camY+=(Math.max(0,Math.min(WH-CH,fy-CH*0.75))-camY)*.08;}
 function ctrl(){
   const P=(inside?ins:people).find(p=>p.pl===sel);if(!P||trans||TK)return;wf=P.fl||1;
   const dx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0),dy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);
