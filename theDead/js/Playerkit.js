@@ -401,8 +401,8 @@ function drawHeld(){
       cx.fillText(it.icon||'❓',hx+(fc.f>0?1:0),y-4)}})}
 /* ---------- Móc vào vòng vẽ của game ---------- */
 
-const _glow=glow;glow=function(){_glow();if(inside)return;gateFx();drawParry();drawSwings();drawParts()};
-const _drawIn=drawIn;drawIn=function(){_drawIn();drawParry();drawSwings();drawParts()};
+const _glow=glow;glow=function(){_glow();if(inside)return;gateFx();drawHeld();drawParry();drawSwings();drawParts()};
+const _drawIn=drawIn;drawIn=function(){_drawIn();drawHeld();drawParry();drawSwings();drawParts()};
 
 /* ---------- Cập nhật mỗi khung hình ---------- */
 function fmt(s){const t=Math.ceil(s);return t>=60?Math.floor(t/60)+':'+String(t%60).padStart(2,'0'):t+'s'}
@@ -471,8 +471,8 @@ holdBtn.onclick=()=>{
   const id=selItem(),it=id&&ITEMS[id];if(!it)return;
   if(EQ[sel]===id){delete EQ[sel];cap('P'+sel+' bỏ cầm '+it.name+', cất lại vào túi đồ.')}
   else{EQ[sel]=id;cap('P'+sel+' cầm '+it.name+' trên tay.'+(it.weapon?' Chuột phải: chém · R: đỡ đòn.':''))}
-  updInv()};
-new MutationObserver(updInv).observe($('invGrid'),{childList:true});
+  updInv();setTimeout(updInv,0)};          // chạy lại sau khi item.js sửa invInfo
+$('invGrid').addEventListener('click',()=>setTimeout(updInv,0));  // cập nhật khi chọn ô khác
 
 /* ---------- Pháp sư đưa Danh sách thì đưa luôn Dao phép ---------- */
 const _gi=window.giveItem;
