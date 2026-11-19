@@ -35,9 +35,23 @@
   <div id="hud" hidden>
     <div class="pnl" id="clk"></div>
     <div class="pnl" id="sl"></div>
+    <div class="pnl" id="stm" aria-label="Thanh thể lực">
+      <div class="bar"><i id="stF"></i></div>
+      <span id="stS">Thể lực 100/100</span>
+    </div>
     <div class="pnl" id="gd"></div>
   </div>
-  <div id="tools" hidden><button class="btn alt" id="hudBtn">Hướng dẫn</button><button class="btn" id="rsBtn">Reset</button><button class="btn" id="again">Về màn hình chính</button></div>
+  <div id="tools" hidden><button class="btn alt" id="invBtn">Túi đồ (B)</button><button class="btn alt" id="hudBtn">Hướng dẫn</button><button class="btn" id="rsBtn">Reset</button><button class="btn" id="again">Về màn hình chính</button></div>
+  <div id="inv" hidden>
+    <h2><span>🎒 Túi đồ <b id="invWho">P1</b></span><span id="invCnt">0/18</span></h2>
+    <div id="invGrid" role="list"></div>
+    <p id="invInfo">Chọn một ô để xem đồ.</p>
+    <div class="row">
+      <button class="btn" id="invUse">Dùng</button>
+      <button class="btn alt" id="invDrop">Vứt</button>
+      <button class="btn alt" id="invX">Đóng (B)</button>
+    </div>
+  </div>
   <div id="rs" hidden>
     <p>Chọn mốc muốn quay lại:</p>
     <button class="btn" data-r="day"></button>
@@ -52,4 +66,5 @@
 </main>
 <script src="../js/deadisland.js"></script>
 <script src="../js/village.js"></script>
+<script src="../js/playerkit.js"></script>
 </body></html>

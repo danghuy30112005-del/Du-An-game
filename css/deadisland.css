@@ -10,7 +10,7 @@ canvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rend
 #cap{position:absolute;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(0,0,0,.6);line-height:1.4;text-align:center;min-height:36px}
 .btn{font:inherit;color:var(--ink);background:linear-gradient(#ea4a3a,#b92c20);border:3px solid var(--ink);padding:10px 22px;cursor:pointer;box-shadow:3px 3px 0 #000}
 .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
-.btn:focus-visible,input:focus-visible{outline:3px dashed var(--sun);outline-offset:2px}
+.btn:focus-visible,input:focus-visible,.slot:focus-visible{outline:3px dashed var(--sun);outline-offset:2px}
 #menu{position:absolute;left:0;right:0;bottom:22%;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;line-height:1.4}
 #menu .btn{font-size:clamp(16px,3vw,24px)}
 #lv{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94%,520px);padding:14px;background:rgba(10,14,28,.94);border:3px solid var(--ink);box-shadow:4px 4px 0 #000;text-align:center;line-height:1.4}
@@ -59,3 +59,23 @@ canvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rend
 #meal p{margin:0 0 6px;font-weight:400}
 #meal .mrow{display:flex;align-items:center;gap:6px;margin:6px 0}
 #meal .mrow .btn{padding:4px 10px;font-size:13px;flex:1}
+
+/* ===== Thanh thể lực ===== */
+#stm{display:flex;flex-direction:column;gap:4px;min-width:170px}
+#stm .bar{height:12px;background:#1b2238;border:2px solid var(--ink);overflow:hidden}
+#stF{display:block;height:100%;width:100%;background:#3ddc97;transition:width .08s linear}
+#stF.run{background:var(--sun)}
+#stF.low{background:var(--red)}
+#stS{font-weight:400;font-size:12px}
+
+/* ===== Túi đồ (18 ô) ===== */
+#inv{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94%,430px);max-height:96%;overflow:auto;padding:12px;background:rgba(10,14,28,.96);border:3px solid var(--ink);box-shadow:4px 4px 0 #000;line-height:1.4;z-index:6}
+#inv h2{margin:0 0 8px;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+#invGrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px}
+.slot{aspect-ratio:1;padding:0;font:inherit;font-size:24px;line-height:1;color:var(--ink);background:#26304f;border:3px solid var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.slot.empty{opacity:.55}
+.slot.sel{border-color:var(--sun);background:#3a4570;opacity:1}
+#invInfo{min-height:2.8em;margin:0 0 8px;font-weight:400;font-size:13px}
+#inv .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+#inv .btn{padding:6px 12px;font-size:13px}
+#inv .btn:disabled{opacity:.4;cursor:not-allowed}
