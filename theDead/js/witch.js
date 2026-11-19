@@ -16,7 +16,7 @@ const IMG={"tear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAA
 const QI=[
   {id:'wtear',k:'tear',emoji:'💧',n:'Nước mắt của hi vọng',d:'Giọt nước bảy sắc, kết tinh từ hi vọng.'},
   {id:'wgift',k:'gift',emoji:'🪶',n:'Món quà đứa con của rừng thiêng',d:'Chiếc lông rực lửa, quà của rừng thiêng.'},
-  {id:'wsnake',k:'snake',emoji:'🐍',n:'Rắn từ bầy rắn mặt',d:'Con rắn tím quấn quanh nấm và tinh thể.'},
+  {id:'wsnake',k:'snake',emoji:'🐍',n:'Rắn từ bầy rắn mặt trăng',d:'Con rắn tím quấn quanh nấm và tinh thể.'},
   {id:'wstone',k:'stone',emoji:'💎',n:'Viên đá trong hang cổ',d:'Viên đá pha lê lấy từ hang cổ.'},
   {id:'wflower',k:'flower',emoji:'🌸',n:'Bông hoa của đầm lầy',d:'Bông hoa hồng mọc giữa đầm lầy.'}];
 const LISTN='Danh sách tìm đồ',INVKEY='deadisland:inv1';

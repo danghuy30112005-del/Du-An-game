@@ -11,12 +11,12 @@ if(typeof ghostTick!=='function'||typeof ghostDraw!=='function'||typeof FL==='un
 /* ---------- Thông số (px mỗi khung hình ở 60fps, thời gian tính bằng giây) ---------- */
 const C={
   patrol:.75,      /* đi tuần (gốc .45) */
-  chase:1.9,       /* đuổi (gốc 1.4; người đi bộ 1.25, chạy Q 2.1) */
-  mini:1.6,        /* hồn ma triệu hồi */
+  chase:1.8,       /* đuổi (gốc 1.4; người đi bộ 1.25, chạy Q 2.1) */
+  mini:4.6,        /* hồn ma triệu hồi */
   slow:.8,         /* tốc độ khi bị choáng sau chém hụt (gốc .5) */
   slowT:.6,        /* thời gian choáng (gốc 1) */
   laugh:.8,        /* thời gian cười trước khi đuổi (gốc 1.5) */
-  wind:.2,         /* thời gian vung liềm (gốc .45) */
+  wind:.5,         /* thời gian vung liềm (gốc .45) */
   reach:24,        /* tầm chém */
   sight:120,       /* tầm nhìn thấy người */
   cdS:6, cdW:10, cdM:18, gcd:1.8,       /* hồi chiêu: thạch nhũ / tường / triệu hồi / chung */
@@ -99,7 +99,9 @@ function tickMinions(dt){
       if(V)m.dir=V.x>=m.x?1:-1;
       if(m.t>=C.wind){
         m.st='chase';m.path=[];m.rt=0;
-        if(V&&Math.hypot(V.x-m.x,V.y-m.y)<C.reach)killPlayer(V.pl);
+        if(V&&Math.hypot(V.x-m.x,V.y-m.y)<C.reach){
+          if(window.parryHit&&window.parryHit(V,m))m.slow=C.slowT*4;
+          else killPlayer(V.pl)}
         else m.slow=C.slowT}
       return}
     if(d<10){m.st='slash';m.t=0;m.tgt=P;return}
@@ -170,8 +172,9 @@ ghostTick=function(){
     G.t+=dt;
     const V=A.find(p=>G.tgt&&p.pl===G.tgt.pl);
     if(V)G.dir=V.x>=G.x?1:-1;
-    if(G.t>=C.wind){
-      if(V&&Math.hypot(V.x-G.x,V.y-G.y)<C.reach){killPlayer(V.pl);G.st='patrol';G.wait=1.2;G.path=[]}
+    if(G.t>=C.wind){      if(V&&Math.hypot(V.x-G.x,V.y-G.y)<C.reach){
+        if(window.parryHit&&window.parryHit(V,G)){G.st='chase';G.path=[];G.rt=0;G.slow=C.slowT*4;cap('Đỡ được nhát chém! Oan hồn bị choáng một lúc.')}
+        else{killPlayer(V.pl);G.st='patrol';G.wait=1.2;G.path=[]}}
       else{G.st='chase';G.path=[];G.rt=0;G.slow=C.slowT;cap('Oan hồn chém hụt! Nó bị choáng một lúc, chạy đi!')}}}}
 
 /* ---------- Vẽ ---------- */

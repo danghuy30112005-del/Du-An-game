@@ -258,12 +258,7 @@ const _drawIn=drawIn;drawIn=function(){_drawIn();
     cx.fillStyle='#2f8f3a';cx.fillRect(X,Y,5,2);cx.fillRect(X+5,Y,2,1);cx.fillStyle='#b9e6b0';cx.fillRect(X+1,Y,2,1)})};
 
 /* ---------- Bảng thông tin bên trái ---------- */
-const _info=infoUI;infoUI=function(){_info();const e=$('sl');if(!e||!HN)return;
-  const n=people.concat(ins).find(p=>p.noce);let t='';
-  if(n){const a={drink:'đang nhậu',pass:'say gục',sleep:'đang ngủ',shop:'đang mua rượu',chat:'đang lè nhè'}[n.act]||
-    (n.goal&&n.goal.kind==='wine'?'đi mua rượu':n.goal&&n.goal.kind==='drink'?'về nhà nhậu':'lảo đảo');
-    t='<br>Noce: '+a+' · '+(n.bt|0)+' chai'}
-  e.innerHTML+='<div class="vil"><b>Chợ làng</b><br>Giao dịch: '+MK.deals+t+'</div>'};
+
 
 /* tạo lại thế giới một lần để bản đồ đầu tiên đã có chợ */
 reset();
