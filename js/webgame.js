@@ -51,7 +51,7 @@ function pixelWorld(area,info){
 function deadIsland(area,info){
   const f=document.createElement('iframe');
   f.className='pw';
-  f.src='deadisland.html';
+  f.src='../theDead/html/deadisland.html';
   f.title='Dead Island';
   area.appendChild(f);
   info.textContent='Bấm Bắt đầu, nhập số người chơi (1–6) rồi nhấn Enter.';
