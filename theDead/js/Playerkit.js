@@ -325,7 +325,7 @@ addEventListener('keydown',e=>{
   if(state!=='island'||TK||trans)return;
   const iv=$('inv');if(iv&&!iv.hidden)return;
   const n=sel;if(!playerOf(n))return;
-  if(!curWeapon(n)){cap('Cần cầm kiếm hoặc dao phép để dùng kỹ năng đỡ đòn.');return}
+  if(!curWeapon(n)){cap('Cần cầm vũ khí để dùng kỹ năng.');return}
   const s=SK[n]||(SK[n]={t:0,cd:0,cdMax:CD_MISS,hit:0});
   if(s.t>0)return;
   if(s.cd>0){cap('Đỡ đòn đang hồi: '+fmt(s.cd)+'.');return}
