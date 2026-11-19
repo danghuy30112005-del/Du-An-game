@@ -14,6 +14,7 @@ let BL=[],GH=null,SGN=0,flash=0,LS=null;
 const CHB=[[22,20],[148,20],[20,54],[150,54],[24,88],[146,88],[85,12],[50,10],[120,10],[62,42],[108,42],[62,64],[108,64],[85,54],[85,78]];/* điểm tuần tra của oan hồn */
 let CAMPX=40,CAMPY=53,CAMPN=0;
 const CSP=[[-2,0],[2,0],[0,2],[-2,2],[2,2],[-3,1],[3,1],[-1,-2],[1,-2],[-3,-1],[3,-1],[0,-3]];
+CSP.push([-4,1],[4,1],[-2,3],[2,3],[-4,-1],[4,-1]);
 const HELP=[[76,10],[78,10],[80,10],[82,10],[86,9],[90,9],[84,13]];/* chỗ phụ bếp: khu sơ chế, rửa, bếp phụ */
 function campGoal(p,kind){
   const k=(p.cs=p.cs==null?CAMPN++:p.cs),[a,b]=CSP[k%CSP.length],x=CAMPX+a,y=CAMPY+b;
@@ -199,14 +200,13 @@ function goEat(p){
   if(i<0)return false;
   const s=SEATS[i];s.o=p;p.si=i;p.goal={fl:s.fl,x:s.x,y:s.y,kind:'eat'};p.path=[];return true}
 function goSleep(p){
-  let i=p.hb!=null?p.hb:-1;
-  if(i<0&&p.cls==='g'){
-    if(!p.acc){p.goal=campGoal(p,'campsleep');p.path=[];return}
-    i=BEDS.findIndex(b=>b.fl===1&&b.room>=4&&b.room<=11&&!b.o);/* ngủ chung phòng người làm */
-    if(i<0){p.goal=campGoal(p,'campsleep');p.path=[];return}
-  }else if(i<0)i=BEDS.findIndex(b=>b.fl===1&&b.room>=4&&b.room<=11&&!b.o);/* NPC không được lên phòng khách tầng 2 để ngủ, chỉ ngủ ở tầng 1 */
-  if(i>=0&&BEDS[i].o&&BEDS[i].o!==p)i=-1;
-  if(i<0){startAct(p,'sleep',0);return}
+  const taken=j=>people.concat(ins).some(q=>q!==p&&q.hb===j);/* giường đã có chủ */
+  let i=-1;
+  if(p.hb!=null&&BEDS[p.hb]&&(!BEDS[p.hb].o||BEDS[p.hb].o===p))i=p.hb;/* giường của chính mình */
+  else if((p.cls==='g'&&p.acc)||p.cls==='s')i=BEDS.findIndex((b,j)=>b.fl===1&&b.room>=4&&b.room<=11&&!b.o&&!taken(j));/* giường trống phòng người làm TẦNG 1, không lên tầng 2 */
+  if(i<0){
+    if(p.cls==='g'||p.cls==='s'){p.goal=campGoal(p,'campsleep');p.path=[];return}/* hết giường / chưa được vào dinh thự: ra ngủ thành nhóm cạnh lửa trại */
+    return startAct(p,'rest',ri(12,18))}/* gia chủ, thợ săn: không bao giờ ngủ giữa sàn hay ngoài trời */
   const b=BEDS[i];b.o=p;p.bi=i;p.goal={fl:b.fl,x:b.x,y:b.y,kind:'sleep'};p.path=[]}
 function arrive(p){
   const g=p.goal;p.goal=null;p.wait=WAIT(p);

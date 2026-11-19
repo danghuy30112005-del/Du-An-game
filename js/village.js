@@ -363,7 +363,15 @@ const _signTick=signTick;signTick=function(){_signTick();
   if(VSEEN||inside||frame%10)return;
   const P=people.find(p=>p.pl===sel&&!p.hide);
   if(P&&P.x>(OX+4)*T&&P.x<(OX+98)*T&&P.y>(OY+2)*T&&P.y<(OY+42)*T){VSEEN=true;cap('Bạn đã tìm thấy một ngôi làng biệt lập sâu trong rừng. Dân làng đang làm ruộng và chăn nuôi.')}};
-
+/* đưa người chơi n vào / ra nhà dân (dùng putIn/putOut/syncView có sẵn của deadisland.js) */
+function goIn(n,fl,x,y){
+  const q=allPl().find(p=>p.pl===n);if(!q)return;
+  putIn(q,fl,x,y);
+  if(q.pl===sel)syncView(true)}
+function goOut(n,px,py){
+  const q=allPl().find(p=>p.pl===n);if(!q)return;
+  putOut(q,px,py);
+  if(q.pl===sel)syncView(true)}
 /* người chơi bước vào / ra khỏi nhà dân */
 function enterH(n,hz){trans={t:0,cb:()=>{goIn(n,hz.fl,hz.ex+.5,hz.ey,hz.dx,hz.dy);
   cap(hz.chief?'Nhà trưởng thôn: 3 phòng ngủ, phòng khách, bếp có bàn ăn lớn.':'Nhà dân '+(hz.kind==='palm'?'lợp lá cọ':'bằng gỗ')+': phòng khách có bàn trà, 2 phòng ngủ, bếp nhỏ.')}}}
