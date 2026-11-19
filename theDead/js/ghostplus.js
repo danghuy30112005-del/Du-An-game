@@ -23,7 +23,8 @@ const C={
   castS:.5, castW:.7, castM:.9,         /* thời gian niệm chú */
   warn:.9, fall:.22,                    /* thạch nhũ: báo trước / rơi */
   wallLife:6, wallHalf:3,               /* tường đá: sống bao lâu, nửa chiều dài (ô) */
-  minLife:11
+  minLife:11,
+  parryStun:2   /* choáng (đứng yên) khi bị đỡ đòn, giây */
 };
 let MIN=[],ROCKS=[],WALLS=[],PLAN=null,FX=[];
 const pls=()=>ins.filter(p=>p.pl&&p.fl===6);
@@ -90,6 +91,7 @@ function tickMinions(dt){
   MIN.forEach(m=>{
     m.life-=dt;
     if(m.spawn>0){m.spawn-=dt;return}
+    if(m.stun>0){m.stun=Math.max(0,m.stun-dt);m.slow=m.stun;return}
     const A=pls();if(!A.length)return;
     const[P,d]=nearest(m,A);
     if(m.slow>0)m.slow=Math.max(0,m.slow-dt);
@@ -100,7 +102,7 @@ function tickMinions(dt){
       if(m.t>=C.wind){
         m.st='chase';m.path=[];m.rt=0;
         if(V&&Math.hypot(V.x-m.x,V.y-m.y)<C.reach){
-          if(window.parryHit&&window.parryHit(V,m))m.slow=C.slowT*4;
+          if(window.parryHit&&window.parryHit(V,m)){m.stun=C.parryStun;m.slow=C.parryStun}
           else killPlayer(V.pl)}
         else m.slow=C.slowT}
       return}
@@ -139,7 +141,9 @@ ghostTick=function(){
   tickRocks(dt);tickWalls(dt);tickMinions(dt);
   const A=pls();if(!A.length)return;
   const[P,d]=nearest(G,A);
+  if(G.stun>0){G.stun=Math.max(0,G.stun-dt);G.slow=G.stun;return}
   if(G.slow>0)G.slow=Math.max(0,G.slow-dt);
+
   const see=d<C.sight&&los(G,P);
 
   if(G.st==='patrol'){
@@ -173,7 +177,7 @@ ghostTick=function(){
     const V=A.find(p=>G.tgt&&p.pl===G.tgt.pl);
     if(V)G.dir=V.x>=G.x?1:-1;
     if(G.t>=C.wind){      if(V&&Math.hypot(V.x-G.x,V.y-G.y)<C.reach){
-        if(window.parryHit&&window.parryHit(V,G)){G.st='chase';G.path=[];G.rt=0;G.slow=C.slowT*4;cap('Đỡ được nhát chém! Oan hồn bị choáng một lúc.')}
+        if(window.parryHit&&window.parryHit(V,G)){G.st='chase';G.path=[];G.rt=0;G.stun=C.parryStun;G.slow=C.parryStun;G.cast=0;G.ca=null;cap('Đỡ được nhát chém! Oan hồn bị choáng 2 giây.')}
         else{killPlayer(V.pl);G.st='patrol';G.wait=1.2;G.path=[]}}
       else{G.st='chase';G.path=[];G.rt=0;G.slow=C.slowT;cap('Oan hồn chém hụt! Nó bị choáng một lúc, chạy đi!')}}}}
 
