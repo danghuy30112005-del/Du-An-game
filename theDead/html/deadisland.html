@@ -16,6 +16,7 @@
       <div class="card lock"><b>MÀN 2</b><span>To be continued...</span></div>
     </div>
     <button class="btn alt" id="lvX">Quay lại</button>
+    <div id="goBox" hidden><button class="btn" id="goBtn">Quay lại · Chơi game mới</button></div>
   </div>
   <div id="ask" hidden>
     <label for="np">Nhập số người chơi (1–6)</label>
@@ -31,17 +32,18 @@
     <div class="row"><button class="btn alt" id="chBack">Quay lại</button><button class="btn" id="chOk">Tiếp</button></div>
     <p class="tip">Nhấn Enter để xác nhận</p>
   </div>
-
   <div id="hud" hidden>
-    <div class="pnl" id="clk"></div>
-    <div class="pnl" id="sl"></div>
-    <div class="pnl" id="stm" aria-label="Thanh thể lực">
-      <div class="bar"><i id="stF"></i></div>
-      <span id="stS">Thể lực 100/100</span>
+    <div id="topRow">
+      <div class="pnl" id="clk"></div>
+      <div class="pnl" id="stm" aria-label="Thanh thể lực">
+        <div class="bar"><i id="stF"></i></div>
+        <span id="stS">Thể lực 100/100</span>
+      </div>
     </div>
+    <div class="pnl" id="sl"></div>
     <div class="pnl" id="gd"></div>
   </div>
-  <div id="tools" hidden><button class="btn alt" id="invBtn">Túi đồ (B)</button><button class="btn alt" id="hudBtn">Hướng dẫn</button><button class="btn" id="rsBtn">Reset</button><button class="btn" id="again">Về màn hình chính</button></div>
+  <div id="tools" hidden><button class="btn alt" id="invBtn">B</button><button class="btn alt" id="hudBtn">H</button><button class="btn" id="rsBtn">Reset</button><button class="btn" id="again">Về màn hình chính</button></div>
   <div id="inv" hidden>
     <h2><span>🎒 Túi đồ <b id="invWho">P1</b></span><span id="invCnt">0/18</span></h2>
     <div id="invGrid" role="list"></div>

@@ -403,14 +403,12 @@ function tick(){
     FN.flag=near?1:0;FN.near=near}
   hudSkill()}
 
-/* ---------- Thanh kỹ năng trong HUD ---------- */
+/* ---------- Icon kỹ năng (hình 1) cạnh bảng thời gian ---------- */
 const sty=document.createElement('style');
-sty.textContent='#skl{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:170px;font-size:12px}'+
-  '#sklI{width:72px;height:72px;transition:filter .15s}';
+sty.textContent='#skl{padding:4px;min-width:0}#sklI{display:block;width:40px;height:40px;transition:filter .15s}';
 document.head.appendChild(sty);
 const skl=document.createElement('div');skl.className='pnl';skl.id='skl';skl.hidden=true;
-skl.innerHTML='<span id="sklN"></span>'+
- '<svg id="sklI" viewBox="0 0 100 100"><defs><linearGradient id="mg" x1="0" y1="0" x2="1" y2="1">'+
+skl.innerHTML='<svg id="sklI" viewBox="0 0 100 100"><defs><linearGradient id="mg" x1="0" y1="0" x2="1" y2="1">'+
  '<stop offset="0" stop-color="#2fb8e8"/><stop offset=".4" stop-color="#e0306e"/><stop offset=".75" stop-color="#7a3fc8"/><stop offset="1" stop-color="#2f4fd0"/></linearGradient></defs>'+
  '<polygon points="50,1 56,7 50,13 44,7" fill="#2aa7c9"/><polygon points="50,99 56,93 50,87 44,93" fill="#2f4fd0"/>'+
  '<polygon points="1,50 7,44 13,50 7,56" fill="#e0a040"/><polygon points="99,50 93,44 87,50 93,56" fill="#e0306e"/>'+
@@ -420,35 +418,20 @@ skl.innerHTML='<span id="sklN"></span>'+
  [0,45,90,135,180,225,270,315].map(a=>'<ellipse cx="50" cy="36" rx="6" ry="11" transform="rotate('+a+' 50 50)"/>').join('')+
  '<polygon points="50,20 56,44 80,50 56,56 50,80 44,56 20,50 44,44"/>'+
  '<polygon points="50,37 54,46 63,50 54,54 50,63 46,54 37,50 46,46"/>'+
- '<path d="M12 50H88M50 12V88M23 23L77 77M77 23L23 77"/></g>'+
- '<circle cx="18" cy="22" r="2.5" fill="#e0306e"/><circle cx="84" cy="80" r="2.5" fill="#e0a040"/><circle cx="82" cy="16" r="2" fill="#6a8de0"/><circle cx="14" cy="84" r="2" fill="#2f4fd0"/></svg>'+
- '<span id="sklT"></span>';
-if($('hud'))$('hud').insertBefore(skl,$('gd'));
+ '<path d="M12 50H88M50 12V88M23 23L77 77M77 23L23 77"/></g></svg>';
+$('topRow').appendChild(skl);
 function hudSkill(){
   const w=curWeapon(sel);
   if(!w){skl.hidden=true;return}
   skl.hidden=false;
-  const s=SK[sel]||{t:0,cd:0,cdMax:CD_MISS};let st,k,f;
-  if(s.t>0){st='Đang đỡ đòn!';k=1;f='brightness(1.25) drop-shadow(0 0 6px #ffd23f)'}
-  else if(s.cd>0){k=1-s.cd/s.cdMax;st='Hồi '+fmt(s.cd);f='brightness('+(.18+.82*k).toFixed(2)+') saturate('+(.2+.8*k).toFixed(2)+')'}
-  else{st='Sẵn sàng';f='none'}
-  const key=w+'|'+st+'|'+f;
+  const s=SK[sel]||{t:0,cd:0,cdMax:CD_MISS};let f,tip;
+  if(s.t>0){f='brightness(1.25) drop-shadow(0 0 4px #ffd23f)';tip='Đang đỡ đòn!'}
+  else if(s.cd>0){const k=1-s.cd/s.cdMax;f='brightness('+(.15+.85*k).toFixed(2)+') saturate('+(.2+.8*k).toFixed(2)+')';tip='Hồi '+fmt(s.cd)}
+  else{f='none';tip='Sẵn sàng'}
+  const key=w+'|'+f+'|'+tip;
   if(skl.dataset.k===key)return;skl.dataset.k=key;
-  $('sklN').textContent=ITEMS[w].icon+' '+ITEMS[w].name+' · Chuột phải: chém';
   $('sklI').style.filter=f;
-  $('sklT').textContent='R · Đỡ đòn: '+st}
-function hudSkill(){
-  const w=curWeapon(sel);
-  if(!w){skl.hidden=true;return}
-  skl.hidden=false;
-  const s=SK[sel]||{t:0,cd:0,cdMax:CD_MISS};let st,pct,cls='';
-  if(s.t>0){st='Đang đỡ đòn!';pct=100;cls='on'}
-  else if(s.cd>0){st='Hồi '+fmt(s.cd);pct=Math.round((1-s.cd/s.cdMax)*100);cls='cd'}
-  else{st='Sẵn sàng';pct=100}
-  const key=w+'|'+st+'|'+pct+'|'+cls;
-  if(skl.dataset.k===key)return;skl.dataset.k=key;
-  skl.innerHTML='<span>'+ITEMS[w].icon+' '+ITEMS[w].name+' · Chuột phải: chém</span><div class="bar"><i class="'+cls+'" style="width:'+pct+'%"></i></div><span>R · Đỡ đòn: '+st+'</span>'}
-const _sh=showHud;showHud=function(){_sh();const g=$('gd');if(g)g.innerHTML+='<br>Chuột phải: dùng vũ khí · R: kỹ năng vũ khí'};
+  skl.title=ITEMS[w].name+' · Chuột phải: chém · R: đỡ đòn · '+tip}
 
 /* ---------- Túi đồ: chọn vũ khí rồi bấm "Dùng" để cầm ---------- */
 const selIdx=()=>[...$('invGrid').children].findIndex(c=>c.classList.contains('sel'));

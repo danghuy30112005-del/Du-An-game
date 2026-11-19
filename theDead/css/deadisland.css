@@ -79,3 +79,9 @@ canvas{width:100%;height:auto;display:block;image-rendering:pixelated;image-rend
 #inv .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 #inv .btn{padding:6px 12px;font-size:13px}
 #inv .btn:disabled{opacity:.4;cursor:not-allowed}
+#topRow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#stm{min-width:0;padding:4px;flex-direction:row}
+#stS{display:none}
+#stIc{width:36px!important;height:24px!important;display:block}
+#rsBtn,#rs{display:none!important}
+#goBox{position:absolute;left:50%;top:68%;transform:translateX(-50%);z-index:20;line-height:1.4}

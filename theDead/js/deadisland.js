@@ -1145,11 +1145,35 @@ function doReset(k){
   cap(k==='day'?'Đã quay về đầu ngày '+day()+'.':'Đã quay về đầu tuần, Ngày '+day()+'.')}
 
 /* ===== Giao diện ===== */
-function reset(){LS=null;
-  gen();ACC={};OW=null;TK=null;NPCD=0;HUNT={pelt:2,meat:3};state='title';people=[];parts=[];iAlpha=0;crashT=-1;shake=0;gm=0;snap={};
-  inside=false;ins=[];trans=null;['tools','hud','ask','rs','lv','chr','dlg','tk'].forEach(i=>$(i).hidden=true);$('menu').hidden=false;$('title').hidden=false;
-  const sv=load();$('cont').hidden=!sv;if(sv)$('cont').textContent='Tiếp tục (Ngày '+(Math.floor(sv.gm/1440)+1)+')';
-  cap('Một con thuyền trôi dạt giữa biển khơi...')}
+function reset(){
+  LS=null;
+  gen();
+  ACC={};
+  OW=null;
+  TK=null;
+  NPCD=0;
+  HUNT={pelt:2,meat:3};
+  state='title';
+  people=[];
+  parts=[];
+  iAlpha=0;
+  crashT=-1;
+  shake=0;
+  gm=0;
+  snap={};
+  inside=false;
+  ins=[];
+  trans=null;
+  ['tools','hud','ask','rs','lv','chr','dlg','tk','goBox']
+    .forEach(i=>$(i).hidden=true);
+  $('menu').hidden=false;
+  $('title').hidden=false;
+  const sv=load();
+  $('cont').hidden=!sv;
+  if(sv)
+    $('cont').textContent='Tiếp tục (Ngày '+(Math.floor(sv.gm/1440)+1)+')';
+  cap('Một con thuyền trôi dạt giữa biển khơi...');
+}
 function submit(){
   const v=Number($('np').value);
   if(!Number.isInteger(v)||v<1||v>6){$('err').textContent='Chỉ nhập số từ 1 đến 6.';$('np').select();return}
@@ -1181,6 +1205,7 @@ function chNext(){
   state='sail';cap('Thuyền lao thẳng về phía một hòn đảo hoang...')}
 
 $('start').onclick=()=>{$('menu').hidden=true;$('lv').hidden=false};
+$('goBtn').onclick=()=>{$('goBox').hidden=true;reset()};
 $('lv1').onclick=()=>{$('lv').hidden=true;$('ask').hidden=false;$('np').value=1;$('err').textContent='';$('np').focus();$('np').select()};
 $('lvX').onclick=()=>{$('lv').hidden=true;$('menu').hidden=false};
 $('np').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submit()}};
@@ -1486,9 +1511,9 @@ function ghostTick(){
       if(V&&Math.hypot(V.x-G.x,V.y-G.y)<24){killPlayer(V.pl);G.st='patrol';G.wait=1.5;G.path=[]}
       else{G.st='chase';G.path=[];G.rt=0;G.slow=GH_SLOW_T;cap('Oan hồn chém hụt! Nó bị choáng một lúc, chạy đi!')}}}}
 function gameOver(){
-  if(LS)LS.fin=1;/* người chơi cuối: giữ màn LOSER cho tới khi về màn hình chính */
+  if(LS)LS.fin=1;
   cap('Oan hồn đã chém chết người chơi cuối cùng. Trò chơi kết thúc...');infoUI();
-  state='over';setTimeout(()=>{reset()},6000)}
+  state='over';$('goBox').hidden=false}
 
 const DKC=document.createElement('canvas');DKC.width=CW;DKC.height=CH;const DKX=DKC.getContext('2d');
 function lampHole(k,x,y,r,a){const g=k.createRadialGradient(x,y,2,x,y,r);g.addColorStop(0,'rgba(0,0,0,'+a+')');g.addColorStop(.55,'rgba(0,0,0,'+(a*.55)+')');g.addColorStop(1,'rgba(0,0,0,0)');k.fillStyle=g;k.fillRect(x-r,y-r,r*2,r*2)}

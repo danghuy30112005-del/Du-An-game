@@ -23,7 +23,7 @@ const C={
   castS:.5, castW:.7, castM:.9,         /* thời gian niệm chú */
   warn:.9, fall:.22,                    /* thạch nhũ: báo trước / rơi */
   wallLife:6, wallHalf:3,               /* tường đá: sống bao lâu, nửa chiều dài (ô) */
-  minLife:11,
+  minLife:5,
   parryStun:2   /* choáng (đứng yên) khi bị đỡ đòn, giây */
 };
 let MIN=[],ROCKS=[],WALLS=[],PLAN=null,FX=[];
