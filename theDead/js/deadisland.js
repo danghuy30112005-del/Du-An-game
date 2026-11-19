@@ -1018,8 +1018,45 @@ function ownerGoal(){
   function enterHouse(p){
     people=people.filter(q=>q!==p);p.fl=4;p.x=p.tx=45*T+4;p.y=p.ty=29*T+4;p.path=[];p.hide=0;p.vis=1;p.act='idle';
     p.os='inh';p.sp=.45;ins.push(p);planIn(p)}
-  function leaveHouse(p){
-  ins=ins.filter(q=>q!==p);p.fl=0;p.x=p.tx=HDX}
+function leaveHouse(p){
+  ins=ins.filter(q=>q!==p);
+  p.fl=0;p.x=p.tx=HDX*T+4;p.y=p.ty=(HDY+1)*T+4;
+  p.path=[];p.act='idle';p.hide=0;p.os='tend';p.gk=null;p.sp=.45;p.mode=null;p.hq=null;
+  people.push(p)}
+/* kế hoạch trong nhà: ăn -> ngồi ghế phòng ăn; ngủ -> lên tầng 2 nằm giường */
+function planIn(p){
+  if(p.mode==='sleep')p.hq=[{fl:5,x:64,y:19,k:'sleep'}];
+  else{const c=CHAIRS[rnd(CHAIRS.length)];p.hq=[{fl:4,x:c[0],y:c[1],k:'eat'}]}}
+const HEXIT={fl:4,x:45,y:31,k:'exit'};
+function houseTick(p){
+  const tx=Math.floor(p.x/T),ty=Math.floor(p.y/T);
+  /* đang đi ngoài trời về cửa nhà */
+  if(p.os==='gohome'){
+    if(p.path.length||Math.hypot(p.tx-p.x,p.ty-p.y)>.7)return false;
+    if(tx===HDX&&ty===HDY){enterHouse(p);return true}
+    const pth=bfsW(tx,ty,HDX,HDY);
+    if(pth&&pth.length){p.path=pth;p.tx=p.x;p.ty=p.y;return false}
+    enterHouse(p);return true}
+  /* đang ở trong nhà (os==='inh') */
+  if(p.act==='eat'){p.moving=0;if((p.t-=DM)<=0){p.act='idle';p.hq=[HEXIT]}return true}
+  if(p.act==='sleep'){p.moving=0;const h=hour();if(h>=5.5&&h<21){p.act='idle';p.hq=[HEXIT]}return true}
+  if(p.path.length||Math.hypot(p.tx-p.x,p.ty-p.y)>.7)return false;
+  if(!p.hq||!p.hq.length)p.hq=[HEXIT];
+  const g=p.hq[0];
+  if(p.fl!==g.fl){                                   /* khác tầng: ra cầu thang */
+    if(tx>=48&&tx<=51&&ty===17){p.fl=g.fl;p.x=p.tx=49*T+4;p.y=p.ty=20*T+4;p.path=[];return true}
+    const a=bfs(p.fl,tx,ty,49,17);
+    if(a&&a.length){p.path=a;p.tx=p.x;p.ty=p.y;return false}
+    p.fl=g.fl;p.x=p.tx=49*T+4;p.y=p.ty=20*T+4;p.path=[];return true}
+  if(tx===g.x&&ty===g.y){                           /* đã tới đích */
+    p.hq.shift();
+    if(g.k==='exit'){leaveHouse(p);return true}
+    p.x=p.tx=g.x*T+4;p.y=p.ty=g.y*T+4;
+    startAct(p,g.k==='eat'?'eat':'sleep',g.k==='eat'?ri(20,30):0);
+    return true}
+  const a=bfs(p.fl,tx,ty,g.x,g.y);
+  if(a&&a.length){p.path=a;p.tx=p.x;p.ty=p.y;return false}
+  p.x=p.tx=g.x*T+4;p.y=p.ty=g.y*T+4;return true}
 function startTend(){OW.os='tend';OW.hide=0;OW.path=[];OW.tx=OW.x;OW.ty=OW.y;OW.act='idle';OW.gk=null;OW.sp=1}
 
 const CAVE_T='Cái hang ở phía nam, sau đầm lầy ấy ư? Đừng bén mảng tới đó! bạn sẽ hối hận khi đụng độ thứ bên trong. Từng có người vào đó và không ai trở ra. Nếu lỡ vào, hãy chạy về phía lối ra ngay chỗ các bạn bước vào, nó chạy chậm hơn các bạn một chút.';
@@ -1638,8 +1675,7 @@ function restore(s){
   syncView(true)}
 function snapP(){
   const K=['k','look','pl','c','skin','hair','x','y','sp','role','cls','own','clean','hb','ate','fl','loot','acc','cs'];
-  return people.filter(p=>!p.owner).concat(ins).map(p=>{const o={};K.forEach(k=>{if(p[k]!==undefined)o[k]=p[k]});if(p.n)o.n={...p.n};if(p.loot)o.loot={...p.loot};o.inn=ins.includes(p)?1:0;return o})}
-/* bữa ăn: người chơi ở trong hay ngoài nhà đều được xử lý đúng */
+  return people.filter(p=>!p.owner).concat(ins.filter(p=>!p.owner)).map(p=>{const o={};K.forEach(k=>{if(p[k]!==undefined)o[k]=p[k]});if(p.n)o.n={...p.n};if(p.loot)o.loot={...p.loot};o.inn=ins.includes(p)?1:0;return o})}
 function seatPl(n){
   const O=allPl().find(p=>p.pl===n);if(!O)return;
   const s=DSEAT[8+n];putIn(O,1,s.x,s.y);O.x=O.tx=s.x*T+4;O.y=O.ty=s.y*T+4;setSel(n)}
