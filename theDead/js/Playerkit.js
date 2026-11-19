@@ -209,10 +209,13 @@ function bagRaw(){
   if(frame-bcf>=10||!bc){bcf=frame;try{bc=JSON.parse(localStorage.getItem(INVKEY))||{}}catch(_){bc={}}}
   return bc}
 const bagOf=n=>{const b=bagRaw()[n];return Array.isArray(b)?b:[]};
-function curWeapon(n){
+function heldId(n){
   const b=bagOf(n);
   if(EQ[n]&&b.includes(EQ[n]))return EQ[n];
-  return b.find(id=>ITEMS[id]&&ITEMS[id].weapon)||null}
+  delete EQ[n];return null}            /* đồ đã vứt / không còn trong túi thì tự bỏ cầm */
+function curWeapon(n){
+  const id=heldId(n);
+  return id&&ITEMS[id]&&ITEMS[id].weapon?id:null}
 
 /* ---------- Tạo hàng rào + cổng ---------- */
 function buildFence(){
@@ -377,8 +380,27 @@ function gateFx(){
     R('#d4a63a',x-4-Math.round(t*.2),y-1+Math.round(t*t*.04),3,4);
     R('#d4a63a',x+1+Math.round(t*.2),y-1+Math.round(t*t*.04),3,4);
     cx.globalAlpha=1}}
-
+/* ---------- Vẽ món đồ đang cầm trên tay nhân vật ---------- */
+const FACE={};
+function drawHeld(){
+  allPl().forEach(P=>{
+    const n=P.pl,fc=FACE[n]||(FACE[n]={x:P.x,f:1});
+    if(P.x>fc.x+.05)fc.f=1;else if(P.x<fc.x-.05)fc.f=-1;
+    fc.x=P.x;
+    if(!visFl(P.fl||0))return;
+    const id=heldId(n);if(!id)return;
+    const s=SK[n];if(s&&s.t>0)return;               /* đang đỡ đòn: drawParry tự vẽ kiếm */
+    const x=Math.round(P.x),y=Math.round(P.y),hx=x+(fc.f>0?5:-6);
+    cx.globalAlpha=1;
+    if(id==='mdagger'){
+      R('#e8f6ff',hx,y-15,1,8);R('#8fc4e4',hx+1,y-14,1,7);R('#e8f6ff',hx,y-16,1,1);
+      R('#d4a63a',hx-1,y-7,3,1);R('#3a2a22',hx,y-6,1,2);R('#f1c27d',hx,y-5,1,1)}
+    else{
+      const it=ITEMS[id]||{};
+      cx.font='8px sans-serif';cx.textAlign='center';cx.fillStyle='#fff';
+      cx.fillText(it.icon||'❓',hx+(fc.f>0?1:0),y-4)}})}
 /* ---------- Móc vào vòng vẽ của game ---------- */
+
 const _glow=glow;glow=function(){_glow();if(inside)return;gateFx();drawParry();drawSwings();drawParts()};
 const _drawIn=drawIn;drawIn=function(){_drawIn();drawParry();drawSwings();drawParts()};
 
@@ -434,19 +456,22 @@ function hudSkill(){
   skl.title=ITEMS[w].name+' · Chuột phải: chém · R: đỡ đòn · '+tip}
 
 /* ---------- Túi đồ: chọn vũ khí rồi bấm "Dùng" để cầm ---------- */
+/* ---------- Túi đồ: nút Cầm / Bỏ cầm ---------- */
 const selIdx=()=>[...$('invGrid').children].findIndex(c=>c.classList.contains('sel'));
 function selItem(){bcf=-99;const i=selIdx();return i>=0?bagOf(sel)[i]:null}
+const holdBtn=document.createElement('button');
+holdBtn.className='btn';holdBtn.id='invHold';holdBtn.textContent='Cầm';holdBtn.disabled=true;
+$('invUse').after(holdBtn);
 function updInv(){
-  const id=selItem(),it=id&&ITEMS[id],btn=$('invUse');
-  if(it&&it.weapon){
-    btn.disabled=false;btn.textContent='Cầm vũ khí';
-    if(EQ[sel]===id)$('invInfo').textContent+=' [Đang cầm]'}
-  else btn.textContent='Dùng'}
-const _use=$('invUse').onclick;
-$('invUse').onclick=function(){
-  const id=selItem(),it=id&&ITEMS[id];
-  if(it&&it.weapon){EQ[sel]=id;cap('P'+sel+' cầm '+it.name+'. Chuột phải: chém · R: đỡ đòn.');updInv();return}
-  if(_use)_use.call(this)};
+  const id=selItem(),it=id&&ITEMS[id],held=!!it&&EQ[sel]===id,info=$('invInfo');
+  holdBtn.disabled=!it;
+  holdBtn.textContent=held?'Bỏ cầm':'Cầm';
+  info.textContent=info.textContent.replace(' [Đang cầm]','')+(held?' [Đang cầm]':'')}
+holdBtn.onclick=()=>{
+  const id=selItem(),it=id&&ITEMS[id];if(!it)return;
+  if(EQ[sel]===id){delete EQ[sel];cap('P'+sel+' bỏ cầm '+it.name+', cất lại vào túi đồ.')}
+  else{EQ[sel]=id;cap('P'+sel+' cầm '+it.name+' trên tay.'+(it.weapon?' Chuột phải: chém · R: đỡ đòn.':''))}
+  updInv()};
 new MutationObserver(updInv).observe($('invGrid'),{childList:true});
 
 /* ---------- Pháp sư đưa Danh sách thì đưa luôn Dao phép ---------- */

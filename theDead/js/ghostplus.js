@@ -16,7 +16,7 @@ const C={
   slow:.8,         /* tốc độ khi bị choáng sau chém hụt (gốc .5) */
   slowT:.6,        /* thời gian choáng (gốc 1) */
   laugh:.8,        /* thời gian cười trước khi đuổi (gốc 1.5) */
-  wind:.5,         /* thời gian vung liềm (gốc .45) */
+  wind:.3,         /* thời gian vung liềm (gốc .45) */
   reach:24,        /* tầm chém */
   sight:120,       /* tầm nhìn thấy người */
   cdS:6, cdW:10, cdM:18, gcd:1.8,       /* hồi chiêu: thạch nhũ / tường / triệu hồi / chung */
