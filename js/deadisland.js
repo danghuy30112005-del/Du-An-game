@@ -1374,13 +1374,17 @@ function los(a,b){
 function gmove(G,tx,ty,sp){
   const dx=tx-G.x,dy=ty-G.y,d=Math.hypot(dx,dy);if(Math.abs(dx)>.3)G.dir=dx>0?1:-1;
   if(d<=sp){G.x=tx;G.y=ty;return true}G.x+=dx/d*sp;G.y+=dy/d*sp;return false}
+  const GH_SPEED=1.4;   /* tốc độ đuổi: nhanh hơn đi bộ (1.25 khi có playerkit), chậm hơn chạy nhanh Q (2.1) */
+  const GH_SLOW=.5;     /* tốc độ khi bị choáng sau khi chém hụt */
+  const GH_SLOW_T=1;    /* thời gian choáng (giây) */
 function ghostTick(){
   if(!GH)return;/* oan hồn hoạt động miễn là có người trong hang, dù bạn đang xem nhân vật khác */
   const G=GH,A=ins.filter(p=>p.pl&&p.fl===6);if(!A.length)return;
   const dt=Math.min(DM,.1);let P=null,d=1e9;
   A.forEach(p=>{const q=Math.hypot(p.x-G.x,p.y-G.y);if(q<d){d=q;P=p}});
+  if(G.slow>0)G.slow=Math.max(0,G.slow-dt);
   const see=d<110&&los(G,P);
-  if(G.st==='patrol'){/* đi quanh các hang nhỏ, chậm hơn người chơi */
+  if(G.st==='patrol'){/* đi quanh các hang nhỏ, chậm */
     if(see){G.st='laugh';G.t=0;G.tgt=P;G.path=[];cap('Oan hồn đã nhìn thấy bạn... nó đang cười!');return}
     if(G.wait>0){G.wait-=dt;return}
     if(!G.path.length){const w=CHB[rnd(CHB.length)],a=bfs(6,Math.floor(G.x/T),Math.floor(G.y/T),w[0],w[1]);if(a&&a.length)G.path=a;else{G.wait=1;return}}
@@ -1393,15 +1397,16 @@ function ghostTick(){
     if(see||d<140)G.lost=0;else G.lost+=dt;
     if(G.lost>3.5){G.st='patrol';G.wait=1;G.path=[];return}
     if(d<10){G.st='slash';G.t=0;G.tgt=P;return}
-    if(los(G,P))gmove(G,P.x,P.y,.85);/* chạy chậm hơn người chơi một chút */
+    const sp=G.slow>0?GH_SLOW:GH_SPEED;/* nhanh hơn người đi bộ một chút; đang choáng thì chậm hẳn */
+    if(los(G,P))gmove(G,P.x,P.y,sp);
     else{if(--G.rt<=0||!G.path.length){G.rt=10;const a=bfs(6,Math.floor(G.x/T),Math.floor(G.y/T),Math.floor(P.x/T),Math.floor(P.y/T));G.path=a||[]}
-      if(G.path.length&&gmove(G,G.path[0][0],G.path[0][1],.85))G.path.shift()}}
+      if(G.path.length&&gmove(G,G.path[0][0],G.path[0][1],sp))G.path.shift()}}
   else if(G.st==='slash'){
     G.t+=dt;const V=A.find(p=>G.tgt&&p.pl===G.tgt.pl);
     if(V)G.dir=V.x>=G.x?1:-1;
     if(G.t>=.45){
       if(V&&Math.hypot(V.x-G.x,V.y-G.y)<24){killPlayer(V.pl);G.st='patrol';G.wait=1.5;G.path=[]}
-      else{G.st='chase';G.path=[];G.rt=0}}}}
+      else{G.st='chase';G.path=[];G.rt=0;G.slow=GH_SLOW_T;cap('Oan hồn chém hụt! Nó bị choáng một lúc, chạy đi!')}}}}
 function gameOver(){
   if(LS)LS.fin=1;/* người chơi cuối: giữ màn LOSER cho tới khi về màn hình chính */
   cap('Oan hồn đã chém chết người chơi cuối cùng. Trò chơi kết thúc...');infoUI();
@@ -1469,6 +1474,7 @@ function ghostDraw(){
   if(st==='chase'||st==='slash'||st==='laugh')R('#ff2a2a',-2,-22,2,1);
   if(st==='laugh'){R('#14070b',-2,-20,5,3);R('#f4f4f4',-2,-20,5,1)}else R('#6a3a3a',-1,-19,2,1);
   cx.restore();cx.globalAlpha=1;
+  if(G.slow>0){for(let i=0;i<3;i++){const a=frame*.25+i*2.1;cx.fillStyle='#ffe45c';cx.fillRect(Math.round(x+Math.cos(a)*7),Math.round(y+bob-34+Math.sin(a)*2),2,2)}}
   if(st==='laugh')bub(x,y-38+bob,[(frame>>3)%2?'DIE':'AAAAAAAAAAAAA!'])}
 
 /* ===== Cây chết, bảng cấm, sương mù đầm lầy ===== */

@@ -19,6 +19,25 @@ if(W<FCX+FRX+10||H<176){
   b.textContent='village.js: hãy sửa dòng 1 của deadisland.js thành W=340,H=180 (hiện đang là W='+W+', H='+H+') rồi tải lại trang bằng Ctrl+F5.';
   document.body.appendChild(b);
   return}
+  /* ===== Tạo hình Trưởng thôn: khăn xếp, râu bạc, áo dài nâu, chống gậy ===== */
+LOOKS.vchief=(R,s)=>{
+  const sk='#d9b08a',wh='#eceef2',rb='#6e3b22',rd='#4a2314',gd='#d4a63a';
+  LG(R,'#e8dcc0','#3a2a1a',s);
+  /* áo dài */
+  R(rb,-4,-10,8,7);R(rd,-4,-4,8,1);R(rd,0,-10,1,6);R(gd,-1,-9,1,1);R(gd,-1,-7,1,1);R('#a3202a',-2,-10,4,1);
+  R(rb,-5,-10,1,5);R(rb,4,-10,1,5);R(sk,-5,-5,1,1);R(sk,4,-5,1,1);
+  /* gậy */
+  R('#6b4423',5,-9,1,9);R('#6b4423',5,-10,2,1);
+  /* đầu hơi cúi về phía trước */
+  R(sk,-2,-15,6,5);R('#1b1b22',-3,-18,8,3);R('#1b1b22',-2,-19,6,1);R('#33333d',-3,-16,8,1);
+  R(wh,-3,-15,1,3);R(wh,4,-15,1,3);
+  R(wh,-1,-14,2,1);R(wh,2,-14,2,1);
+  R('#222',-1,-13,1,1);R('#222',2,-13,1,1);
+  R('#b98a64',-2,-12,1,1);R('#b98a64',3,-12,1,1);
+  /* râu bạc dài */
+  R(wh,-1,-12,4,1);R(wh,-2,-11,6,2);R(wh,-1,-9,4,2);R('#cfd2d8',0,-7,2,1)};
+LOOKHT.vchief=17;               /* thấp hơn người thường một chút vì còng lưng */
+ROLELOOK['Trưởng thôn']='vchief';
 
 /* ================= NỘI THẤT (mỗi nhà một tầng riêng: FL[7+i]) ================= */
 function mkInt(chief){
@@ -216,8 +235,10 @@ function wins(hz){const Wd=hz.w*T,dl=(hz.dx-hz.x)*T,fr=hz.chief?[.1,.27,.6,.78]:
 function drawHouse(hz){
   const X=hz.x*T,Y=hz.y*T,Wd=hz.w*T,Hd=hz.h*T,k=hz.kind,palm=k==='palm',ch=k==='chief',rh=ch?13:9,RH=rh+8,dl=(hz.dx-hz.x)*T,
     R=(c,a,b,w,hh)=>{cx.fillStyle=c;cx.fillRect(X+a,Y+b,w,hh)},
-    WL=palm?['#d8c08a','#c4a868','#9a7e46']:ch?['#e9dcc0','#cdbd9c','#8d8570']:['#9c6b3f','#86582e','#6b4423'],
-    RC=palm?['#c9a64b','#b08a38','#e2c777']:ch?['#a3482a','#8a3b22','#c8664a']:['#5f3d20','#4e3118','#7a4c2a'];
+    nz=(i,n)=>hs(hz.x*7+i*131,hz.y*13+i*57)%n,/* nhiễu cố định theo từng nhà */
+    MS=['#5f7f3a','#6f8f45','#4e6b30'],
+    WL=palm?['#b8a370','#9d8851','#75622f']:ch?['#d2c4a2','#b5a582','#7a7260']:['#8a5e38','#74482a','#5a3920'],
+    RC=palm?['#a88f44','#8f7430','#bfa95e']:ch?['#8a3c24','#74321d','#a8553b']:['#4d3219','#3e2813','#664020'];
   R('rgba(0,0,0,.25)',1,Hd-1,Wd,2);
   R(WL[0],0,6,Wd,Hd-6);
   if(palm)for(let i=1;i<Wd;i+=3)R(WL[1],i,6,1,Hd-6);else for(let j=9;j<Hd;j+=3)R(WL[1],0,j,Wd,1);
@@ -228,11 +249,25 @@ function drawHouse(hz){
     if(j%2)for(let i=o+1+(j%4);i<Wd-o-1;i+=4)R(RC[2],i,j-rh,1,1)}
   R('rgba(0,0,0,.3)',0,8,Wd,1);
   if(palm)for(let i=0;i<Wd;i+=2)R(RC[1],i,8+(i%3===0?1:0),1,1);
-  R('#3a2410',dl,Hd-10,8,10);R('#6b4423',dl+1,Hd-9,6,9);R('#8a5a2e',dl+1,Hd-9,6,1);R('#ffd23f',dl+5,Hd-5,1,1);
-  wins(hz).forEach(wx=>{R('#4a2f17',wx-1,Hd-15,6,6);R('#9ad0f0',wx,Hd-14,4,4);R('#ffffff',wx,Hd-14,1,1);R('#4a2f17',wx+2,Hd-14,1,4)});
-  if(!palm){const c=Wd-9,a=cx.globalAlpha;R('#6d727c',c,-rh-3,4,7);R('#555a63',c-1,-rh-4,6,2);cx.globalAlpha=a*.35;R('#dddddd',c+((frame>>4)%3),-rh-8-((frame>>3)%6),3,2);cx.globalAlpha=a}
-  if(ch){R('#6b4423',dl-6,Hd-14,2,14);R('#6b4423',dl+12,Hd-14,2,14);R('#8a3b22',dl-8,Hd-16,28,3);
-    const f=Math.round(Wd/2);R('#9aa0ac',f,-rh-12,1,12);for(let i=0;i<6;i++)R('#c0392b',f+1+i,-rh-12+Math.round(Math.sin(frame*.15+i*.8)*.8),1,4)}
+  /* cửa gỗ cũ, sờn */
+  R('#2a1a0c',dl,Hd-10,8,10);R('#5a3a1e',dl+1,Hd-9,6,9);R('#755029',dl+1,Hd-9,6,1);R('#241608',dl+3,Hd-8,1,5);R('#b8922f',dl+5,Hd-5,1,1);
+  /* cửa sổ: kính ngả màu, có cánh cửa chớp xộc xệch */
+  wins(hz).forEach((wx,wi)=>{R('#4a2f17',wx-1,Hd-15,6,6);R('#7fb0c8',wx,Hd-14,4,4);R('#d8ecf4',wx,Hd-14,1,1);R('#4a2f17',wx+2,Hd-14,1,4);
+    if(nz(wi+130,2)===0){R('#5a3a1e',wx-3,Hd-14,2,4);R('#5a3a1e',wx-3,Hd-10,1,1)}
+    else{R('#5a3a1e',wx+4,Hd-14,2,3)}});
+  if(!palm){const c=Wd-9,a=cx.globalAlpha;R('#5d626b',c,-rh-3,4,7);R('#454a53',c-1,-rh-4,6,2);cx.globalAlpha=a*.35;R('#dddddd',c+((frame>>4)%3),-rh-8-((frame>>3)%6),3,2);cx.globalAlpha=a}
+  if(ch){R('#5a3a1e',dl-6,Hd-14,2,14);R('#5a3a1e',dl+12,Hd-14,2,14);R('#74321d',dl-8,Hd-16,28,3);
+    const f=Math.round(Wd/2);R('#9aa0ac',f,-rh-12,1,12);for(let i=0;i<6;i++)R('#a83428',f+1+i,-rh-12+Math.round(Math.sin(frame*.15+i*.8)*.8),1,4)}
+  /* ---- dấu vết thời gian ---- */
+  for(let i=0;i<8;i++){const j=2+nz(i,RH-4),o=Math.round((RH-1-j)*.55)-1,span=Wd-2*o-6;if(span<2)continue;
+    R(MS[i%3],o+2+nz(i+20,span),j-rh,2+nz(i+40,3),1)}                       /* rêu trên mái */
+  for(let i=0;i<3;i++){const j=3+nz(i+60,RH-6),o=Math.round((RH-1-j)*.55)-1,span=Wd-2*o-4;if(span<2)continue;
+    R('#241608',o+1+nz(i+70,span),j-rh,2,1)}                                  /* lỗ thủng mái */
+  for(let i=0;i<3;i++){const x=2+nz(i+80,Wd-4);if(x>=dl-2&&x<dl+9)continue;
+    R(WL[2],x,Hd-11-nz(i+90,2),1,3+nz(i+95,3))}                               /* vết nứt tường */
+  if(ch)for(let i=0;i<3;i++){const x=2+nz(i+100,Wd-8);if(x>=dl-4&&x<dl+11)continue;
+    R('#a8704c',x,Hd-13+nz(i+110,3),3,2);R('#8a5a3c',x+1,Hd-12+nz(i+110,3),1,1)} /* vữa bong lộ gạch */
+  for(let i=0;i<Wd;i+=3){if(i>=dl-1&&i<dl+9)continue;if(nz(i+120,100)<55)R(MS[i%3],i,Hd-3+(i%2),2,2)} /* rêu chân tường */
 }
 function animals(){
   ANI.forEach(a=>{
