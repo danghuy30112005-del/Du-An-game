@@ -10,7 +10,7 @@ const KEY='deadisland:save5',mul=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a
 let HX=0,HY=0,WX=0,WY=0,camX=0,camY=0,inside=false,im=[],ins=[],sel=1,trans=null,keys={},seed=0,gm=0,snap={},lastMin=-1,last=performance.now(),confirmKey='';
 let m,hg,state='title',frame=0,bx=40,by=BR*T+3,tbx=0,iAlpha=0,shake=0,crashT=-1,people=[],nPl=1,shoreX=0,parts=[];
 let OW=null,TK=null,NPCD=0,ACC={},sd=[],BTOT=0,MTOT=0;
-let BL=[],GH=null,SGN=0,flash=0,LS=null;
+let BL=[],GH=null,SGN=0,flash=0,LS=null,FOR=null;
 const CHB=[[22,20],[148,20],[20,54],[150,54],[24,88],[146,88],[85,12],[50,10],[120,10],[62,42],[108,42],[62,64],[108,64],[85,54],[85,78]];/* điểm tuần tra của oan hồn */
 let CAMPX=40,CAMPY=53,CAMPN=0;
 const CSP=[[-2,0],[2,0],[0,2],[-2,2],[2,2],[-3,1],[3,1],[-1,-2],[1,-2],[-3,-1],[3,-1],[0,-3]];
@@ -27,7 +27,7 @@ const walk=(x,y,p)=>walkT(Math.floor(x/T),Math.floor(y/T),p&&p.fl,p&&!p.pl);
 
 /* ===== Tạo đảo: bãi cát, đồng cỏ, rừng, núi ===== */
 function gen(sd){
-  BL=[];GH=null;SGN=0;
+  BL=[];GH=null;SGN=0;FOR=null;
   seed=sd||(1+rnd(2e9));const rg=mul(seed),p=[0,1,2,3,4,5].map(()=>rg()*6);m=[];hg=[];
   for(let y=0;y<H;y++){m[y]=[];hg[y]=[];for(let x=0;x<W;x++){
     const dx=(x+.5-80)/55,dy=(y+.5-48)/37,a=Math.atan2(dy,dx),
@@ -214,7 +214,7 @@ function arrive(p){
   else if(g.kind==='sleep'){const b=BEDS[p.bi];if(b){p.x=p.tx=b.x*T+4;p.y=p.ty=b.y*T+4}startAct(p,'sleep',0)}
   else if(g.kind==='cook')startAct(p,'cook',1e9);
   else if(g.kind==='dine')seatNpc(p,p.sd);
-  else if(g.kind==='hunt'){p.hide=1;startAct(p,'hunt',ri(30,60))}
+  else if(g.kind==='hunt'){startAct(p,'hunt',ri(30,60))}
   else if(g.kind==='help')startAct(p,'cook',ri(20,40));
   else if(g.kind==='clean'||g.kind==='garden')startAct(p,'clean',ri(15,30));
   else if(g.kind==='camp')startAct(p,'rest',ri(15,30));
@@ -236,9 +236,28 @@ function cleanGoal(){
   const ids=[12,14,15].filter(id=>!ins.some(q=>!q.pl&&q.fl===2&&q.own&&q.own.includes(id)&&ridAt(q)===id));
   if(!ids.length)return null;const id=ids[rnd(ids.length)],t=roomTile(2,id);
   return t&&{fl:2,x:t[0],y:t[1],kind:'clean'}}
+function forestTiles(){
+  if(FOR)return FOR;
+  FOR=[];const sx=HX+2,sy=HY+3;if(!walkT(sx,sy))return FOR;
+  const seen=new Uint8Array(W*H),q=[sy*W+sx];seen[q[0]]=1;
+  for(let i=0;i<q.length;i++){const c=q[i],x=c%W,y=(c/W)|0;
+    for(const[a,b]of[[1,0],[-1,0],[0,1],[0,-1]]){const X=x+a,Y=y+b;if(X<0||Y<0||X>=W||Y>=H)continue;const k=Y*W+X;if(seen[k]||!walkT(X,Y))continue;seen[k]=1;q.push(k)}}
+  q.forEach(c=>{const x=c%W,y=(c/W)|0;
+    if(m[y][x]!==GRASS||y>=96)return;                 /* bỏ đầm lầy / hang */
+    if(Math.hypot(x-sx,y-sy)<12)return;               /* không săn ngay trước nhà */
+    if(Math.hypot(x-72,y-42)<28)return;               /* không vào sân dinh thự */
+    if(x>=184&&x<=287&&y>=24&&y<=78)return;           /* không vào ruộng / nhà trong làng */
+    let n=0;for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++)if((m[y+j]||[])[x+i]===TREE)n++;
+    if(n>=4)FOR.push([x,y])});
+  return FOR}
+function forestGoal(){
+  const L=forestTiles();if(!L.length)return null;
+  let t=L[rnd(L.length)];
+  for(let i=0;i<10&&Math.hypot(t[0]-HX,t[1]-HY)>70;i++)t=L[rnd(L.length)];/* ưu tiên chuyến không quá xa */
+  return{out:1,x:t[0],y:t[1],kind:'hunt'}}
 function idleGoal(p){
   const r=Math.random(),tx=Math.floor(p.x/T),ty=Math.floor(p.y/T);
-  if(p.cls==='h'){if(p.fl===3&&r<.25)return roomGoal(3,[1]);if(r<.85){const g=landNear(140,48,6);if(g)g.kind='hunt';return g}return landNear(HX+2,HY+6,5)}
+  if(p.cls==='h'){if(p.fl===3&&r<.25)return roomGoal(3,[1]);if(r<.85){const g=forestGoal();if(g)return g;const g2=landNear(140,48,6);if(g2)g2.kind='hunt';return g2}return landNear(HX+2,HY+6,5)}
   if(p.cls==='g'){
     if(!p.acc)return r<.55?landNear(tx,ty,6):r<.8?randLand():campGoal(p,'camp');
     const hr=hour();
@@ -947,6 +966,8 @@ function homeOwner(){/* dùng khi tải save / quay về mốc ngày */
   else{OW.os='meet';OW.x=OW.tx=(HSX+4)*T+4;OW.y=OW.ty=44*T+4}
   people.push(OW)}
 function ownerTick(p){
+  if(p.os==='gohome'||p.os==='inh')return houseTick(p);
+  if(p.os==='tend'&&frame%15===0){const w=wantHome(p);if(w){startHome(p,w);return true}}
   if(p.os==='out'){
     p.life++;const t=people.find(q=>q.pl&&q.vis),gx=t?Math.floor(t.x/T):shoreX+2,gy=t?Math.floor(t.y/T):BR,d=t?Math.hypot(t.x-p.x,t.y-p.y):99;
     if(d<22||p.life>2400){p.os='meet';p.path=[];p.tx=p.x;p.ty=p.y;p.moving=0;return true}
@@ -972,6 +993,7 @@ function ownerTick(p){
     else{p.act='look';p.t=2}
     return true}
   p.moving=0;return true}
+  
 function ownerAct(p,k){p.act=k==='walk'?'look':k;p.t=k==='walk'?ri(3,6):ri(12,25);p.moving=0}
 function ownerGoal(){
   const r=Math.random();
@@ -980,7 +1002,26 @@ function ownerGoal(){
   for(let y=35;y<=44;y++)for(let x=84;x<=95;x++){if(x>=HSX&&x<HSX+8&&y>=HSY&&y<HSY+6)continue;if(walkT(x,y))c.push([x,y])}
   const s=c.length?c[rnd(c.length)]:[HDX,HDY+1];
   return{x:s[0],y:s[1],k:r<.85?'clean':'walk'}}/* dọn quanh nhà / đứng ngắm */
+  const CHAIRS=[[62,23],[63,23],[64,23],[65,23],[66,23],[62,26],[63,26],[64,26],[65,26],[66,26],[61,24],[67,24]];
+  const OEXIT={fl:4,x:45,y:31};
+  function wantHome(p){
+    if(state!=='island'||TK)return null;
+    const h=hour(),ms=MEAL(h),mk=Math.floor(gm/1440)*3+ms;
+    if(h>=21||h<5.5)return'sleep';
+    if(ms>=0&&p.ate!==mk){
+      if(people.some(q=>q.pl&&Math.hypot(q.x-p.x,q.y-p.y)<30))return null;/* có người chơi đứng gần thì chờ */
+      return'eat'}
+    return null}
+  function startHome(p,mode){
+    p.os='gohome';p.mode=mode;p.gk=null;p.act='idle';p.path=[];p.tx=p.x;p.ty=p.y;p.moving=0;p.sp=1;
+    if(mode==='eat')p.ate=Math.floor(gm/1440)*3+MEAL(hour())}
+  function enterHouse(p){
+    people=people.filter(q=>q!==p);p.fl=4;p.x=p.tx=45*T+4;p.y=p.ty=29*T+4;p.path=[];p.hide=0;p.vis=1;p.act='idle';
+    p.os='inh';p.sp=.45;ins.push(p);planIn(p)}
+  function leaveHouse(p){
+  ins=ins.filter(q=>q!==p);p.fl=0;p.x=p.tx=HDX}
 function startTend(){OW.os='tend';OW.hide=0;OW.path=[];OW.tx=OW.x;OW.ty=OW.y;OW.act='idle';OW.gk=null;OW.sp=1}
+
 const CAVE_T='Cái hang ở phía nam, sau đầm lầy ấy ư? Đừng bén mảng tới đó! bạn sẽ hối hận khi đụng độ thứ bên trong. Từng có người vào đó và không ai trở ra. Nếu lỡ vào, hãy chạy về phía lối ra ngay chỗ các bạn bước vào, nó chạy chậm hơn các bạn một chút.';
 const NODES=[
   {t:'Tàu các bạn bị đắm sao?',o:[{t:'Đúng, ở đây có thuyền để về đất liền không?',go:1}]},
