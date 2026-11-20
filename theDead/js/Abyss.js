@@ -30,6 +30,7 @@ const saveG=()=>{try{localStorage.setItem(GKEY,JSON.stringify(GOT))}catch(_){}};
 const r=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(QX+a,QY+b,w,h)};
 const R0=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),w,h)};
 const inPad=(x,y)=>PADS.some(([a,b,c,d])=>x>=a&&x<=b&&y>=c&&y<=d);
+
 /* ===== ĐẢO BAY: độ cao, nhấp nhô, xích ===== */
 const isl=i=>{const I=AB.ISL[i];return I.h+I.amp*Math.sin(frame*I.sp+I.ph)};
 function offAt(tx,ty){
@@ -108,6 +109,7 @@ function voidT(x,y,h,p){
   if(fl2(x,y-1)){r(p.fc,0,0,T,5);r(p.fk,(h>>2)&5,2,2,1);r(p.fd,0,0,T,1);r(p.sd,0,5,T,2)}
   if(fl2(x-1,y))r(p.fc,0,0,2,T);
   if(fl2(x+1,y))r(p.fc,T-2,0,2,T)}
+
 /* ---------- Bảng màu: tím (tây) -> xanh ngọc (đông) ---------- */
 const hx=s=>[parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)];
 const mx=(a,b,t)=>{const A=hx(a),B=hx(b);return'#'+[0,1,2].map(i=>Math.round(A[i]+(B[i]-A[i])*t).toString(16).padStart(2,'0')).join('')};
@@ -208,7 +210,6 @@ function pitWatch(){
 /* ---------- Hoa đầm lầy ---------- */
 function ensureItem(){const I=window.ITEMS;if(I&&!I.wflower)I.wflower={icon:'🌸',name:'Bông hoa của đầm lầy',d:'Bông hoa hồng mọc giữa đầm lầy.'}}
 function pickFlower(n,b){
-  
   ensureItem();
   if(GOT[n]){cap('P'+n+' đã hái một bông rồi. Mỗi người chỉ hái được 1 bông (bụi hoa vẫn còn đó).');return}
   if(typeof window.giveItem!=='function'){cap('Cần nạp Playerkit.js để nhận đồ vào túi.');return}
@@ -306,7 +307,8 @@ function buildAbyss(){
     im[y][x]=WALL;rid[y][x]=0;ob[y][x]=1;put('stg',x,y,x*T+4,(y+1)*T,14,8)}
 
   OBJ.sort((a,b)=>a.ay-b.ay);
- 
+  /* [SỬA 3] gán dữ liệu vào AB (trước đây thiếu nên AB luôn null) */
+  AB={im,rid,wat,br,ob,cl,sp,pf,vd,mt,BUSH,ISL,OBJ,wfy,bry0,bry1};
   FL[WID]={im,rid,RM:[null,{n:'Vực sâu',f:['rgba(0,0,0,0)','rgba(0,0,0,0)'],x0:0,y0:0,x1:AW-1,y1:AH-1,s:1}]}}
 
 /* ================= VẼ ================= */
@@ -361,7 +363,7 @@ function plateauT(x,y,h,p){
 function tileAt(x,y){
   const A=AB,h=hs(x,y),p=PL[x];QX=x*T;QY=y*T;
   if(A.wat[y][x])return waterT(x,y,h,p);
-    if(A.vd[y][x])return voidT(x,y,h,p); 
+  if(A.vd[y][x])return voidT(x,y,h,p);
   if(A.im[y][x]===0||A.ob[y][x]){
     if(A.sp[y][x])return stairT(x,y,h,p);
     if(A.br[y][x])return bridgeT(x,y,h,p);
@@ -369,15 +371,22 @@ function tileAt(x,y){
     if(A.pf[y][x])plateauT(x,y,h,p);
     return}
   wallT(x,y,h,p)}
+/* [SỬA 1] waterfall: bỏ dòng tự gọi chính nó */
 function waterfall(){
-  drawRune();waterfall();drawIslands(x0,y0,x1,y1);   // <-- thêm drawIslands(...)
   const A=AB,fx=WF0*T,fw=5*T,top=(A.wfy-9)*T,bot=A.wfy*T+6;
-  if(fx+fw<camX-4||fx>camX+CW/IS+4||bot<camY||top>camY+CH/IS)return;
+  if(fx+fw<camX-4||fx>camX+CW/IS+4||bot<camY||top>camY+CH/IS+4)return;
   cx.globalAlpha=.9;R0('#136f86',fx,top,fw,bot-top);
   for(let c=0;c<fw;c+=2)for(let yy=top;yy<bot;yy+=5){const o=(yy+frame*2+c*7)%24;if(o<10){cx.fillStyle=o<4?'#d8fffa':'#6ff0e0';cx.fillRect(fx+c,yy,2,Math.min(5,bot-yy))}}
   R0('#0a4a5a',fx,top,2,bot-top);R0('#0a4a5a',fx+fw-2,top,2,bot-top);
   cx.globalAlpha=.25;for(let i=0;i<8;i++)R0('#cffff8',fx-4+((i*9+(frame>>1))%(fw+8)),bot-6-((frame>>2)+i*3)%8,6,3);
   cx.globalAlpha=.12;R0('#46e0d0',fx-14,top,fw+28,bot-top+10);cx.globalAlpha=1}
+function drawRune(){
+  const x=LX*T+4,y=LY*T+4,k=.5+.5*Math.sin(frame*.05);
+  cx.globalAlpha=.35+.35*k;
+  for(let a=0;a<6.28;a+=.09)R0('#46e0d0',x+Math.cos(a)*34,y+Math.sin(a)*20,2,1);
+  for(let a=0;a<6.28;a+=.14)R0('#2fb8f0',x+Math.cos(a)*22,y+Math.sin(a)*13,1,1);
+  for(let i=0;i<5;i++){const a=i*1.2566-1.5708;R0('#9ae8ff',x+Math.cos(a)*28,y+Math.sin(a)*16,2,2)}
+  cx.globalAlpha=1}
 function horn(x0,y0,d,L,cv){
   for(let i=0;i<L;i++){const t=i/L,px=x0+d*cv*Math.sin(t*Math.PI*.9),w=Math.max(1,Math.round(4*(1-t)));R0('#1a3590',px-(w>>1),y0-i,w,1);if(w>1)R0('#3b60d0',px-(w>>1),y0-i,1,1)}}
 /* cửa xoáy phía tây (chưa dùng) */
@@ -427,13 +436,6 @@ function drawExit(dd){
     R0('#15151a',x+o,y-34,1,6);R0('#3a3a40',x+o-2,y-28,5,1);
     R0(((fr>>3)+i)%2?'#ffd23f':'#ffb347',x+o-1,y-27,3,4);
     cx.globalAlpha=.2;R0('#ffcc66',x+o-6,y-32,13,12);cx.globalAlpha=1})}
-function drawRune(){
-  const x=LX*T+4,y=LY*T+4,k=.5+.5*Math.sin(frame*.05);
-  cx.globalAlpha=.35+.35*k;
-  for(let a=0;a<6.28;a+=.09)R0('#46e0d0',x+Math.cos(a)*34,y+Math.sin(a)*20,2,1);
-  for(let a=0;a<6.28;a+=.14)R0('#2fb8f0',x+Math.cos(a)*22,y+Math.sin(a)*13,1,1);
-  for(let i=0;i<5;i++){const a=i*1.2566-1.5708;R0('#9ae8ff',x+Math.cos(a)*28,y+Math.sin(a)*16,2,2)}
-  cx.globalAlpha=1}
 /* vật thể */
 function dPil(o,p){
   const ax=o.ax,ay=o.ay,Hh=54;
@@ -472,7 +474,8 @@ function drawBack(){
     x1=Math.min(AW-1,x0+Math.ceil(CW/IS/T)+3),y1=Math.min(AH-1,y0+Math.ceil(CH/IS/T)+3);
   cx.fillStyle='#07061a';cx.fillRect(x0*T,y0*T,(x1-x0+1)*T,(y1-y0+1)*T);
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)tileAt(x,y);
-  drawRune();waterfall();
+  /* [SỬA 2] thêm drawIslands để vẽ đảo bay + cầu treo */
+  drawRune();waterfall();drawIslands(x0,y0,x1,y1);
   drawDoor(D,['rgba(80,140,255,.38)','rgba(20,40,160,0)','#4a90f5']);
   drawExit(D2);
   const lx=x0*T-40,rx=x1*T+40,ty=y0*T-70,by=y1*T+70;
@@ -500,13 +503,17 @@ function drawFront(){
   if(b)label(b.x*T+4,b.y*T-14,GOT[sel]?'Đã hái 1 bông':'E: Hái hoa đầm lầy',GOT[sel]?'#aaa':'#ffd23f');
   else if(nearDoor(P,D2))label(D2.x,D2.y-40,'E: Cửa về mặt đất','#ffc84a');
   else if(nearDoor(P,D))label(D.x,D.y-30,'Cánh cửa xoáy (chưa mở)','#aaa')}
-  const _drawIn=drawIn;drawIn=function(){
-  const _person=person;person=function(p){
-  if(p.fl!==WID||!AB)return _person(p);
+
+/* [SỬA 4] bọc person và drawIn tách riêng, mỗi cái chỉ bọc 1 lần */
+const _personA=person;
+person=function(p){
+  if(p.fl!==WID||!AB)return _personA(p);
   const o=offAt(Math.floor(p.x/T),Math.floor(p.y/T));
-  if(!o)return _person(p);
+  if(!o)return _personA(p);
   cx.save();cx.translate(0,-Math.round(o));
-  try{_person(p)}finally{cx.restore()}};
+  try{_personA(p)}finally{cx.restore()}};
+const _drawIn=drawIn;
+drawIn=function(){
   if(curF!==WID)return _drawIn();
   drawBack();_drawIn();drawFront()};
 
