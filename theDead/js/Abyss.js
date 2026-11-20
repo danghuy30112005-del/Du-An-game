@@ -550,3 +550,4 @@ const _gen=gen;gen=function(sd){_gen(sd);buildAbyss()};
 const _mk=mkPeople;mkPeople=function(){_mk();GOT={};saveG();PT=[];SW=null;closeAsk();flagN=0;lastReg=''};
 buildAbyss();   /* bản đồ đầu tiên đã được tạo trước khi file này nạp */
 })();
+
