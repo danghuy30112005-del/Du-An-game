@@ -2,36 +2,41 @@
    Nạp CUỐI CÙNG (sau ghostplus.js). Không cần sửa file cũ.
    - Lại gần miệng hố lớn (trong hàng rào): hiện bảng hỏi "Có muốn nhảy xuống không?".
        Có -> hiệu ứng chuyển giới (vòng xoáy xanh) -> rơi xuống Vực sâu. Không -> đứng yên (bấm E để hỏi lại).
-   - Vực sâu có 2 hướng, xuất phát ở bãi đáp giữa:
-       Phía TÂY : hang tím (giống ảnh 1) + cánh cửa có vòng xoáy trên đầu (màu xanh đen). Bấm E gần cửa để đi qua.
-       Phía ĐÔNG: hang xanh ngọc có thác nước, cầu đá, tinh thể (giống ảnh 2) + vách đá có bụi hoa đầm lầy.
+   - Vực sâu (300x170 ô) có 2 hướng, xuất phát ở bãi đáp giữa:
+       Ngay bãi đáp: CỬA GỖ VỀ MẶT ĐẤT (cửa vòm trong khung đá, có đèn lồng). Bấm E gần cửa để trở về.
+       Phía TÂY : hang tím + cánh cửa xoáy (tạm chưa dùng được, đổi DOOR_TO để gắn thế giới mới).
+       Phía ĐÔNG: hang xanh ngọc có thác nước, cầu đá, tinh thể + vách đá có bụi hoa đầm lầy.
    - Bụi hoa: bấm E để hái. Mỗi người chơi chỉ hái được 1 bông, bụi hoa không biến mất.
-     Bông hoa vào túi đồ; trong Danh sách của Pháp sư, mục "Bông hoa của đầm lầy" được tích ✔ và gạch ngang.
    - Dùng lại hiệu ứng chuyển giới cho thế giới khác sau này:
        WORLDS.tenmoi={name:'...',enter(q){ putIn(q,<tầng>,x,y) hoặc putOut(q,px,py) }};
-       worldTransfer(soNguoiChoi,'tenmoi');
-     Cánh cửa xoáy ở khu tím đang dẫn về mặt đất; đổi hằng DOOR_TO bên dưới để dẫn sang thế giới mới. */
+       worldTransfer(soNguoiChoi,'tenmoi'); */
 (()=>{
 if(typeof putIn!=='function'||typeof putOut!=='function'||typeof syncView!=='function'||typeof PIT==='undefined'||typeof FL==='undefined'||typeof allPl!=='function'){console.warn('abyss.js: hãy nạp SAU deadisland.js (đặt cuối cùng)');return}
 
 /* ---------- Thông số ---------- */
 const WID=21,WALL=62,VW=400;      /* số tầng của thế giới mới, loại ô tường, bề rộng khung nhìn (px) */
+const AW=300,AH=170;              /* kích thước bản đồ Vực sâu (ô), độc lập với IW/IH của nhà */
+const LX=150,LY=85;               /* tâm bãi đáp */
 const PX=156,PY=48;               /* tâm hố lớn trên mặt đất (ô) */
-const DOOR_TO='surface';          /* cánh cửa xoáy dẫn tới thế giới nào (id trong WORLDS) */
+const DOOR_TO=null;               /* cửa xoáy bên trái dẫn tới thế giới nào (id trong WORLDS); null = chưa dùng */
 const GKEY='deadisland:flower';
-const D={x:42*T+4,y:29*T};        /* chân cánh cửa xoáy */
+const D={x:70*T+4,y:64*T};        /* cửa xoáy phía tây (chưa dùng) */
+const D2={x:LX*T+4,y:77*T};       /* cửa gỗ về mặt đất, ở chỗ xuất hiện */
+const PADS=[[64,76,64,72],[144,156,77,81]];   /* bục gạch trước hai cánh cửa */
+const WF0=228;                    /* cột trái của thác nước (rộng 5 ô) */
 let AB=null,SW=null,PR=null,GOT={},PT=[],flagN=0,lastReg='',QX=0,QY=0;
 try{GOT=JSON.parse(localStorage.getItem(GKEY))||{}}catch(_){GOT={}}
 const saveG=()=>{try{localStorage.setItem(GKEY,JSON.stringify(GOT))}catch(_){}};
 const r=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(QX+a,QY+b,w,h)};
 const R0=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),w,h)};
+const inPad=(x,y)=>PADS.some(([a,b,c,d])=>x>=a&&x<=b&&y>=c&&y<=d);
 
 /* ---------- Bảng màu: tím (tây) -> xanh ngọc (đông) ---------- */
 const hx=s=>[parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)];
 const mx=(a,b,t)=>{const A=hx(a),B=hx(b);return'#'+[0,1,2].map(i=>Math.round(A[i]+(B[i]-A[i])*t).toString(16).padStart(2,'0')).join('')};
 const PA={f1:'#4a3d7c',f2:'#443876',fd:'#5f50a0',fk:'#37295f',wl:'#1d1540',wt:'#2c2258',fc:'#5b4a95',sd:'#33285f',gl:'#2fe0c8',pm:'#5c4a98',pl:'#7a68b8',pd:'#38296a'},
   PB={f1:'#173b4d',f2:'#143445',fd:'#21566b',fk:'#112f48',wl:'#080f26',wt:'#101a3a',fc:'#1f4d6c',sd:'#0d2438',gl:'#46e0d0',pm:'#2a5a7a',pl:'#3f7fa0',pd:'#143048'};
-const PL=Array.from({length:IW},(_,x)=>{const t=Math.max(0,Math.min(1,(x-66)/38)),s=t*t*(3-2*t),o={t:s};for(const k in PA)o[k]=mx(PA[k],PB[k],s);return o});
+const PL=Array.from({length:AW},(_,x)=>{const t=Math.max(0,Math.min(1,(x-118)/64)),s=t*t*(3-2*t),o={t:s};for(const k in PA)o[k]=mx(PA[k],PB[k],s);return o});
 
 /* ---------- Danh sách thế giới (dùng cho chuyển giới) ---------- */
 function surfPos(){
@@ -40,8 +45,8 @@ function surfPos(){
 const WORLDS=window.WORLDS||(window.WORLDS={});
 WORLDS.surface={name:'Mặt đất',enter(q){const[x,y]=surfPos();putOut(q,x,y);flagN=1;
   if(q.pl===sel)cap('Bạn đã trở lại mặt đất, bên miệng hố lớn.')}};
-WORLDS.abyss={name:'Vực sâu',enter(q){putIn(q,WID,85.5+(slot(q)-2)*1.4,44);q.vis=1;lastReg='';
-  if(q.pl===sel)cap('Bạn rơi xuống Vực sâu. Hai lối đi: phía TÂY là hang tím có cánh cửa xoáy, phía ĐÔNG là hang xanh ngọc có thác nước và vách đá hoa.')}};
+WORLDS.abyss={name:'Vực sâu',enter(q){putIn(q,WID,LX+.5+(slot(q)-2)*1.4,LY+3);q.vis=1;lastReg='';
+  if(q.pl===sel)cap('Bạn rơi xuống Vực sâu. Cánh cửa gỗ phía bắc bãi đáp dẫn về mặt đất. Phía TÂY là hang tím, phía ĐÔNG là hang xanh ngọc có thác nước và các bục đá cao có hoa (leo bậc thang để lên).')}};
 function transfer(n,id){
   const q=allPl().find(p=>p.pl===n),W2=WORLDS[id];
   if(!q||!W2||SW)return false;
@@ -51,7 +56,7 @@ function transfer(n,id){
   return true}
 window.worldTransfer=transfer;
 
-/* ---------- Hiệu ứng vòng xoáy (giống ảnh 5) ---------- */
+/* ---------- Hiệu ứng vòng xoáy ---------- */
 function spiral(ox,oy,Rm,rot,al){
   const big=Rm>80,step=big?1.2:.6,cs=cx.globalAlpha;
   const L=[[.16,'#161515',1.9],[.08,'#5b5b5b',1.4],[0,'#ffffff',1]];
@@ -101,7 +106,7 @@ addEventListener('keydown',e=>{
   e.preventDefault();e.stopImmediatePropagation();
   if(e.repeat)return;
   if(/^[1-9]$/.test(e.key)&&PR[+e.key-1]){const f=PR[+e.key-1][1];closeAsk();f()}
-  else if(e.key==='Escape'||e.key==='Enter'&&false)closeAsk()},true);
+  else if(e.key==='Escape')closeAsk()},true);
 document.addEventListener('pointerdown',e=>{if((SW||PR)&&e.target===cv){e.preventDefault();e.stopPropagation()}},true);
 const _ctrl=ctrl;ctrl=function(){
   if(SW||PR){const P=allPl().find(p=>p.pl===sel);if(P)P.moving=0;return}
@@ -133,72 +138,91 @@ function pickFlower(n,b){
     GOT[n]=1;saveG();
     for(let i=0;i<16;i++)PT.push({x:b.x*T+4+rnd(9)-4,y:b.y*T+4+rnd(7)-3,vx:(Math.random()-.5)*.6,vy:-(.2+Math.random()*.6),l:30+rnd(25),m:55,c:i%2?'#ff8ab8':'#ffd0e4'});
     cap('P'+n+' hái được Bông hoa của đầm lầy. Bụi hoa vẫn còn nguyên; mục này đã được gạch trong danh sách của Pháp sư.')}}
-/* gạch ngang các mục đã có trong Danh sách của Pháp sư (witch.js đã tích ✔) */
 new MutationObserver(()=>{
   const w=$('wq');if(!w)return;
   w.querySelectorAll('.qr').forEach(q=>{const c=q.querySelector('.ck');q.classList.toggle('done',!!c&&c.textContent.indexOf('✔')>=0)})
 }).observe($('inv'),{childList:true,subtree:true,characterData:true});
 
-/* ---------- Cánh cửa xoáy ---------- */
+/* ---------- Các cánh cửa ---------- */
+function askBack(n){
+  ask('Cánh cửa gỗ dẫn về mặt đất. Bạn có muốn quay lại không?',[
+    ['Quay về',()=>{cap('P'+n+' mở cánh cửa gỗ bước ra...');transfer(n,'surface')}],['Chưa',()=>{}]])}
 function askDoor(n){
-  const to=WORLDS[DOOR_TO];
-  ask('Cánh cửa xoáy đang chờ bạn. Bước qua để tới: '+(to?to.name:'?')+'?',[
+  const to=DOOR_TO&&WORLDS[DOOR_TO];
+  if(!to){cap('Cánh cửa xoáy phía tây vẫn im lìm, chưa thể mở được...');return}
+  ask('Cánh cửa xoáy đang chờ bạn. Bước qua để tới: '+to.name+'?',[
     ['Bước qua',()=>transfer(n,DOOR_TO)],['Chưa',()=>{}]])}
 const nearBush=P=>AB&&AB.BUSH.find(b=>Math.hypot(P.x-(b.x*T+4),P.y-((b.y+1)*T+2))<20);
-const nearDoor=P=>Math.hypot(P.x-D.x,P.y-(D.y+8))<24;
+const nearDoor=(P,d)=>Math.hypot(P.x-d.x,P.y-(d.y+8))<24;
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.repeat||e.key.toLowerCase()!=='e'||e.ctrlKey||e.metaKey||e.altKey)return;
   if(state!=='island'||TK||trans||SW||PR)return;
   const iv=$('inv');if(iv&&!iv.hidden)return;
   const P=allPl().find(p=>p.pl===sel);if(!P)return;
-  if(P.fl===WID){const b=nearBush(P);if(b){pickFlower(P.pl,b);return}if(nearDoor(P))askDoor(P.pl);return}
+  if(P.fl===WID){
+    const b=nearBush(P);if(b){pickFlower(P.pl,b);return}
+    if(nearDoor(P,D2)){askBack(P.pl);return}
+    if(nearDoor(P,D))askDoor(P.pl);
+    return}
   if(!P.fl&&!inside&&nearPit(P))askPit(P.pl)});
 
-/* ================= BẢN ĐỒ VỰC SÂU ================= */
+/* ================= BẢN ĐỒ VỰC SÂU (300 x 170 ô) ================= */
 function buildAbyss(){
-  const mk=v=>Array.from({length:IH},()=>Array(IW).fill(v));
-  const im=mk(WALL),rid=mk(0),wat=mk(0),br=mk(0),ob=mk(0);
-  const fl=(x,y)=>{if(x>1&&y>1&&x<IW-2&&y<IH-2){im[y][x]=0;rid[y][x]=1}};
-  const ell=(a0,b0,rx,ry,k)=>{for(let y=Math.floor(b0-ry-3);y<=b0+ry+3;y++)for(let x=Math.floor(a0-rx-3);x<=a0+rx+3;x++){
+  const mk=v=>Array.from({length:AH},()=>Array(AW).fill(v));
+  const im=mk(WALL),rid=mk(0),wat=mk(0),br=mk(0),ob=mk(0),cl=mk(0),sp=mk(0),pf=mk(0);
+  const fl=(x,y)=>{if(x>1&&y>1&&x<AW-2&&y<AH-2){im[y][x]=0;rid[y][x]=1}};
+  const wl=(x,y)=>{im[y][x]=WALL;rid[y][x]=0;wat[y][x]=0;br[y][x]=0;ob[y][x]=0};
+  const ell=(a0,b0,rx,ry,k)=>{for(let y=Math.floor(b0-ry-4);y<=b0+ry+4;y++)for(let x=Math.floor(a0-rx-4);x<=a0+rx+4;x++){
     const a=Math.atan2((y+.5-b0)/ry,(x+.5-a0)/rx),q=1+.1*Math.sin(3*a+k)+.07*Math.sin(5*a+2*k),d=Math.hypot((x+.5-a0)/rx,(y+.5-b0)/ry)/q;if(d<1)fl(x,y)}};
-  ell(85,44,10,7,1);ell(42,44,22,16,2);ell(128,44,22,16,3);          /* bãi đáp, hang tím, hang xanh ngọc */
-  for(let y=41;y<=47;y++)for(let x=58;x<=110;x++){if((y===41||y===47)&&hs(x,y)%100<35)continue;fl(x,y)}  /* hai lối đi */
-  for(let y=20;y<=28;y++)for(let x=35;x<=49;x++){im[y][x]=WALL;rid[y][x]=0}   /* tường phía bắc nơi đặt cửa */
-  for(let y=29;y<=36;y++)for(let x=37;x<=47;x++)fl(x,y);                       /* bục đá trước cửa */
+  ell(LX,LY,16,11,1);ell(70,85,40,30,2);ell(230,85,40,30,3);      /* bãi đáp, hang tím, hang xanh ngọc */
+  for(let y=82;y<=88;y++)for(let x=100;x<=200;x++){if((y===82||y===88)&&hs(x,y)%100<35)continue;fl(x,y)}  /* hai lối đi rộng */
+  /* tường phía bắc đặt hai cánh cửa + bục gạch phía trước */
+  for(let y=48;y<=63;y++)for(let x=60;x<=80;x++)wl(x,y);
+  for(let y=66;y<=76;y++)for(let x=142;x<=158;x++)wl(x,y);
+  PADS.forEach(([a,b,c,d])=>{for(let y=c;y<=d;y++)for(let x=a;x<=b;x++)fl(x,y)});
   /* ao + thác nước */
   let wfy=99;
-  for(let y=27;y<=41;y++)for(let x=110;x<=150;x++)if(im[y][x]===0&&Math.hypot((x+.5-130)/12,(y+.5-34)/5.6)<1){
-    im[y][x]=WALL;rid[y][x]=0;wat[y][x]=1;if(x>=128&&x<=132&&y<wfy)wfy=y}
-  if(wfy===99)wfy=29;
+  for(let y=50;y<=80;y++)for(let x=196;x<=264;x++)if(im[y][x]===0&&Math.hypot((x+.5-230)/22,(y+.5-66)/9)<1){
+    im[y][x]=WALL;rid[y][x]=0;wat[y][x]=1;if(x>=WF0&&x<=WF0+4&&y<wfy)wfy=y}
+  if(wfy===99)wfy=58;
   /* cầu đá bắc qua ao */
-  const bry0=34,bry1=36;
-  for(let y=bry0;y<=bry1;y++){let a=999,b=-1;for(let x=100;x<=160;x++)if(wat[y][x]){a=Math.min(a,x);b=Math.max(b,x)}
+  const bry0=65,bry1=67;
+  for(let y=bry0;y<=bry1;y++){let a=999,b=-1;for(let x=180;x<=280;x++)if(wat[y][x]){a=Math.min(a,x);b=Math.max(b,x)}
     if(b<0)continue;for(let x=a-1;x<=b+1;x++){fl(x,y);wat[y][x]=0;br[y][x]=1}}
-  /* vách đá có bụi hoa */
-  const OC=[[111,46,7,3],[123,52,7,3],[139,46,7,3]],BUSH=[];
-  OC.forEach(([ox,oy,w,h])=>{for(let y=oy;y<oy+h;y++)for(let x=ox;x<ox+w;x++){im[y][x]=WALL;rid[y][x]=0;wat[y][x]=0;br[y][x]=0}BUSH.push({x:ox+(w>>1),y:oy+h-1})});
+  /* bục đá cao có bụi hoa: vách đá 4 ô, 3 ô bậc thang ở giữa để leo lên, bụi hoa nằm trên bục */
+  const LG=[[205,100],[230,104],[257,100]],BUSH=[];   /* [tâm x, hàng cuối của vách đá] */
+  const inLg=(x,y)=>LG.some(([c,yb])=>x>=c-9&&x<=c+9&&y>=yb-12&&y<=yb+3);
+  LG.forEach(([c,yb])=>{
+    for(let y=yb-10;y<=yb;y++)for(let x=c-7;x<=c+7;x++)wl(x,y);                 /* khối đá bao quanh */
+    for(let y=yb-9;y<=yb-4;y++)for(let x=c-6;x<=c+6;x++){fl(x,y);pf[y][x]=1}    /* mặt bục phía trên */
+    for(let y=yb-3;y<=yb;y++){
+      for(let x=c-7;x<=c+7;x++)cl[y][x]=1;                                       /* mặt vách đá */
+      for(let x=c-1;x<=c+1;x++){fl(x,y);sp[y][x]=yb-y+1}}                        /* bậc thang */
+    for(let y=yb+1;y<=yb+2;y++)for(let x=c-3;x<=c+3;x++)fl(x,y);                 /* lối tới chân thang */
+    im[yb-7][c]=WALL;rid[yb-7][c]=0;ob[yb-7][c]=1;                               /* ô đặt bụi hoa */
+    BUSH.push({x:c,y:yb-7})});
   /* vật thể */
   const OBJ=[],put=(k,x,y,ax,ay,h,w)=>OBJ.push({k,x,y,ax,ay,h,w});
-  [[30,38],[54,40],[33,52],[52,53]].forEach(([x,y])=>{for(let j=0;j<2;j++)for(let i=0;i<2;i++){im[y+j][x+i]=WALL;rid[y+j][x+i]=0;ob[y+j][x+i]=1}put('pil',x,y,(x+1)*T,(y+2)*T,54,30)});
-  [[110,41],[147,43],[109,53],[148,52],[120,57],[138,58],[22,42],[63,50],[44,58]].forEach(([x,y])=>{
-    if(im[y][x]===0&&!ob[y][x]){im[y][x]=WALL;rid[y][x]=0;ob[y][x]=1;put('cry',x,y,x*T+4,(y+1)*T,18,14)}});
-  [[114,50],[145,47],[125,49],[134,52],[117,45],[28,46],[60,56]].forEach(([x,y])=>{if(im[y][x]===0)put('mus',x,y,x*T+4,y*T+8,0,8)});
+  [[46,72],[90,74],[48,100],[92,100]].forEach(([x,y])=>{for(let j=0;j<2;j++)for(let i=0;i<2;i++){im[y+j][x+i]=WALL;rid[y+j][x+i]=0;ob[y+j][x+i]=1}put('pil',x,y,(x+1)*T,(y+2)*T,54,30)});
+  [[196,70],[262,72],[194,100],[264,98],[210,110],[245,111],[36,84],[98,98],[60,108],[104,70],[190,112],[270,84]].forEach(([x,y])=>{
+    if(im[y][x]===0&&!ob[y][x]&&!inLg(x,y)){im[y][x]=WALL;rid[y][x]=0;ob[y][x]=1;put('cry',x,y,x*T+4,(y+1)*T,18,14)}});
+  [[204,96],[256,86],[238,104],[226,99],[214,93],[44,90],[96,108],[120,80],[110,96],[180,92],[150,100]].forEach(([x,y])=>{if(im[y][x]===0&&!ob[y][x]&&!inLg(x,y))put('mus',x,y,x*T+4,y*T+8,0,8)});
   const fr=(x,y)=>BUSH.some(b=>Math.abs(x-b.x)<=2&&y>b.y&&y<=b.y+3);
-  for(let y=22;y<=66;y++)for(let x=20;x<=150;x++){
+  for(let y=4;y<AH-4;y++)for(let x=4;x<AW-4;x++){
     if(im[y][x]!==0||hs(x*3+1,y*7+2)%100>=2)continue;
-    if((Math.abs(x-85)<12&&Math.abs(y-44)<10)||(x>=56&&x<=110&&y>=39&&y<=49)||(x>=35&&x<=49&&y>=28&&y<=38)||fr(x,y))continue;
+    if((Math.abs(x-LX)<22&&Math.abs(y-LY)<16)||(x>=98&&x<=202&&y>=78&&y<=92)||(x>=58&&x<=82&&y>=60&&y<=76)||(x>=138&&x<=162&&y>=72&&y<=84)||fr(x,y)||inLg(x,y))continue;
     let ok=1;for(let j=-1;j<=1&&ok;j++)for(let i=-1;i<=1;i++)if(im[y+j][x+i]!==0||br[y+j][x+i]){ok=0;break}
     if(!ok)continue;
     im[y][x]=WALL;rid[y][x]=0;ob[y][x]=1;put('stg',x,y,x*T+4,(y+1)*T,14,8)}
   BUSH.forEach(b=>put('bush',b.x,b.y,b.x*T+4,b.y*T+8,0,12));
   OBJ.sort((a,b)=>a.ay-b.ay);
-  AB={im,rid,wat,br,ob,OBJ,BUSH,wfy,bry0,bry1};
-  FL[WID]={im,rid,RM:[null,{n:'Vực sâu',f:['rgba(0,0,0,0)','rgba(0,0,0,0)'],x0:0,y0:0,x1:IW-1,y1:IH-1,s:1}]}}
+  AB={im,rid,wat,br,ob,cl,sp,pf,OBJ,BUSH,wfy,bry0,bry1};
+  FL[WID]={im,rid,RM:[null,{n:'Vực sâu',f:['rgba(0,0,0,0)','rgba(0,0,0,0)'],x0:0,y0:0,x1:AW-1,y1:AH-1,s:1}]}}
 
 /* ================= VẼ ================= */
-const solid=(x,y)=>y>=0&&y<IH&&(AB.im[y][x]===0||AB.ob[y][x])&&!AB.wat[y][x];
+const solid=(x,y)=>y>=0&&y<AH&&(AB.im[y][x]===0||AB.ob[y][x])&&!AB.wat[y][x];
 function floorT(x,y,h,p){
-  if(x>=37&&x<=47&&y>=29&&y<=36){/* bục gạch xanh đen trước cửa */
+  if(inPad(x,y)){/* bục gạch xanh đen trước cửa */
     r((x+y)&1?'#1a2556':'#161f4c',0,0,T,T);r('#0d1436',0,T-1,T,1);r('#0d1436',(y&1)?3:7,0,1,T)}
   else{
     r(h%2?p.f1:p.f2,0,0,T,T);
@@ -208,7 +232,7 @@ function floorT(x,y,h,p){
     else if(p.t>=.5&&h%17===0&&((frame>>4)+h)%3){r(p.gl,(h>>3)&7,(h>>6)&7,1,1)}}
   if(!solid(x,y-1)){cx.globalAlpha=.4;r('#000',0,0,T,3);cx.globalAlpha=1}}
 function wallT(x,y,h,p){
-  const s=solid(x,y+1)||(y+1<IH&&AB.wat[y+1][x]);
+  const s=solid(x,y+1)||(y+1<AH&&AB.wat[y+1][x])||AB.cl[y][x];
   if(s){
     r(p.fc,0,0,T,T);
     for(let i=0;i<4;i++)r(p.fk,(h>>(i*2))&7,i*2,1+((h>>(i+3))&1),1);
@@ -229,19 +253,33 @@ function waterT(x,y,h,p){
   r(w>.9?'#1b86a8':w<-1?'#0a3a52':'#0f5a78',0,0,T,T);
   if(((x*3+y*5+(frame>>3))%7)===0){cx.globalAlpha=.7;r(p.gl,(h>>3)&5,(h>>6)&5,2,1);cx.globalAlpha=1}
   if(!solid(x,y-1)&&!(A.wat[y-1]&&A.wat[y-1][x])){cx.globalAlpha=.5;r('#000',0,0,T,2);cx.globalAlpha=1}
-  if(x>=128&&x<=132&&y<=A.wfy+2){cx.globalAlpha=.55;r('#d8fffa',(h>>3)&3,((frame>>2)+h)&3,4+((h>>5)&3),1);cx.globalAlpha=1}}
+  if(x>=WF0&&x<=WF0+4&&y<=A.wfy+2){cx.globalAlpha=.55;r('#d8fffa',(h>>3)&3,((frame>>2)+h)&3,4+((h>>5)&3),1);cx.globalAlpha=1}}
 function bridgeT(x,y,h,p){
   const A=AB;
   r(((x>>1)+y)&1?'#59658a':'#4f5a7e',0,0,T,T);r('#3a4468',0,T-1,T,1);if(x&1)r('#3a4468',0,0,1,T);
   if(y===A.bry0){r('#8190b8',0,0,T,2);r('#2a3150',0,2,T,1);if(x%3===0){r('#a0aed0',2,-3,3,5);r('#6a76a0',2,2,3,1)}}
   if(y===A.bry1){r('#8190b8',0,T-2,T,2);if(x%3===0){r('#a0aed0',2,T-6,3,5)}}}
+/* bậc thang đá: bậc càng cao càng sáng */
+function stairT(x,y,h,p){
+  const k=AB.sp[y][x];
+  r('#4a5578',0,0,T,T);r('#8190b8',0,0,T,3);r('#6a76a0',0,3,T,2);r('#262e48',0,T-2,T,2);r('#a9b6dc',0,0,T,1);
+  cx.globalAlpha=.1*(4-k);r('#000',0,0,T,T);cx.globalAlpha=1}
+/* mặt bục cao: sáng hơn nền hang, có gờ đá ở mép vách */
+function plateauT(x,y,h,p){
+  cx.globalAlpha=.16;r('#bcd0ff',0,0,T,T);cx.globalAlpha=1;
+  if(AB.cl[y+1]&&AB.cl[y+1][x]&&!AB.sp[y+1][x]){r(p.pl,0,T-2,T,2);r('#000',0,T-1,T,1)}}
 function tileAt(x,y){
   const A=AB,h=hs(x,y),p=PL[x];QX=x*T;QY=y*T;
   if(A.wat[y][x])return waterT(x,y,h,p);
-  if(A.im[y][x]===0||A.ob[y][x])return A.br[y][x]?bridgeT(x,y,h,p):floorT(x,y,h,p);
+  if(A.im[y][x]===0||A.ob[y][x]){
+    if(A.sp[y][x])return stairT(x,y,h,p);
+    if(A.br[y][x])return bridgeT(x,y,h,p);
+    floorT(x,y,h,p);
+    if(A.pf[y][x])plateauT(x,y,h,p);
+    return}
   wallT(x,y,h,p)}
 function waterfall(){
-  const A=AB,fx=128*T,fw=5*T,top=(A.wfy-9)*T,bot=A.wfy*T+6;
+  const A=AB,fx=WF0*T,fw=5*T,top=(A.wfy-9)*T,bot=A.wfy*T+6;
   if(fx+fw<camX-4||fx>camX+CW/IS+4||bot<camY||top>camY+CH/IS)return;
   cx.globalAlpha=.9;R0('#136f86',fx,top,fw,bot-top);
   for(let c=0;c<fw;c+=2)for(let yy=top;yy<bot;yy+=5){const o=(yy+frame*2+c*7)%24;if(o<10){cx.fillStyle=o<4?'#d8fffa':'#6ff0e0';cx.fillRect(fx+c,yy,2,Math.min(5,bot-yy))}}
@@ -250,10 +288,11 @@ function waterfall(){
   cx.globalAlpha=.12;R0('#46e0d0',fx-14,top,fw+28,bot-top+10);cx.globalAlpha=1}
 function horn(x0,y0,d,L,cv){
   for(let i=0;i<L;i++){const t=i/L,px=x0+d*cv*Math.sin(t*Math.PI*.9),w=Math.max(1,Math.round(4*(1-t)));R0('#1a3590',px-(w>>1),y0-i,w,1);if(w>1)R0('#3b60d0',px-(w>>1),y0-i,1,1)}}
-function drawDoor(){
-  const x=D.x,y=D.y,fr=frame;
+/* cửa xoáy phía tây (chưa dùng) */
+function drawDoor(dd,glow){
+  const x=dd.x,y=dd.y,fr=frame;
   if(x<camX-70||x>camX+CW/IS+70||y<camY-20||y>camY+CH/IS+130)return;
-  const g=cx.createRadialGradient(x,y-60,4,x,y-60,72);g.addColorStop(0,'rgba(80,140,255,.38)');g.addColorStop(1,'rgba(20,40,160,0)');
+  const g=cx.createRadialGradient(x,y-60,4,x,y-60,72);g.addColorStop(0,glow[0]);g.addColorStop(1,glow[1]);
   cx.fillStyle=g;cx.fillRect(x-72,y-132,144,144);
   horn(x-40,y-2,1,70,16);horn(x+40,y-2,-1,78,18);horn(x-52,y-2,1,40,10);horn(x+54,y-2,-1,46,12);
   for(let a=Math.PI*.9;a<=Math.PI*2.1;a+=.035){const px=Math.round(x+Math.cos(a)*29),py=Math.round(y-22+Math.sin(a)*29);R0('#0f1c52',px-1,py-1,4,4);R0('#2a46b0',px-1,py-1,3,3);R0('#4d78e8',px-1,py-1,1,1)}
@@ -264,11 +303,40 @@ function drawDoor(){
   R0('#2b4bb8',x-5,y-35,10,1);
   R0('#1b2a66',x-16,y-2,32,3);R0('#0d1436',x-16,y+1,32,1);
   cx.globalAlpha=.5+.3*Math.sin(fr*.08);R0('#3b6bff',x-8,y-1,16,1);cx.globalAlpha=1;
-  /* vòng xoáy trên đầu cánh cửa (thay cho cái chuông) */
-  cx.globalAlpha=.25;R0('#4a90f5',x-24,y-86,48,48);cx.globalAlpha=1;
+  cx.globalAlpha=.25;R0(glow[2],x-24,y-86,48,48);cx.globalAlpha=1;
   spiral(x,y-62,17,fr*.07,1);cx.globalAlpha=1}
+/* cửa gỗ vòm trong khung đá (cửa về mặt đất, không xoáy) */
+function drawExit(dd){
+  const x=dd.x,y=dd.y,fr=frame;
+  if(x<camX-60||x>camX+CW/IS+60||y<camY-20||y>camY+CH/IS+70)return;
+  const g=cx.createRadialGradient(x,y-20,3,x,y-20,52);
+  g.addColorStop(0,'rgba(255,205,90,.38)');g.addColorStop(1,'rgba(160,90,20,0)');
+  cx.fillStyle=g;cx.fillRect(x-52,y-72,104,104);
+  R0('rgba(0,0,0,.3)',x-17,y-1,34,4);
+  /* khung đá vòm */
+  for(let row=-2;row<34;row++){
+    const hw=(row<6?Math.round(Math.sqrt(1-Math.pow((6-row)/6,2))*10):10)+4,yy=y-34+row;
+    R0(row%6===2?'#3a4468':'#59658a',x-hw,yy,hw*2,1);R0('#8190b8',x-hw,yy,1,1);R0('#262e48',x+hw-1,yy,1,1)}
+  R0('#8190b8',x-6,y-36,12,1);
+  /* cánh cửa gỗ */
+  for(let row=0;row<34;row++){
+    const hw=row<6?Math.round(Math.sqrt(1-Math.pow((6-row)/6,2))*10):10,yy=y-34+row;
+    R0('#5a3a1e',x-hw,yy,hw*2,1);
+    for(let px=-hw;px<hw;px+=5)R0('#8a5a2e',x+px,yy,4,1);
+    if(row===10||row===24)R0('#2b2b33',x-hw,yy,hw*2,2)}
+  R0('#2a1a0c',x,y-30,1,30);
+  R0('#ffd23f',x-3,y-14,2,2);R0('#ffd23f',x+2,y-14,2,2);
+  /* ánh sáng lọt qua khe cửa */
+  cx.globalAlpha=.5+.3*Math.sin(fr*.08);R0('#ffe9a8',x-9,y-2,18,2);cx.globalAlpha=1;
+  /* bậc đá */
+  R0('#59658a',x-17,y-3,34,3);R0('#3a4468',x-17,y,34,1);
+  /* hai đèn lồng */
+  [-22,22].forEach((o,i)=>{
+    R0('#15151a',x+o,y-34,1,6);R0('#3a3a40',x+o-2,y-28,5,1);
+    R0(((fr>>3)+i)%2?'#ffd23f':'#ffb347',x+o-1,y-27,3,4);
+    cx.globalAlpha=.2;R0('#ffcc66',x+o-6,y-32,13,12);cx.globalAlpha=1})}
 function drawRune(){
-  const x=85*T+4,y=44*T+4,k=.5+.5*Math.sin(frame*.05);
+  const x=LX*T+4,y=LY*T+4,k=.5+.5*Math.sin(frame*.05);
   cx.globalAlpha=.35+.35*k;
   for(let a=0;a<6.28;a+=.09)R0('#46e0d0',x+Math.cos(a)*34,y+Math.sin(a)*20,2,1);
   for(let a=0;a<6.28;a+=.14)R0('#2fb8f0',x+Math.cos(a)*22,y+Math.sin(a)*13,1,1);
@@ -304,15 +372,17 @@ function dBush(o){
   [[-5,-1,6,5,'#1f5d3f'],[0,-3,6,6,'#2a7a52'],[-2,1,6,5,'#3a9a68'],[-6,2,4,3,'#2a7a52']].forEach(([a,b,w,h,c])=>R0(c,x+a+sw*(b<0?1:0),y+b,w,h));
   [[-4,-1],[2,-2],[0,2],[-1,-4],[4,1],[-5,3]].forEach(([a,b],i)=>{R0('#ff8ab8',x+a+sw,y+b,2,2);R0('#fff0a0',x+a+sw,y+b,1,1);if(((frame>>4)+i)%5===0)R0('#fff',x+a+sw+1,y+b-1,1,1)})}
 function dObj(o){
-  const p=PL[Math.max(0,Math.min(IW-1,o.x))];
+  const p=PL[Math.max(0,Math.min(AW-1,o.x))];
   if(o.k==='pil')dPil(o,p);else if(o.k==='cry')dCry(o,p);else if(o.k==='mus')dMus(o);else if(o.k==='stg')dStg(o,p);else dBush(o)}
 function drawBack(){
   if(!AB)return;
   const x0=Math.max(0,Math.floor(camX/T)-1),y0=Math.max(0,Math.floor(camY/T)-1),
-    x1=Math.min(IW-1,x0+Math.ceil(CW/IS/T)+3),y1=Math.min(IH-1,y0+Math.ceil(CH/IS/T)+3);
+    x1=Math.min(AW-1,x0+Math.ceil(CW/IS/T)+3),y1=Math.min(AH-1,y0+Math.ceil(CH/IS/T)+3);
   cx.fillStyle='#07061a';cx.fillRect(x0*T,y0*T,(x1-x0+1)*T,(y1-y0+1)*T);
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)tileAt(x,y);
-  drawRune();waterfall();drawDoor();
+  drawRune();waterfall();
+  drawDoor(D,['rgba(80,140,255,.38)','rgba(20,40,160,0)','#4a90f5']);
+  drawExit(D2);
   const lx=x0*T-40,rx=x1*T+40,ty=y0*T-70,by=y1*T+70;
   AB.OBJ.forEach(o=>{if(o.ax<lx||o.ax>rx||o.ay<ty||o.ay>by)return;dObj(o)});
   cx.globalAlpha=1}
@@ -324,43 +394,49 @@ function label(x,y,t,col){
 function drawFront(){
   if(!AB)return;
   const L=ins.filter(p=>p.fl===WID);
-  /* người đứng sau vật thể cao thì vật thể che lên người */
   AB.OBJ.forEach(o=>{
     if(o.k!=='pil'&&o.k!=='cry')return;
     if(L.some(q=>q.y<o.ay-1&&q.y>o.ay-o.h-4&&Math.abs(q.x-o.ax)<o.w/2))dObj(o)});
-  /* hạt sáng bay lơ lửng */
   const vw=CW/IS,vh=CH/IS;
   for(let i=0;i<16;i++){
-    const dx=camX+((i*97+frame*.15*(1+i%3*.4))%vw),dy=camY+((i*61+frame*.07+Math.sin(frame*.02+i)*6)%vh),pu=PL[Math.max(0,Math.min(IW-1,Math.floor(dx/T)))].t<.5;
+    const dx=camX+((i*97+frame*.15*(1+i%3*.4))%vw),dy=camY+((i*61+frame*.07+Math.sin(frame*.02+i)*6)%vh),pu=PL[Math.max(0,Math.min(AW-1,Math.floor(dx/T)))].t<.5;
     cx.globalAlpha=.4;R0(pu?'#c9a8ff':'#7cfff0',dx,dy,1,1)}
   cx.globalAlpha=1;
   PT.forEach(q=>{cx.globalAlpha=Math.max(0,Math.min(1,q.l/20));R0(q.c,q.x,q.y,2,2)});cx.globalAlpha=1;
-  /* gợi ý phím E */
   const P=L.find(q=>q.pl===sel);if(!P||SW||PR)return;
   const b=nearBush(P);
   if(b)label(b.x*T+4,b.y*T-14,GOT[sel]?'Đã hái 1 bông':'E: Hái hoa đầm lầy',GOT[sel]?'#aaa':'#ffd23f');
-  else if(nearDoor(P))label(D.x,D.y-30,'E: Cánh cửa xoáy')}
+  else if(nearDoor(P,D2))label(D2.x,D2.y-40,'E: Cửa về mặt đất','#ffc84a');
+  else if(nearDoor(P,D))label(D.x,D.y-30,'Cánh cửa xoáy (chưa mở)','#aaa')}
 const _drawIn=drawIn;drawIn=function(){
   if(curF!==WID)return _drawIn();
   drawBack();_drawIn();drawFront()};
 
-/* ---------- Khung nhìn rộng hơn khi ở Vực sâu ---------- */
+/* ---------- Khung nhìn + camera riêng cho Vực sâu (bản đồ lớn hơn nhà) ---------- */
+function abSnap(){
+  const P=ins.find(p=>p.pl===sel);if(!P)return;
+  camX=Math.max(0,Math.min(AW*T-CW/IS,P.x-CW/IS/2));camY=Math.max(0,Math.min(AH*T-CH/IS,P.y-CH/IS/2))}
 const _sv=syncView;syncView=function(s){
   _sv(s);
   const P=ins.find(p=>p.pl===sel);
-  if(P&&P.fl===WID){IS=CW/VW;if(s)snapCam()}};
+  if(P&&P.fl===WID){IS=CW/VW;if(s)abSnap()}};
+const _cam=cam;cam=function(){
+  if(inside&&curF===WID){
+    const P=ins.find(p=>p.pl===sel)||ins.find(p=>p.pl);if(!P)return;
+    camX+=(Math.max(0,Math.min(AW*T-CW/IS,P.x-CW/IS/2))-camX)*.15;
+    camY+=(Math.max(0,Math.min(AH*T-CH/IS,P.y-CH/IS/2))-camY)*.15;return}
+  _cam()};
 
 /* ---------- Cập nhật mỗi khung hình ---------- */
 function regionWatch(){
   const P=ins.find(p=>p.pl===sel&&p.fl===WID);if(!P)return;
-  const x=P.x/T,g=x<66?'tim':x>104?'ngoc':'giua';
+  const x=P.x/T,g=x<115?'tim':x>185?'ngoc':'giua';
   if(g!==lastReg){const f=lastReg==='';lastReg=g;
-    if(!f)cap(g==='tim'?'Hang tím: trụ đá khổng lồ, thạch nhũ rủ xuống. Cánh cửa xoáy ở cuối hang, phía bắc.':
-      g==='ngoc'?'Hang xanh ngọc: thác nước, cầu đá, tinh thể phát sáng. Trên các vách đá có bụi hoa đầm lầy.':'Bãi đáp ở giữa Vực sâu. Tây: hang tím và cánh cửa. Đông: hang xanh ngọc.')}}
+    if(!f)cap(g==='tim'?'Hang tím: trụ đá khổng lồ, thạch nhũ rủ xuống. Cánh cửa xoáy ở cuối hang, phía bắc (chưa mở được).':
+      g==='ngoc'?'Hang xanh ngọc: thác nước, cầu đá, tinh thể phát sáng. Bụi hoa đầm lầy mọc trên các bục đá cao, hãy leo bậc thang để lên hái.':'Bãi đáp ở giữa Vực sâu. Cửa gỗ phía bắc dẫn về mặt đất. Tây: hang tím. Đông: hang xanh ngọc.')}}
 const _step=step;step=function(){
   _step();swTick();pitWatch();
   if(state==='island'){
-    const dt=Math.min(.25,DM||.016);
     PT.forEach(q=>{q.x+=q.vx;q.y+=q.vy;q.vy-=.01;q.l--});PT=PT.filter(q=>q.l>0);
     regionWatch()}};
 
