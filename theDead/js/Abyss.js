@@ -30,7 +30,84 @@ const saveG=()=>{try{localStorage.setItem(GKEY,JSON.stringify(GOT))}catch(_){}};
 const r=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(QX+a,QY+b,w,h)};
 const R0=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),w,h)};
 const inPad=(x,y)=>PADS.some(([a,b,c,d])=>x>=a&&x<=b&&y>=c&&y<=d);
-
+/* ===== ĐẢO BAY: độ cao, nhấp nhô, xích ===== */
+const isl=i=>{const I=AB.ISL[i];return I.h+I.amp*Math.sin(frame*I.sp+I.ph)};
+function offAt(tx,ty){
+  if(!AB||!AB.mt)return 0;
+  const q=AB.mt.get(ty*AW+tx);if(!q)return 0;
+  if(q.k==='i')return isl(q.i);
+  const a=q.a<0?0:isl(q.a),b=isl(q.b);
+  return a+(b-a)*q.t+Math.sin(Math.PI*q.t)*1.5*Math.sin(frame*.06+tx*.5)}
+function chain(x0,y0,x1,y1,sag){
+  const n=Math.max(2,Math.round(Math.hypot(x1-x0,y1-y0)/2.6));
+  for(let i=0;i<=n;i++){const t=i/n,x=x0+(x1-x0)*t,y=y0+(y1-y0)*t+sag*4*t*(1-t);
+    if(i%2){R0('#aab0ba',x-1,y,3,2);R0('#6b7078',x-1,y+1,3,1)}
+    else{R0('#8a909a',x,y-1,2,3);R0('#4a4f58',x+1,y-1,1,3)}}}
+function underside(I,i,o){
+  const rxp=I.rx*T;
+  for(let x=Math.floor(I.cx-I.rx)-1;x<=Math.ceil(I.cx+I.rx)+1;x++){
+    let yb=-1;
+    for(let y=Math.floor(I.cy+I.ry)+1;y>=Math.floor(I.cy-I.ry)-1;y--){const q=AB.mt.get(y*AW+x);if(q&&q.k==='i'&&q.i===i){yb=y;break}}
+    if(yb<0)continue;
+    const base=(yb+1)*T-Math.round(o);
+    for(let c=0;c<T;c++){
+      const px=x*T+c,u=(px+.5-I.cx*T)/rxp,
+        d=Math.round(Math.sqrt(Math.max(0,1-u*u))*10+hs(px,i+3)%3+(Math.abs(u)<.12?9:0)),m1=Math.round(d*.55);
+      if(d<=0)continue;
+      R0('#6a6478',px,base,1,Math.min(2,d));
+      if(d>2)R0('#4a4658',px,base+2,1,Math.max(0,m1-2));
+      if(d>m1)R0('#2c2838',px,base+m1,1,d-m1)}}}
+function islTile(x,y,q,o){
+  const h=hs(x,y),A=AB;QX=x*T;QY=y*T-Math.round(o);
+  if(q.k==='i'){
+    r(h%2?'#3f8c52':'#37804a',0,0,T,T);
+    if(h%5===0)r('#62c273',(h>>3)&5,(h>>6)&5,2,1);
+    if(h%7===0)r('#27613a',(h>>4)&5,(h>>7)&5,1,2);
+    if(h%11===0)r(['#ff8ab8','#fff0a0','#ffd0e4'][h%3],(h>>5)&5,(h>>9)&5,1,1);
+    const nb=(dx,dy)=>{const n=A.mt.get((y+dy)*AW+x+dx);return n&&n.k==='i'&&n.i===q.i};
+    if(!nb(0,-1))r('#7fd890',0,0,T,1);
+    if(!nb(-1,0))r('#2a6a40',0,0,1,T);
+    if(!nb(1,0))r('#2a6a40',T-1,0,1,T);
+    if(!nb(0,1)){r('#6b5a3e',0,T-2,T,2);r('#3a2f22',0,T-1,T,1)}
+    return}
+  /* cầu ván treo, lan can xích */
+  r('#6b4a2a',0,0,T,T);
+  if(q.dir==='x'){
+    r('#3a2410',2,0,1,T);r('#3a2410',5,0,1,T);
+    const top=q.edge<0,ry=top?0:T-1;
+    r('#8a909a',0,ry,T,1);r('#d6dbe3',(x&1)*4+1,ry,2,1);
+    if(top){r('#8a909a',0,-4,T,1);r('#d6dbe3',((x+1)&1)*4+1,-4,2,1)}
+    if(x%4===0)r('#3a3a40',3,top?-5:ry-3,2,top?6:4)
+  }else{
+    r('#3a2410',0,2,T,1);r('#3a2410',0,5,T,1);
+    const lf=q.edge<0,rx=lf?0:T-1;
+    r('#8a909a',rx,0,1,T);r('#d6dbe3',rx,(y&1)*4+1,1,2);
+    r('#8a909a',rx,-4,1,T);
+    if(y%4===0)r('#3a3a40',lf?0:T-2,-5,2,6)}}
+function drawIslands(x0,y0,x1,y1){
+  const A=AB;if(!A||!A.ISL||!A.ISL.length)return;
+  A.ISL.forEach((I,i)=>underside(I,i,isl(i)));
+  /* xích lớn võng xuống nối đáy các đảo */
+  for(let i=0;i<A.ISL.length-1;i++){
+    const a=A.ISL[i],b=A.ISL[i+1],oa=isl(i),ob=isl(i+1);
+    const ax=a.cx*T,ay=(a.cy+a.ry)*T-oa+10,bx=b.cx*T,by=(b.cy+b.ry)*T-ob+10;
+    chain(ax,ay,bx,by,12);
+    R0('#aab0ba',ax-2,ay-1,4,4);R0('#3a3a40',ax-1,ay,2,2);
+    R0('#aab0ba',bx-2,by-1,4,4);R0('#3a3a40',bx-1,by,2,2)}
+  for(let y=y0;y<=y1+4;y++)for(let x=x0;x<=x1;x++){
+    const q=A.mt.get(y*AW+x);if(q)islTile(x,y,q,offAt(x,y))}
+  A.BUSH.forEach(b=>{
+    const px=b.x*T+4;if(px<camX-20||px>camX+CW/IS+20)return;
+    dBush({x:b.x,ax:px,ay:b.y*T+8-Math.round(offAt(b.x,b.y))})})}
+function voidT(x,y,h,p){
+  const A=AB;
+  r(['#0c0a22','#09071a','#06040f'][Math.max(0,Math.min(2,Math.floor((y-92)/6)))],0,0,T,T);
+  if((x*5+y*3+(frame>>5))%11===0){cx.globalAlpha=.25;r(p.gl,(h>>3)&5,(h>>6)&5,3,1);cx.globalAlpha=1}
+  if(h%23===0&&((frame>>4)+h)%3){r('#c9a8ff',(h>>3)&7,(h>>6)&7,1,1)}
+  const fl2=(xx,yy)=>A.im[yy]&&A.im[yy][xx]===0&&!A.vd[yy][xx];
+  if(fl2(x,y-1)){r(p.fc,0,0,T,5);r(p.fk,(h>>2)&5,2,2,1);r(p.fd,0,0,T,1);r(p.sd,0,5,T,2)}
+  if(fl2(x-1,y))r(p.fc,0,0,2,T);
+  if(fl2(x+1,y))r(p.fc,T-2,0,2,T)}
 /* ---------- Bảng màu: tím (tây) -> xanh ngọc (đông) ---------- */
 const hx=s=>[parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)];
 const mx=(a,b,t)=>{const A=hx(a),B=hx(b);return'#'+[0,1,2].map(i=>Math.round(A[i]+(B[i]-A[i])*t).toString(16).padStart(2,'0')).join('')};
@@ -131,6 +208,7 @@ function pitWatch(){
 /* ---------- Hoa đầm lầy ---------- */
 function ensureItem(){const I=window.ITEMS;if(I&&!I.wflower)I.wflower={icon:'🌸',name:'Bông hoa của đầm lầy',d:'Bông hoa hồng mọc giữa đầm lầy.'}}
 function pickFlower(n,b){
+  
   ensureItem();
   if(GOT[n]){cap('P'+n+' đã hái một bông rồi. Mỗi người chỉ hái được 1 bông (bụi hoa vẫn còn đó).');return}
   if(typeof window.giveItem!=='function'){cap('Cần nạp Playerkit.js để nhận đồ vào túi.');return}
@@ -189,18 +267,30 @@ function buildAbyss(){
   const bry0=65,bry1=67;
   for(let y=bry0;y<=bry1;y++){let a=999,b=-1;for(let x=180;x<=280;x++)if(wat[y][x]){a=Math.min(a,x);b=Math.max(b,x)}
     if(b<0)continue;for(let x=a-1;x<=b+1;x++){fl(x,y);wat[y][x]=0;br[y][x]=1}}
-  /* bục đá cao có bụi hoa: vách đá 4 ô, 3 ô bậc thang ở giữa để leo lên, bụi hoa nằm trên bục */
-  const LG=[[205,100],[230,104],[257,100]],BUSH=[];   /* [tâm x, hàng cuối của vách đá] */
-  const inLg=(x,y)=>LG.some(([c,yb])=>x>=c-9&&x<=c+9&&y>=yb-12&&y<=yb+3);
-  LG.forEach(([c,yb])=>{
-    for(let y=yb-10;y<=yb;y++)for(let x=c-7;x<=c+7;x++)wl(x,y);                 /* khối đá bao quanh */
-    for(let y=yb-9;y<=yb-4;y++)for(let x=c-6;x<=c+6;x++){fl(x,y);pf[y][x]=1}    /* mặt bục phía trên */
-    for(let y=yb-3;y<=yb;y++){
-      for(let x=c-7;x<=c+7;x++)cl[y][x]=1;                                       /* mặt vách đá */
-      for(let x=c-1;x<=c+1;x++){fl(x,y);sp[y][x]=yb-y+1}}                        /* bậc thang */
-    for(let y=yb+1;y<=yb+2;y++)for(let x=c-3;x<=c+3;x++)fl(x,y);                 /* lối tới chân thang */
-    im[yb-7][c]=WALL;rid[yb-7][c]=0;ob[yb-7][c]=1;                               /* ô đặt bụi hoa */
-    BUSH.push({x:c,y:yb-7})});
+  /* ĐẢO BAY: vực tối + 3 đảo ở các độ cao khác nhau, nối bằng cầu ván treo xích */
+  const vd=mk(0),mt=new Map(),BUSH=[],
+    ISL=[{cx:212,cy:102,rx:4.6,ry:3.6,h:8, amp:2.2,sp:.032,ph:0,  dy:1},
+         {cx:231,cy:99, rx:5.2,ry:3.6,h:24,amp:2.8,sp:.026,ph:2.1,dy:-2},
+         {cx:250,cy:103,rx:4.6,ry:3.6,h:15,amp:2.5,sp:.038,ph:4.2,dy:-1}];
+  const inLg=(x,y)=>x>=195&&x<=267&&y>=92&&y<=112;     /* vùng vực: không đặt đá / tinh thể / nấm */
+  for(let y=90;y<=112;y++)for(let x=196;x<=267;x++)if(Math.hypot((x+.5-231)/31,(y+.5-101)/8.5)<1){wl(x,y);vd[y][x]=1}
+  ISL.forEach((I,i)=>{
+    for(let y=Math.floor(I.cy-I.ry)-1;y<=I.cy+I.ry+1;y++)for(let x=Math.floor(I.cx-I.rx)-1;x<=I.cx+I.rx+1;x++)
+      if(vd[y][x]&&Math.hypot((x+.5-I.cx)/I.rx,(y+.5-I.cy)/I.ry)<1){fl(x,y);mt.set(y*AW+x,{k:'i',i})}
+    const bx=I.cx,by=I.cy+I.dy;
+    im[by][bx]=WALL;rid[by][bx]=0;ob[by][bx]=1;BUSH.push({x:bx,y:by,i})});
+  /* cầu từ mặt đất xuống đảo 1 (2 làn dọc) */
+  [211,212].forEach((x,li)=>{
+    let y=92;while(y<110&&!vd[y][x])y++;
+    const ys=[];for(;y<110&&!mt.has(y*AW+x);y++)ys.push(y);
+    ys.forEach((yy,k)=>{fl(x,yy);mt.set(yy*AW+x,{k:'b',a:-1,b:0,t:(k+1)/(ys.length+1),dir:'y',edge:li?1:-1})})});
+  /* cầu ngang nối đảo 1-2 và 2-3 (2 làn) */
+  const hb=(a,b,rows)=>rows.forEach((y,li)=>{
+    let x=Math.ceil(ISL[a].cx);
+    while(mt.has(y*AW+x)&&mt.get(y*AW+x).i===a)x++;
+    const xs=[];for(;x<AW-2&&!mt.has(y*AW+x);x++)xs.push(x);
+    xs.forEach((xx,k)=>{fl(xx,y);mt.set(y*AW+xx,{k:'b',a,b,t:(k+1)/(xs.length+1),dir:'x',edge:li?1:-1})})});
+  hb(0,1,[100,101]);hb(1,2,[100,101]);
   /* vật thể */
   const OBJ=[],put=(k,x,y,ax,ay,h,w)=>OBJ.push({k,x,y,ax,ay,h,w});
   [[46,72],[90,74],[48,100],[92,100]].forEach(([x,y])=>{for(let j=0;j<2;j++)for(let i=0;i<2;i++){im[y+j][x+i]=WALL;rid[y+j][x+i]=0;ob[y+j][x+i]=1}put('pil',x,y,(x+1)*T,(y+2)*T,54,30)});
@@ -214,9 +304,9 @@ function buildAbyss(){
     let ok=1;for(let j=-1;j<=1&&ok;j++)for(let i=-1;i<=1;i++)if(im[y+j][x+i]!==0||br[y+j][x+i]){ok=0;break}
     if(!ok)continue;
     im[y][x]=WALL;rid[y][x]=0;ob[y][x]=1;put('stg',x,y,x*T+4,(y+1)*T,14,8)}
-  BUSH.forEach(b=>put('bush',b.x,b.y,b.x*T+4,b.y*T+8,0,12));
+
   OBJ.sort((a,b)=>a.ay-b.ay);
-  AB={im,rid,wat,br,ob,cl,sp,pf,OBJ,BUSH,wfy,bry0,bry1};
+ 
   FL[WID]={im,rid,RM:[null,{n:'Vực sâu',f:['rgba(0,0,0,0)','rgba(0,0,0,0)'],x0:0,y0:0,x1:AW-1,y1:AH-1,s:1}]}}
 
 /* ================= VẼ ================= */
@@ -271,6 +361,7 @@ function plateauT(x,y,h,p){
 function tileAt(x,y){
   const A=AB,h=hs(x,y),p=PL[x];QX=x*T;QY=y*T;
   if(A.wat[y][x])return waterT(x,y,h,p);
+    if(A.vd[y][x])return voidT(x,y,h,p); 
   if(A.im[y][x]===0||A.ob[y][x]){
     if(A.sp[y][x])return stairT(x,y,h,p);
     if(A.br[y][x])return bridgeT(x,y,h,p);
@@ -279,6 +370,7 @@ function tileAt(x,y){
     return}
   wallT(x,y,h,p)}
 function waterfall(){
+  drawRune();waterfall();drawIslands(x0,y0,x1,y1);   // <-- thêm drawIslands(...)
   const A=AB,fx=WF0*T,fw=5*T,top=(A.wfy-9)*T,bot=A.wfy*T+6;
   if(fx+fw<camX-4||fx>camX+CW/IS+4||bot<camY||top>camY+CH/IS)return;
   cx.globalAlpha=.9;R0('#136f86',fx,top,fw,bot-top);
@@ -408,7 +500,13 @@ function drawFront(){
   if(b)label(b.x*T+4,b.y*T-14,GOT[sel]?'Đã hái 1 bông':'E: Hái hoa đầm lầy',GOT[sel]?'#aaa':'#ffd23f');
   else if(nearDoor(P,D2))label(D2.x,D2.y-40,'E: Cửa về mặt đất','#ffc84a');
   else if(nearDoor(P,D))label(D.x,D.y-30,'Cánh cửa xoáy (chưa mở)','#aaa')}
-const _drawIn=drawIn;drawIn=function(){
+  const _drawIn=drawIn;drawIn=function(){
+  const _person=person;person=function(p){
+  if(p.fl!==WID||!AB)return _person(p);
+  const o=offAt(Math.floor(p.x/T),Math.floor(p.y/T));
+  if(!o)return _person(p);
+  cx.save();cx.translate(0,-Math.round(o));
+  try{_person(p)}finally{cx.restore()}};
   if(curF!==WID)return _drawIn();
   drawBack();_drawIn();drawFront()};
 
