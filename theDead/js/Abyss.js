@@ -25,6 +25,7 @@ const D2={x:LX*T+4,y:77*T};       /* cửa gỗ về mặt đất, ở chỗ xu�
 const PADS=[[64,76,64,72],[144,156,77,81]];   /* bục gạch trước hai cánh cửa */
 const WF0=228;                    /* cột trái của thác nước (rộng 5 ô) */
 let AB=null,SW=null,PR=null,GOT={},PT=[],flagN=0,lastReg='',QX=0,QY=0;
+window.ABYSS=()=>AB; 
 try{GOT=JSON.parse(localStorage.getItem(GKEY))||{}}catch(_){GOT={}}
 const saveG=()=>{try{localStorage.setItem(GKEY,JSON.stringify(GOT))}catch(_){}};
 const r=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(QX+a,QY+b,w,h)};
