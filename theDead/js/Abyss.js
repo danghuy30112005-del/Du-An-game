@@ -571,8 +571,7 @@ if(typeof putIn!=='function'||!window.WORLDS||typeof window.abyssAsk!=='function
 const WID3=23,WIDA=21,VOID=63,AW3=200,AH3=215,VW3=640,SC=1.4,ABW=300,DY=90;
 const BMAX=[300,400,500],BNAME=['NHỆN RỪNG SÂU','HYDRA TỬ XÀ','HÓA THÂN TUYỆT VỌNG'],BCOL=['#c0287a','#e0602a','#b040ff'];
 const DKEY='deadisland:skybossdone';
-const ISL3=[[68,50],[132,50],[66,92],[134,92],[58,28],[100,104],[40,70],[160,70]].map(a=>[a[0],a[1]+DY,[7,7,7,7,8,8,10,10][ISL3I++%8],[4,4,4,4,4,4,6,6][ISL3J++%8]]);
-var ISL3I,ISL3J;
+const ISL3=[[68,50,7,4],[132,50,7,4],[66,92,7,4],[134,92,7,4],[58,28,8,4],[100,104,8,4],[40,70,10,6],[160,70,10,6]].map(a=>[a[0],a[1]+DY,a[2],a[3]]);
 const MCX=100,MCY=70+DY,MRX=26,MRY=16;          /* đảo chính */
 const PCX=100,PCY=50,PRX=24,PRY=13;             /* đảo trên cao (nơi có con mắt) */
 const EX=PCX*T,EGY=(PCY+4)*T,EHY=74;            /* vị trí con mắt: chân + độ lơ lửng */
@@ -959,11 +958,7 @@ window.SKYMONS=function(){
   return[B].concat(SK)};
 window.SKYKILL=function(mo){
   if(mo.skull){SK=SK.filter(s=>s!==mo);fx(mo.x,mo.y,12,['#e8e4d0','#7aff7a'],120,80,.5,10);return}
-  bossDown()};{
-  if(mo&&mo.sky){
-    if(mo.skull){SK=SK.filter(s=>s!==mo);fx(mo.x,mo.y,12,['#e8e4d0','#7aff7a'],120,80,.5,10);return}
-    bossDown();return}
-  if(_omk)_omk(mo)};
+  bossDown()};
 
 /* ================= VẼ NỀN ================= */
 function disc(c,x,y,r){for(let j=-r;j<=r;j++){const w=Math.round(Math.sqrt(Math.max(0,r*r-j*j)));R(c,x-w,y+j,w*2,1)}}
