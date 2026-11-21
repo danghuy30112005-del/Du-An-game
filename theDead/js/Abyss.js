@@ -163,7 +163,7 @@ function swTick(){
   const p=SW.t/SW.d;
   if(!SW.fired&&p>=.5){SW.fired=1;try{SW.cb()}catch(e){console.error(e)}}
   if(p>=1)SW=null}
-const _draw=draw;draw=function(){_draw();if(SW)swDraw()};
+const _draw=draw;draw=function(){_draw();if(SW){window.SWACT=1;window.swDrawPlus?window.swDrawPlus(SW):swDraw()}else window.SWACT=0};
 
 /* ---------- Bảng hỏi ---------- */
 const sty=document.createElement('style');

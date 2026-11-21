@@ -120,6 +120,7 @@ const keyOn=n=>window.sentQuest.get(n)>=2;   /* chỉ thấy / lấy được ch
 
 /* ---------- Hội thoại ---------- */
 function node(k,n){
+  if((k===0||k===1)&&q===1&&hasI(n,'holysword'))return{t:'Ta cảm nhận được hơi thở của thanh kiếm thánh! Ngươi đã mang nó về cho ta sao?',o:[{t:'Trao thanh kiếm thánh',act:'return'},{t:'Chưa',end:1}]};
   const ASK={t:'Ngài là ai?',go:2},q=window.sentQuest.get(n),Q=q<2?[{t:'Ngài có cần ta giúp gì không?',go:4}]:[];
   if(k===0)return OPEN?{t:'Cổng đã mở. Hãy bước nhẹ thôi, những bông hoa treo rất mong manh.',o:[{t:'Cảm ơn ngài',end:1},...Q,ASK]}
     :{t:'Dừng bước, kẻ hạ giới! Phía sau cánh cổng này là Vườn Hoa Treo. Không có Chìa khóa Thiên giới, không ai được phép đi qua.',o:[{t:'Tôi muốn lên khu hái hoa',go:1},...Q,ASK,{t:'Tôi sẽ quay lại',end:1}]};
@@ -250,7 +251,7 @@ const _ap=allPl;allPl=function(){
     const q=Object.create(p);Object.defineProperty(q,'y',{value:p.y-o});return q})};
 const _di=drawIn;drawIn=function(){
   if(curF!==WID||!GA||!AG||!KA)return _di();
-  PEND=[{y:GA.y*T+8,d:drawGate},{y:AG.y,d:drawAngel},{y:KA.y,d:drawAltar}].sort((a,b)=>a.y-b.y);
+  PEND=[{y:GA.y*T+8,d:drawGate},{y:AG.y,d:()=>window.drawAngelPlus?window.drawAngelPlus(AG,OPEN,curP()):drawAngel()},{y:KA.y,d:drawAltar}].sort((a,b)=>a.y-b.y);
   DRAWING=1;try{_di()}finally{DRAWING=0}
   while(PEND.length)PEND.shift().d();
   decor();

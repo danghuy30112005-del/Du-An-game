@@ -507,7 +507,7 @@ const MAXHP=3,IV_T=1.5;             /* số tim, thời gian bất tử sau khi 
 const AURA_T=1.5,CD_HIT=120,CD_MISS=5;
 const CD2=3,BEAM_DMG=35,BEAM_CRIT=.2,BEAM_CDMG=56;
 const MELEE=[10,26],MELEE_R=28,MELEE_CD=.35;
-const MHP={human:100,snake:80,spider:80};
+const MHP={human:100,snake:80,spider:80,boss:400};
 const WID2=22;
 const PKEY='deadisland:holypower',INVKEY='deadisland:inv1';
 /* vị trí tảng đá kiếm + cổng ánh sáng ở tầng 2 (khớp Abyss2.js) */
@@ -591,6 +591,7 @@ function hurt(m,d,crit,n){
   if(m.st==='idle'){m.st='chase';m.lost=0;m.path=[];m.wt=null;m.rage=Math.max(m.rage||0,3)}
   if(m.hp<=0){
     const A=window.MONS(),i=A.indexOf(m);if(i>=0)A.splice(i,1);
+    if(window.onMonKilled)window.onMonKilled(m);
     burst(m.x,m.y-10,WID2,36,['#c9a8ff','#7cfff0','#ffffff'],1);
     cap('P'+n+' đã hạ gục một con quái!')}}
 
@@ -607,7 +608,7 @@ addEventListener('pointerdown',e=>{
     ang=Math.atan2(wy-(P.y-7),wx-P.x);
   window.MONS().slice().forEach(m=>{
     const dx=m.x-P.x,dy=m.y-P.y;
-    if(Math.hypot(dx,dy)>MELEE_R)return;
+    if(Math.hypot(dx,dy)>MELEE_R+(m.k==='boss'?16:0))return;
     const da=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-ang),Math.cos(Math.atan2(dy,dx)-ang)));
     if(da<1.25)hurt(m,ri(MELEE[0],MELEE[1]),false,n)})},true);
 cv.addEventListener('pointermove',e=>{MS.x=e.clientX;MS.y=e.clientY;MS.has=1});
@@ -658,7 +659,7 @@ function tickBeams(){
       if(blocked(b)){b.dead=1;burst(b.x,b.y,b.fl,10,FIRE,0);break}
       if(b.fl===WID2){
         for(const mo of window.MONS()){
-          if(Math.hypot(b.x-mo.x,b.y-(mo.y-8))<11){
+          if(Math.hypot(b.x-mo.x,b.y-(mo.y-(mo.k==='boss'?20:8)))<(mo.k==='boss'?24:11)){
             const crit=Math.random()<BEAM_CRIT;
             hurt(mo,crit?BEAM_CDMG:BEAM_DMG,crit,b.n);b.dead=1;break}}}}
     if(--b.l<=0)b.dead=1});
@@ -736,16 +737,17 @@ function drawAll(){
   allPl().forEach(P=>{
     if(!visFl(P.fl|0))return;
     const a=AU[P.pl];if(a&&a.t>0)drawAura(P,a);
-    const f=AN[P.pl];if(f)drawAngelFx(P,f);
+    const f=AN[P.pl];if(f){if(window.drawGuardianPlus)window.drawGuardianPlus(P,f);else drawAngelFx(P,f)}
     if(IV[P.pl]>0&&((frame>>2)&1)){cx.globalAlpha=.35;R('#ff3b3b',P.x-6,P.y-20,12,20);cx.globalAlpha=1}});
   /* thanh máu quái */
   if(inside&&curF===WID2)window.MONS().forEach(m=>{
     if(m.hp===undefined||m.hp>=m.mhp)return;
-    const H0=m.k==='human'?26:m.k==='snake'?14:18,w=18,fw=Math.max(0,Math.round(w*m.hp/m.mhp));
+    const H0=m.k==='boss'?52:m.k==='human'?26:m.k==='snake'?14:18,w=m.k==='boss'?30:18,fw=Math.max(0,Math.round(w*m.hp/m.mhp));
     R('#000',m.x-w/2-1,m.y-H0-13,w+2,4);R('#5a0f16',m.x-w/2,m.y-H0-12,w,2);R(m.hp/m.mhp>.4?'#3ddc97':'#ff3b2a',m.x-w/2,m.y-H0-12,fw,2)});
   /* tia lửa xanh đỏ */
   BM.forEach(b=>{
     if(!visFl(b.fl))return;
+    if(window.drawBeamPlus){window.drawBeamPlus(b);return}
     b.tr.forEach((p,i)=>{cx.globalAlpha=(i+1)/b.tr.length*.85;
       R(((i+(frame>>1))&1)?'#ff3b2a':'#2fb8f0',p.x-1,p.y-1,i>8?3:2,i>8?3:2);
       R(((i+(frame>>1))&1)?'#ffb02e':'#9ae8ff',p.x+Math.sin(frame*.5+i)*2,p.y+Math.cos(frame*.5+i)*2,1,1)});
