@@ -225,7 +225,7 @@ new MutationObserver(()=>{
 
 /* ---------- Các cánh cửa ---------- */
 function askBack(n){
-  if(window.doorHook&&window.doorHook(n))return; 
+
   
   ask('Cánh cửa gỗ dẫn về mặt đất. Bạn có muốn quay lại không?',[
     ['Quay về',()=>{cap('P'+n+' mở cánh cửa gỗ bước ra...');transfer(n,'surface')}],['Chưa',()=>{}]])}
@@ -507,6 +507,7 @@ function drawFront(){
   if(b)label(b.x*T+4,b.y*T-14,GOT[sel]?'Đã hái 1 bông':'E: Hái hoa đầm lầy',GOT[sel]?'#aaa':'#ffd23f');
   else if(nearDoor(P,D2))label(D2.x,D2.y-40,'E: Cửa về mặt đất','#ffc84a');
   else if(nearDoor(P,D))label(D.x,D.y-30,'E: Cánh cửa xoáy','#ffd23f')
+  }
 
 /* [SỬA 4] bọc person và drawIn tách riêng, mỗi cái chỉ bọc 1 lần */
 const _personA=person;

@@ -15,6 +15,10 @@ const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),Mat
 const curP=()=>allPl().find(p=>p.pl===sel&&p.fl===WID);
 const bagOf=n=>{try{const I=JSON.parse(localStorage.getItem(INVKEY))||{};return Array.isArray(I[n])?I[n]:[]}catch(_){return[]}};
 const has=n=>bagOf(n).includes('sentkey');
+const hasI=(n,id)=>bagOf(n).includes(id);
+const QKEY='deadisland:sentq';let SQ={};
+try{SQ=JSON.parse(localStorage.getItem(QKEY))||{}}catch(_){}
+window.sentQuest={get:n=>SQ[n]|0,set(n,v){SQ[n]=v;try{localStorage.setItem(QKEY,JSON.stringify(SQ))}catch(_){}}};
 function ensure(){const I=window.ITEMS;if(I&&!I.sentkey)I.sentkey={icon:'🔑',name:'Chìa khóa Thiên giới',d:'Chìa khóa vàng khắc hình cánh chim, mở cổng lên Vườn Hoa Treo.'}}
 ensure();addEventListener('load',ensure);
 
@@ -92,7 +96,7 @@ function setup(){
   const k=nearFloor(A,262,90,10);KA={x:k[0]*T+4,y:k[1]*T+7};A.im[k[1]][k[0]]=WALL;A.ob[k[1]][k[0]]=1;
   gateT(!OPEN)}
 const _gen=gen;gen=function(sd){_gen(sd);setup()};
-const _mk=mkPeople;mkPeople=function(){_mk();OPEN=false;try{localStorage.removeItem(OKEY)}catch(_){}gateT(true);PT=[];if(TK&&TK.ang)closeTalk()};
+const _mk=mkPeople;mkPeople=function(){_mk();OPEN=false;SQ={};try{localStorage.removeItem(OKEY)}catch(_){}gateT(true);PT=[];if(TK&&TK.ang)closeTalk()};
 setup();
 
 /* ---------- Hạt sáng ---------- */
@@ -110,26 +114,34 @@ function takeKey(n){
 /* ---------- Khoảng cách tương tác ---------- */
 const nearAng=P=>AG&&Math.hypot(P.x-AG.x,P.y-(AG.y-4))<36;
 const nearGate=P=>GA&&Math.hypot(P.x-(GA.x*T+8),P.y-(GA.y*T+4))<26;
-const nearKey=P=>false;
+const nearKey=P=>KA&&Math.hypot(P.x-KA.x,P.y-(KA.y-6))<22;
 
 /* ---------- Hội thoại ---------- */
 function node(k,n){
-  const ASK={t:'Ngài là ai?',go:2};
-  if(k===0)return OPEN?{t:'Cổng đã mở. Hãy bước nhẹ thôi, những bông hoa treo rất mong manh.',o:[{t:'Cảm ơn ngài',end:1},ASK]}
-    :{t:'Dừng bước, kẻ hạ giới! Phía sau cánh cổng này là Vườn Hoa Treo. Không có Chìa khóa Thiên giới, không ai được phép đi qua.',o:[{t:'Tôi muốn lên khu hái hoa',go:1},ASK,{t:'Tôi sẽ quay lại',end:1}]};
-  if(k===1)return has(n)?{t:'Ta thấy ánh vàng của chìa khóa trong túi ngươi. Ngươi muốn dùng nó để mở cổng chứ?',o:[{t:'Dùng chìa khóa mở cổng',act:1},{t:'Chưa',end:1}]}
+  const ASK={t:'Ngài là ai?',go:2},q=window.sentQuest.get(n),Q=q<2?[{t:'Ngài có cần ta giúp gì không?',go:4}]:[];
+  if(k===0)return OPEN?{t:'Cổng đã mở. Hãy bước nhẹ thôi, những bông hoa treo rất mong manh.',o:[{t:'Cảm ơn ngài',end:1},...Q,ASK]}
+    :{t:'Dừng bước, kẻ hạ giới! Phía sau cánh cổng này là Vườn Hoa Treo. Không có Chìa khóa Thiên giới, không ai được phép đi qua.',o:[{t:'Tôi muốn lên khu hái hoa',go:1},...Q,ASK,{t:'Tôi sẽ quay lại',end:1}]};
+  if(k===1)return has(n)?{t:'Ta thấy ánh vàng của chìa khóa trong túi ngươi. Ngươi muốn dùng nó để mở cổng chứ?',o:[{t:'Dùng chìa khóa mở cổng',act:'gate'},{t:'Chưa',end:1}]}
     :{t:'Ngươi chưa có chìa khóa. Nó nằm trên bệ đá ở tận cùng phía đông của hang. Hãy mang nó tới đây, ta sẽ mở cổng.',o:[{t:'Tôi hiểu rồi',end:1},ASK]};
   if(k===2)return{t:'Ta là Angel Sentinel, người canh giữ lối lên những hòn đảo treo trên Vực sâu. Mỗi chiếc lông của ta là một con mắt, không kẻ nào qua mặt được ta.',o:[{t:'Quay lại',go:0}]};
+  if(k===4){
+    if(q===0)return{t:'Thanh kiếm thánh của ta bị cắm trong tảng đá ở đáy tầng 2 của Vực sâu, bầy quái bị nấm ký sinh canh giữ nó. Hãy mang nó về, ta sẽ đưa chìa khóa cánh cửa xoáy bên trái bãi đáp.',o:[{t:'Tôi sẽ đi lấy',act:'accept'},{t:'Để sau',end:1}]};
+    if(hasI(n,'holysword'))return{t:'Ta cảm nhận được hơi thở của thanh kiếm thánh! Ngươi mang nó về cho ta chứ?',o:[{t:'Trao kiếm',act:'return'},{t:'Chưa',end:1}]};
+    return{t:'Cánh cửa xoáy ở bên trái bãi đáp, dùng chìa khóa ta đã đưa. Hãy mang thanh kiếm thánh về đây.',o:[{t:'Tôi hiểu rồi',end:1}]}}
+  if(k===5)return{t:'Đây là chìa khóa cánh cửa xoáy. Hãy cẩn thận, đừng để bầy quái nghe thấy tiếng bước chân của ngươi.',o:[{t:'Cảm ơn ngài',end:1}]};
+  if(k===6)return{t:'Thanh kiếm thánh đã trở về. Ta nợ ngươi một ân huệ, kẻ hạ giới.',o:[{t:'Cảm ơn ngài',end:1}]};
   return{t:'Chìa khóa thật. Cổng đã mở và sẽ không đóng lại nữa. Đừng làm hỏng những bông hoa.',o:[{t:'Cảm ơn ngài',end:1}]}}
-function aRender(){
-  const n=node(TK.node,TK.P.pl),o=$('dO');
-  $('dlg').hidden=false;$('dN').textContent='Angel Sentinel (nói với P'+TK.P.pl+')';$('dT').textContent=n.t;o.innerHTML='';
-  n.o.forEach((a,i)=>{const b=document.createElement('button');b.className='btn';b.textContent=(i+1)+'. '+a.t;b.onclick=()=>aPick(a);o.append(b)});
-  o.firstChild.focus()}
 function aPick(a){
   if(!TK||!TK.ang)return;
   if(a.end){closeTalk();return}
-  if(a.act){if(!has(TK.P.pl)){closeTalk();return}openGate();TK.node=3}else TK.node=a.go;
+  const n=TK.P.pl;
+  if(a.act==='gate'){if(!has(n)){closeTalk();return}openGate();TK.node=3}
+  else if(a.act==='accept'){ensure();window.sentQuest.set(n,1);if(!hasI(n,'wdkey')&&window.giveItem)window.giveItem(n,'wdkey');TK.node=5}
+  else if(a.act==='return'){
+    if(!hasI(n,'holysword')){closeTalk();return}
+    if(window.takeItem)window.takeItem(n,'holysword');
+    window.sentQuest.set(n,2);burst(AG.x,AG.y-30,40);TK.node=6}
+  else TK.node=a.go;
   aRender()}
 function aOpen(P){TK={P,ang:1,node:0};$('tk').hidden=true;aRender()}
 const _close=closeTalk;closeTalk=function(){if(TK&&TK.ang){TK=null;$('dlg').hidden=true;return}_close()};

@@ -140,7 +140,7 @@ function giveItem(n,id){
   if(i<0){cap('Túi đồ đã đầy ('+SLOTS+'/'+SLOTS+').');return false}
   b[i]=id;saveInv();if(open)render();
   cap('P'+n+' nhặt được '+ITEMS[id].icon+' '+ITEMS[id].name+'.');return true}
-window.giveItem=giveItem;window.ITEMS=ITEMS;
+window.takeItem=(n,id)=>{const b=bag(n),i=b.indexOf(id);if(i<0)return false;b[i]=null;saveInv();if(open)render();return true};
 $('invUse').onclick=()=>{
   const b=bag(sel),id=b[selSlot],it=id&&ITEMS[id];if(!it||!it.use)return;
   if(it.use==='stamina'){const S=stOf(sel);S.v=Math.min(SMAX,S.v+it.v);cap('P'+sel+' dùng '+it.name+', hồi '+it.v+' thể lực.')}
