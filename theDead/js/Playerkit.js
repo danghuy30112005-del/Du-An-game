@@ -616,14 +616,7 @@ addEventListener('pointerdown',e=>{
     if(d>reach)return;
     const a=Math.atan2(dy,dx),da=Math.abs(Math.atan2(Math.sin(a-ang),Math.cos(a-ang)));
     if(da<MELEE_ARC||d<22)hurt(m,ri(MELEE[0],MELEE[1]),false,n)})},true);
-  const r=cv.getBoundingClientRect(),k=inside?IS:1,
-    wx=(e.clientX-r.left)/r.width*CW/k+camX,wy=(e.clientY-r.top)/r.height*CH/k+camY,
-    ang=Math.atan2(wy-(P.y-7),wx-P.x);
-  window.MONS().slice().forEach(m=>{
-    const dx=m.x-P.x,dy=m.y-P.y;
-    if(Math.hypot(dx,dy)>MELEE_R+(m.k==='boss'?16:0))return;
-    const da=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-ang),Math.cos(Math.atan2(dy,dx)-ang)));
-    if(da<1.25)hurt(m,ri(MELEE[0],MELEE[1]),false,n)})},true);
+
 cv.addEventListener('pointermove',e=>{MS.x=e.clientX;MS.y=e.clientY;MS.has=1});
 function mouseW(){const r=cv.getBoundingClientRect(),k=inside?IS:1;return{x:(MS.x-r.left)/r.width*CW/k+camX,y:(MS.y-r.top)/r.height*CH/k+camY}}
 
