@@ -3,15 +3,19 @@
 (()=>{
 if(typeof putIn!=='function'||typeof syncView!=='function'||typeof allPl!=='function'||!window.WORLDS||typeof window.abyssAsk!=='function'||typeof window.worldTransfer!=='function'||typeof window.sentQuest!=='object'){console.warn('Abyss2.js: hãy nạp SAU Sentinel.js và làm đủ các chỗ sửa trong Abyss.js / Playerkit.js / Sentinel.js');return}
 
-const WID1=21,WID2=22,WALL=62,AW2=170,AH2=104,VW=400;
-const SPX=85,SPY=18;            /* chỗ xuất hiện (ô) */
-const PTX=98,PTY=18;            /* cổng ánh sáng quay lên */
-const STX=84,STY=83;            /* tảng đá (khối 2x2, góc trái-trên) */
+const WID1=21,WID2=22,WALL=62,VW=400;
+const K=1.5,sc=v=>Math.round(v*K);          /* hệ số phóng to bản đồ */
+const AW2=sc(170),AH2=sc(104);
+const SPX=sc(85),SPY=sc(18);            /* chỗ xuất hiện (ô) */
+const PTX=sc(98),PTY=sc(18);            /* cổng ánh sáng quay lên */
+const STX=sc(84),STY=sc(83);            /* tảng đá (khối 2x2, góc trái-trên) */
 const SWa={x:(STX+1)*T,y:(STY+2)*T};
-const CHM=[[85,14,18,8],[45,36,16,9],[125,36,16,9],[85,56,18,9],[35,76,14,9],[135,76,14,9],[85,86,24,11]];
-const MS={human:{sp:1.9,wind:.55,sight:95,hear:60,reach:19,alert:.7},
-  snake:{sp:1.1,wind:.4,sight:85,hear:50,reach:21,alert:.5},
-  spider:{sp:1.25,wind:.32,sight:90,hear:55,reach:21,alert:.4}};
+const FEARR=100;                        /* bán kính (px) quanh kiếm thánh mà quái không dám bước vào */
+const CHM=[[85,14,18,8],[45,36,16,9],[125,36,16,9],[85,56,18,9],[35,76,14,9],[135,76,14,9],[85,86,24,11]]
+  .map(([x,y,rx,ry])=>[sc(x),sc(y),sc(rx),sc(ry)]);
+const MS={human:{sp:1.55,wind:.55,sight:95,hear:60,reach:19,alert:.7},
+  snake:{sp:.9,wind:.4,sight:85,hear:50,reach:21,alert:.5},
+  spider:{sp:1.0,wind:.32,sight:90,hear:55,reach:21,alert:.4}};
 const D4=[[1,0],[-1,0],[0,1],[0,-1]];
 let M2=null,OBJ2=[],MON=[],PEND2=[],PT2=[],WF={x:83,y:9},QX=0,QY=0,lastSay=0;
 const r=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(QX+a,QY+b,w,h)};
@@ -56,30 +60,29 @@ function build2(){
     for(let j=0;j<=n;j++){const x=a+Math.round((c-a)*j/n),y=b+Math.round((d-b)*j/n);for(let u=-w;u<=w;u++)for(let v=-w;v<=w;v++)fl(x+u,y+v)}}};
   CHM.forEach(([x,y,rx,ry],i)=>ell(x,y,rx,ry,i+1));
   [[[80,18],[62,28],[50,34]],[[90,18],[108,28],[120,34]],[[50,42],[68,52],[80,56]],[[120,42],[102,52],[90,56]],
-   [[75,60],[50,68],[38,74]],[[95,60],[120,68],[132,74]],[[40,82],[58,88],[70,88]],[[130,82],[112,88],[100,88]]].forEach(p=>tun(p,2));
+   [[75,60],[50,68],[38,74]],[[95,60],[120,68],[132,74]],[[40,82],[58,88],[70,88]],[[130,82],[112,88],[100,88]]].forEach(p=>tun(p.map(([x,y])=>[sc(x),sc(y)]),2));
   for(let j=-3;j<=3;j++)for(let i=-3;i<=3;i++){fl(SPX+i,SPY+j);fl(PTX+i,PTY+j)}
   for(let x=SPX;x<=PTX;x++)for(let y=PTY-1;y<=PTY+1;y++)fl(x,y);
   for(let j=-4;j<=4;j++)for(let i=-6;i<=6;i++)fl(STX+i,STY+j);
   /* hồ dưới thác nước */
-  for(let y=4;y<=20;y++)for(let x=70;x<=100;x++)if(Math.hypot((x+.5-85)/9,(y+.5-11)/3.4)<1&&im[y][x]===0){im[y][x]=WALL;rid[y][x]=0;wat[y][x]=1}
-  WF={x:83,y:9};for(let y=0;y<30;y++)if(wat[y][85]){WF.y=y;break}
+  for(let y=sc(4);y<=sc(22);y++)for(let x=SPX-sc(16);x<=SPX+sc(16);x++)if(Math.hypot((x+.5-SPX)/13,(y+.5-sc(11))/5)<1&&im[y][x]===0){im[y][x]=WALL;rid[y][x]=0;wat[y][x]=1}
+  WF={x:SPX-2,y:9};for(let y=0;y<AH2;y++)if(wat[y][SPX]){WF.y=y;break}
   /* vật thể */
   OBJ2=[];const used=[];
   const fine=(x,y,rr)=>{for(let j=-rr;j<=rr;j++)for(let i=-rr;i<=rr;i++)if((im[y+j]||[])[x+i]!==0)return false;return true};
   const pickIn=(ci,k,rr)=>{const[c0,c1,rx,ry]=CHM[ci];
     for(let t=0;t<60;t++){const h=hs(k*131+t*17,ci*97+t*5+3),x=Math.round(c0+((h%1000)/1000-.5)*rx*1.7),y=Math.round(c1+(((h>>>10)%1000)/1000-.5)*ry*1.7);
       if(x<4||y<4||x>=AW2-4||y>=AH2-4||!fine(x,y,rr))continue;
-      if(Math.hypot(x-SPX,y-SPY)<7||Math.hypot(x-PTX,y-PTY)<6||(Math.abs(x-STX)<8&&Math.abs(y-STY)<6))continue;
-      if(used.some(([a,b])=>Math.hypot(a-x,b-y)<3))continue;
+      if(Math.hypot(x-SPX,y-SPY)<10||Math.hypot(x-PTX,y-PTY)<9||Math.hypot(x*T-SWa.x,y*T-SWa.y)<FEARR+16)continue;      if(used.some(([a,b])=>Math.hypot(a-x,b-y)<3))continue;
       used.push([x,y]);return[x,y]}
     return null};
   const put=(k,x,y,h,w,block)=>{OBJ2.push({k,x,y,ax:x*T+4,ay:(y+1)*T,h,w});if(block){im[y][x]=WALL;rid[y][x]=0;ob[y][x]=1}};
-  [3,1,1,2,1,1,2].forEach((n,ci)=>{for(let i=0;i<n;i++){const p=pickIn(ci,i,1);if(p)put('mus',p[0],p[1],36,24,1)}});
-  [3,2,2,2,2,2,3].forEach((n,ci)=>{for(let i=0;i<n;i++){const p=pickIn(ci,10+i,0);if(p)put('smu',p[0],p[1],8,10,0)}});
-  [0,1,0,1,1,1,1].forEach((n,ci)=>{for(let i=0;i<n;i++){const p=pickIn(ci,20+i,1);if(p)put('cry',p[0],p[1],18,14,1)}});
-  [2,2,2,2,2,2,2].forEach((n,ci)=>{for(let i=0;i<n;i++){const p=pickIn(ci,30+i,0);if(p)put('fern',p[0],p[1],14,16,0)}});
-  [1,1,1,1,1,1,2].forEach((n,ci)=>{for(let i=0;i<n;i++){const p=pickIn(ci,40+i,1);if(p)put('stg',p[0],p[1],14,8,1)}});
-  [[74,15],[95,15],[79,16],[91,16]].forEach(([x,y])=>{if(im[y][x]===0)put('fern',x,y,14,16,0)});
+  [3,1,1,2,1,1,2].forEach((n,ci)=>{for(let i=0;i<n*2;i++){const p=pickIn(ci,i,1);if(p)put('mus',p[0],p[1],36,24,1)}});
+  [3,2,2,2,2,2,3].forEach((n,ci)=>{for(let i=0;i<n*2;i++){const p=pickIn(ci,10+i,0);if(p)put('smu',p[0],p[1],8,10,0)}});
+  [0,1,0,1,1,1,1].forEach((n,ci)=>{for(let i=0;i<n*2;i++){const p=pickIn(ci,20+i,1);if(p)put('cry',p[0],p[1],18,14,1)}});
+  [2,2,2,2,2,2,2].forEach((n,ci)=>{for(let i=0;i<n*2;i++){const p=pickIn(ci,30+i,0);if(p)put('fern',p[0],p[1],14,16,0)}});
+  [1,1,1,1,1,1,2].forEach((n,ci)=>{for(let i=0;i<n*2;i++){const p=pickIn(ci,40+i,1);if(p)put('stg',p[0],p[1],14,8,1)}});
+  [[SPX-11,SPY-3],[SPX+10,SPY-3],[SPX-6,SPY-2],[SPX+6,SPY-2]].forEach(([x,y])=>{if(im[y][x]===0)put('fern',x,y,14,16,0)});
   /* tảng đá + kiếm */
   for(let j=0;j<2;j++)for(let i=0;i<2;i++){im[STY+j][STX+i]=WALL;rid[STY+j][STX+i]=0;ob[STY+j][STX+i]=1}
   OBJ2.push({k:'sword',x:STX,y:STY,ax:SWa.x,ay:SWa.y,h:58,w:34});
@@ -96,11 +99,18 @@ const pls2=()=>ins.filter(p=>p.pl&&p.fl===WID2);
 const tcx=v=>Math.floor(v/T);
 const free2=(x,y)=>{const a=M2.im[tcx(y)];return !!a&&a[tcx(x)]===0};
 function los2(a,b){const dx=b.x-a.x,dy=b.y-a.y,n=Math.ceil(Math.hypot(dx,dy)/3);for(let i=1;i<n;i++)if(!free2(a.x+dx*i/n,a.y+dy*i/n))return false;return true}
+function scared(m,x,y){            /* chặn việc tiến lại gần kiếm thánh trong vùng sợ */
+  const o=Math.hypot(m.x-SWa.x,m.y-SWa.y),n=Math.hypot(x-SWa.x,y-SWa.y);
+  if(n<FEARR&&n<o){m.fear=frame;return true}
+  return false}
 function step2(m,tx,ty,sp){
   const dx=tx-m.x,dy=ty-m.y,d=Math.hypot(dx,dy);if(d<.01)return true;
   if(Math.abs(dx)>.3)m.dir=dx>0?1:-1;
-  const k=Math.min(1,sp/d),nx=m.x+dx*k,ny=m.y+dy*k;
-  if(free2(nx,ny)){m.x=nx;m.y=ny;m.moving=1}else if(free2(nx,m.y)){m.x=nx;m.moving=1}else if(free2(m.x,ny)){m.y=ny;m.moving=1}
+  const k=Math.min(1,sp/d),nx=m.x+dx*k,ny=m.y+dy*k,
+    ok=(x,y)=>free2(x,y)&&!scared(m,x,y);
+  if(ok(nx,ny)){m.x=nx;m.y=ny;m.moving=1}
+  else if(ok(nx,m.y)){m.x=nx;m.moving=1}
+  else if(ok(m.x,ny)){m.y=ny;m.moving=1}
   return d<=sp}
 function bfs2(sx,sy,tx,ty){
   const im=M2.im,pr=new Int32Array(AW2*AH2).fill(-1),s0=sy*AW2+sx,q=[s0];pr[s0]=s0;
