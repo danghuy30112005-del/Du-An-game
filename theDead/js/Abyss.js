@@ -839,11 +839,11 @@ function xformAI(dt){
     const u=(e-1.2)/1.4;b.shk=0;b.white=Math.min(1,.45+u*2);
     b.z=u*u*(3-2*u)*220;
     if(frame%2===0)fx(b.x+rf(-40,40),b.y-b.z+rf(-40,10),2,WHITE,60,60,.8,0)}
-  else if(e<3.9){
+  else{
     if(b.p<2){b.p=2;b.form++;b.bmax=BMAX[b.form-1];b.hp=b.bmax;fx(b.x,b.y-b.z,70,WHITE,320,160,.9,0);flash=10;
       cap('Quái vật ghép lại thành dạng '+b.form+': '+BNAME[b.form-1]+'!')}
     const u=Math.min(1,(e-2.6)/1.3);b.white=1-u;b.z=220*(1-u*u*(3-2*u));
-    if(frame%2===0){const a=Math.random()*6.28,r=rf(60,120);FX.push({x:b.x+Math.cos(a)*r,y:b.y-b.z-30+Math.sin(a)*r*.5,z:0,vx:-Math.cos(a)*r*1.4,vy:-Math.sin(a)*r*.7,vz:0,l:.7,m:.7,c:'#ffffff',s:2})}
+    if(e<3.9&&frame%2===0){const a=Math.random()*6.28,r=rf(60,120);FX.push({x:b.x+Math.cos(a)*r,y:b.y-b.z-30+Math.sin(a)*r*.5,z:0,vx:-Math.cos(a)*r*1.4,vy:-Math.sin(a)*r*.7,vz:0,l:.7,m:.7,c:'#ffffff',s:2})}
     if(e>=3.9){b.white=0;b.z=0;shake=Math.max(shake,8);toIdle(1.2)}}}
 function dieAI(dt){
   const b=B,e=b.e;
