@@ -541,9 +541,9 @@ function post(){
   const live=state==='island'||state==='land'||state==='sail'||state==='crash',nk=live?nightK():0;
   if(!window.SWACT){grade();bloom(nk)}
   if(!inside&&live){
-    const ma=nk*clamp(1-GL*1.3,0,1),mx=CW-58,my=38;
+    const ma=clamp((nk-.55)/.45,0,1)*clamp(1-GL*1.3,0,1),mx=CW-58,my=38;
     sparkle(nk,mx,my);ambient(nk);
-    if(ma>.15)moon(ma)}}
+    if(ma>.02)moon(ma)}}
 const _draw=draw;
 draw=function(){_draw();try{post()}catch(e){console.error('Plus post',e)}};
 
