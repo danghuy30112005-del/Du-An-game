@@ -139,7 +139,7 @@ function tickMon(dt){
       if(d<14){m.st='bite';m.t=0;m.tgt=P;return}
       /* tốc độ đuổi: bị choáng thì chậm, tối đa 1.9 (chậm hơn người chạy Q = 2.1) */
       const sp=Math.min(1.9,m.slow>0?.6:S.sp);
-      if(los2(m,P))step2(m,V.x,V.y,S.sp*1.3) 
+      if(los2(m,P))step2(m,P.x,P.y,sp);
       else{if(--m.rt<=0||!m.path.length){m.rt=12;m.path=bfs2(tcx(m.x),tcx(m.y),tcx(P.x),tcx(P.y))||[]}
         if(m.path.length&&step2(m,m.path[0][0],m.path[0][1],sp))m.path.shift()}}
     else if(m.st==='bite'){
