@@ -490,10 +490,12 @@ if(typeof _gi==='function')window.giveItem=function(n,id){
 /* tạo lại thế giới một lần để bản đồ đầu tiên đã có hàng rào */
 reset();
 })();
-
-
 /* ===== holy.js: 3 TIM + KIẾM THÁNH (hào quang 6 đôi cánh, tia lửa xanh đỏ) + MÁU QUÁI + PHÍM J =====
-   Nạp CUỐI CÙNG (sau Abyss2.js). Cần 3 chỗ sửa nhỏ: window.curWeapon, window.holyHeld (Playerkit.js), window.MONS (Abyss2.js). */
+   Nạp CUỐI CÙNG (sau Abyss2.js). Cần 3 chỗ sửa nhỏ: window.curWeapon, window.holyHeld (Playerkit.js), window.MONS (Abyss2.js).
+   Bản cập nhật:
+   - Đỡ đòn bằng R: tia lửa tóe nhiều hơn, cả lửa đỏ + lửa xanh, kèm vòng sóng.
+   - Trả kiếm thánh cho Angel Sentinel: hiệu ứng thiên thần bảo hộ kiểu lên cấp.
+   - E bắn tia lửa dùng được ở mọi nơi (ngoài trời, trong nhà, hang, Vực sâu), mỗi lần bắn có thiên thần quanh thân. */
 (()=>{
 if(typeof killPlayer!=='function'||typeof allPl!=='function'||typeof window.curWeapon!=='function'){
   console.warn('holy.js: thiếu window.curWeapon');return}
@@ -511,7 +513,7 @@ const PKEY='deadisland:holypower',INVKEY='deadisland:inv1';
 /* vị trí tảng đá kiếm + cổng ánh sáng ở tầng 2 (khớp Abyss2.js) */
 const SWX=1016,SWY=1022,PTX=1180,PTY=220;
 
-let PWR={},HP={},IV={},AU={},S2={},SC={},BM=[],PT3=[],FT=[],MS={x:0,y:0,has:0},slOn=true,lastChk=-99,bc=null,bcf=-99;
+let PWR={},HP={},IV={},AU={},S2={},SC={},BM=[],PT3=[],FT=[],MS={x:0,y:0,has:0},slOn=true,lastChk=-99,bc=null,bcf=-99,AN={},RN=[];
 try{PWR=JSON.parse(localStorage.getItem(PKEY))||{}}catch(_){PWR={}}
 const savePw=()=>{try{localStorage.setItem(PKEY,JSON.stringify(PWR))}catch(_){}};
 const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),w,h)};
@@ -530,6 +532,19 @@ function burst(x,y,fl,n,cols,big){
   for(let i=0;i<n;i++){const l=24+rnd(26);
     PT3.push({x:x+rnd(7)-3,y:y+rnd(5)-2,vx:(Math.random()-.5)*(big?3:1.6),vy:-(.2+Math.random()*(big?2.4:1.4)),l,m:l,c:cols[rnd(cols.length)],fl,s:1+rnd(2)})}}
 const FIRE=['#ff3b2a','#ff8a3d','#2fb8f0','#9ae8ff','#ffffff'],GOLD=['#ffd23f','#fff3a0','#ffffff','#ffb02e'];
+const REDF=['#ff3b2a','#ff8a3d','#8a0f18','#ffd0a0'],BLUF=['#2fb8f0','#9ae8ff','#3b6fff','#ffffff'];
+
+/* tia lửa đỡ đòn: nhiều hơn, cả lửa đỏ lẫn lửa xanh, kèm 2 vòng sóng */
+function parrySparks(P){
+  const fl=P.fl|0,x=P.x,y=P.y-10;
+  burst(x,y,fl,70,FIRE,1);
+  burst(x-10,y,fl,40,REDF,1);
+  burst(x+10,y,fl,40,BLUF,1);
+  burst(x,y-8,fl,30,['#ff3b2a','#2fb8f0','#ffffff'],1);
+  RN.push({x,y,fl,t:0,d:20,c:'#ff5a3a'},{x,y,fl,t:4,d:24,c:'#6fd0ff'});
+  shake=Math.max(shake,6)}
+/* hiệu ứng thiên thần bảo hộ quanh người (lvl=1: kiểu lên cấp) */
+function angelFx(P,d,lvl){AN[P.pl]={t:0,d,lvl:lvl?1:0}}
 
 /* ---------- Nhận sức mạnh kiếm thánh ---------- */
 function checkPower(){
@@ -539,7 +554,9 @@ function checkPower(){
     if(bagOf(n).includes('holysword')||q>=2){
       PWR[n]=1;savePw();
       burst(P.x,P.y-10,P.fl|0,60,GOLD,1);flash=14;
-      cap('P'+n+' nhận được SỨC MẠNH CỦA KIẾM THÁNH! Dao phép hóa thành kiếm thánh. R: hào quang 6 đôi cánh · E: bắn tia lửa xanh đỏ (hang quái).')}})}
+      angelFx(P,3.2,1);
+      RN.push({x:P.x,y:P.y-10,fl:P.fl|0,t:0,d:26,c:'#ffd23f'},{x:P.x,y:P.y-10,fl:P.fl|0,t:6,d:30,c:'#7cfff0'});
+      cap('P'+n+' nhận được SỨC MẠNH CỦA KIẾM THÁNH! Thiên thần bảo hộ giáng xuống. R: hào quang 6 đôi cánh · E: bắn tia lửa xanh đỏ (dùng được ở mọi nơi).')}})}
 
 /* ---------- 3 tim ---------- */
 const _kp=killPlayer;
@@ -556,12 +573,14 @@ killPlayer=function(n){
   burst(P.x,P.y-10,P.fl|0,26,['#ff3b2a','#8a0f18','#ffffff'],1);
   cap('P'+n+' bị trúng đòn! Còn '+HP[n]+'/'+MAXHP+' tim.')};
 
-/* tia sáng của oan hồn / quái: nếu hào quang đang bật thì đỡ luôn */
+/* đỡ đòn: hào quang (R) hoặc kỹ năng đỡ cũ đều tóe lửa xanh đỏ */
 const _ph=window.parryHit;
 window.parryHit=function(V,att){
   const a=AU[V.pl];
-  if(powered(V.pl)&&a&&a.t>0){a.hit=1;burst(V.x,V.y-10,V.fl|0,30,GOLD,1);shake=Math.max(shake,5);cap('Hào quang đỡ được đòn! Kẻ tấn công bị choáng.');return true}
-  return _ph?_ph(V,att):false};
+  if(powered(V.pl)&&a&&a.t>0){a.hit=1;parrySparks(V);angelFx(V,.7,0);cap('Hào quang đỡ được đòn! Lửa xanh đỏ bùng lên, kẻ tấn công bị choáng.');return true}
+  const ok=_ph?_ph(V,att):false;
+  if(ok&&powered(V.pl))parrySparks(V);
+  return ok};
 
 /* ---------- Gây sát thương quái ---------- */
 function hurt(m,d,crit,n){
@@ -608,9 +627,9 @@ addEventListener('keydown',e=>{
     if(a.cd>0){cap('Hào quang đang hồi: '+fmt(a.cd)+'.');return}
     a.t=AURA_T;a.hit=0;burst(P.x,P.y-10,P.fl|0,24,GOLD,1);
     cap('Hào quang 6 đôi cánh bao quanh bạn, đỡ mọi đòn!');return}
-  if(k==='e'&&powered(n)&&hasW(n)&&P.fl===WID2){
+  if(k==='e'&&powered(n)&&hasW(n)){
     const tk=$('tk');if(tk&&!tk.hidden)return;
-    if(Math.hypot(P.x-SWX,P.y-(SWY+6))<30||Math.hypot(P.x-PTX,P.y-PTY)<20)return;   /* đang tương tác kiếm / cổng */
+    if(P.fl===WID2&&(Math.hypot(P.x-SWX,P.y-(SWY+6))<30||Math.hypot(P.x-PTX,P.y-PTY)<20))return;   /* đang tương tác kiếm / cổng */
     fire(P)}},true);
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.repeat)return;
@@ -622,20 +641,26 @@ function fire(P){
   let ang=0;if(MS.has){const w=mouseW();ang=Math.atan2(w.y-(P.y-8),w.x-P.x)}
   const c=Math.cos(ang),sn=Math.sin(ang);
   BM.push({n,x:P.x+c*6,y:P.y-8+sn*6,vx:c*1.9,vy:sn*1.9,l:56,fl:P.fl|0,tr:[]});
-  s.cd=CD2;burst(P.x+c*8,P.y-8+sn*8,P.fl|0,8,FIRE,0)}
+  s.cd=CD2;angelFx(P,.6,0);burst(P.x+c*8,P.y-8+sn*8,P.fl|0,8,FIRE,0)}
+
+/* tia lửa có va chạm theo từng khu vực: ngoài trời, nhà, hang, Vực sâu */
+function blocked(b){
+  const tx=Math.floor(b.x/T),ty=Math.floor(b.y/T);
+  if(!b.fl){const t=(m[ty]||[])[tx];return t===undefined||t===TREE||t===ROCK||t===MTN||t===DTREE||t===CAS||t===HSE||t===40}
+  const r=((FL[b.fl]||{}).im||[])[ty],v=r&&r[tx];
+  return b.fl===WID2?v!==0:(v===undefined||v===1||v===62)}
 
 function tickBeams(){
   BM.forEach(b=>{
     for(let i=0;i<2&&!b.dead;i++){
       b.x+=b.vx;b.y+=b.vy;
       b.tr.push({x:b.x,y:b.y});if(b.tr.length>12)b.tr.shift();
+      if(blocked(b)){b.dead=1;burst(b.x,b.y,b.fl,10,FIRE,0);break}
       if(b.fl===WID2){
-        const t=((FL[WID2].im[Math.floor(b.y/T)])||[])[Math.floor(b.x/T)];
-        if(t!==0){b.dead=1;burst(b.x,b.y,b.fl,10,FIRE,0);break}
-        for(const m of window.MONS()){
-          if(Math.hypot(b.x-m.x,b.y-(m.y-8))<11){
+        for(const mo of window.MONS()){
+          if(Math.hypot(b.x-mo.x,b.y-(mo.y-8))<11){
             const crit=Math.random()<BEAM_CRIT;
-            hurt(m,crit?BEAM_CDMG:BEAM_DMG,crit,b.n);b.dead=1;break}}}}
+            hurt(mo,crit?BEAM_CDMG:BEAM_DMG,crit,b.n);b.dead=1;break}}}}
     if(--b.l<=0)b.dead=1});
   BM=BM.filter(b=>!b.dead)}
 
@@ -650,13 +675,17 @@ function tick(){
   Object.keys(AU).forEach(k=>{const a=AU[k];
     if(a.t>0){a.t-=dt;if(a.t<=0){a.t=0;a.cd=a.hit?CD_HIT:CD_MISS;a.cdMax=a.cd;if(+k===sel)cap(a.hit?'Đỡ đòn thành công! Hào quang hồi 2 phút.':'Hào quang tan, đỡ hụt, hồi 5 giây.')}}
     else if(a.cd>0)a.cd=Math.max(0,a.cd-dt)});
+  Object.keys(AN).forEach(k=>{const a=AN[k];a.t+=dt;
+    if(a.lvl&&frame%2===0){const P=playerOf(+k);if(P)burst(P.x+rnd(15)-7,P.y-2,P.fl|0,2,GOLD,0)}
+    if(a.t>=a.d)delete AN[k]});
+  RN.forEach(r=>r.t++);RN=RN.filter(r=>r.t<r.d);
   tickBeams();
   PT3.forEach(q=>{q.x+=q.vx;q.y+=q.vy;q.vx*=.97;q.vy-=.01;q.l--});PT3=PT3.filter(q=>q.l>0);
   FT.forEach(f=>f.t++);FT=FT.filter(f=>f.t<45);
   hud()}
 const _st=step;step=function(){_st();tick()};
-const _mk=mkPeople;mkPeople=function(){_mk();PWR={};savePw();HP={};IV={};AU={};S2={};SC={};BM=[];PT3=[];FT=[]};
-const _rs=restore;restore=function(s){_rs(s);HP={};IV={};AU={};S2={};BM=[];PT3=[];FT=[]};
+const _mk=mkPeople;mkPeople=function(){_mk();PWR={};savePw();HP={};IV={};AU={};S2={};SC={};BM=[];PT3=[];FT=[];AN={};RN=[]};
+const _rs=restore;restore=function(s){_rs(s);HP={};IV={};AU={};S2={};BM=[];PT3=[];FT=[];AN={};RN=[]};
 
 /* ---------- Vẽ: kiếm thánh cầm tay ---------- */
 window.holyHeld=function(P,hx,y){
@@ -676,9 +705,9 @@ window.holyHeld=function(P,hx,y){
   if(t%3===0)R('#ffd23f',hx+rnd(5)-2,y-30-rnd(6),1,1);
   return true};
 
-/* ---------- Vẽ: hào quang 6 đôi cánh ---------- */
-function drawAura(P,a){
-  const x=P.x,y=P.y-9,t=frame,life=a.t/AURA_T,al=life<.2?Math.max(.25,life/.2):1;
+/* ---------- Vẽ: 6 đôi cánh thiên thần (dùng chung cho hào quang, lên cấp, bắn tia lửa) ---------- */
+function drawAngel(P,al){
+  const x=P.x,y=P.y-9,t=frame;
   cx.globalAlpha=(.16+.06*Math.sin(t*.2))*al;R('#ffe9a8',x-28,y-24,56,48);R('#ffffff',x-14,y-30,28,60);cx.globalAlpha=al;
   for(let k=0;k<6;k++)for(const s of[-1,1]){
     const ang=-1.5708+s*(.32+k*.52)+Math.sin(t*.05+k)*.05,L=17+(k%2?4:0);
@@ -690,11 +719,24 @@ function drawAura(P,a){
   for(let q=0;q<6.28;q+=.4)R('#ffd23f',x+Math.cos(q+t*.04)*7,y+Math.sin(q+t*.04)*4-14,2,1);
   for(let i=0;i<5;i++)R('#7cfff0',x+Math.cos(t*.07+i*1.26)*22,y+Math.sin(t*.07+i*1.26)*18,1,1);
   cx.globalAlpha=1}
+function drawAura(P,a){
+  const life=a.t/AURA_T;drawAngel(P,life<.2?Math.max(.25,life/.2):1)}
+/* hiệu ứng lên cấp / bắn tia lửa */
+function drawAngelFx(P,a){
+  const k=a.t/a.d,al=k<.2?k/.2:k>.75?Math.max(0,(1-k)/.25):1,x=P.x,y=P.y;
+  if(a.lvl){
+    cx.globalAlpha=.22*al;R('#fff3a0',x-10,y-74,20,74);
+    cx.globalAlpha=.4*al;R('#ffffff',x-4,y-84,8,84);
+    for(let r=0;r<3;r++){
+      const q=(a.t*1.1+r/3)%1,yy=y-q*62,rad=17-q*6;cx.globalAlpha=(1-q)*al;
+      for(let g=0;g<6.28;g+=.3)R(r%2?'#7cfff0':'#ffd23f',x+Math.cos(g+q*6)*rad,yy+Math.sin(g+q*6)*rad*.35,2,1)}}
+  drawAngel(P,a.lvl?al:al*.85)}
 
 function drawAll(){
   allPl().forEach(P=>{
     if(!visFl(P.fl|0))return;
     const a=AU[P.pl];if(a&&a.t>0)drawAura(P,a);
+    const f=AN[P.pl];if(f)drawAngelFx(P,f);
     if(IV[P.pl]>0&&((frame>>2)&1)){cx.globalAlpha=.35;R('#ff3b3b',P.x-6,P.y-20,12,20);cx.globalAlpha=1}});
   /* thanh máu quái */
   if(inside&&curF===WID2)window.MONS().forEach(m=>{
@@ -711,6 +753,12 @@ function drawAll(){
     R('#ffffff',b.x-1,b.y-1,3,3);
     R('#ff3b2a',b.x+Math.cos(frame*.6)*3-1,b.y+Math.sin(frame*.6)*3-1,2,2);
     R('#2fb8f0',b.x-Math.cos(frame*.6)*3-1,b.y-Math.sin(frame*.6)*3-1,2,2)});
+  /* vòng sóng (đỡ đòn / lên cấp) */
+  RN.forEach(r=>{
+    if(!visFl(r.fl))return;
+    const rad=4+r.t*1.8;cx.globalAlpha=Math.max(0,1-r.t/r.d);
+    for(let g=0;g<6.28;g+=.25)R(r.c,r.x+Math.cos(g)*rad,r.y+Math.sin(g)*rad*.8,2,2)});
+  cx.globalAlpha=1;
   PT3.forEach(q=>{if(!visFl(q.fl))return;cx.globalAlpha=Math.min(1,q.l/10);R(q.c,q.x,q.y,q.s,q.s)});
   cx.globalAlpha=1;
   /* chữ sát thương */
@@ -776,5 +824,5 @@ const jb=document.createElement('button');jb.className='btn alt';jb.id='jBtn';jb
 jb.title='Bật / tắt bảng thông tin';jb.onclick=togSl;$('tools').insertBefore(jb,$('hudBtn'));
 const _sh=showHud;showHud=function(){_sh();
   $('sl').hidden=!slOn;
-  const g=$('gd');if(g)g.innerHTML+='<br>J: Ẩn / hiện bảng thông tin<br>Kiếm thánh: '+AURA_KEY.toUpperCase()+' hào quang · E tia lửa · Chuột phải chém'};
+  const g=$('gd');if(g)g.innerHTML+='<br>J: Ẩn / hiện bảng thông tin<br>Kiếm thánh: '+AURA_KEY.toUpperCase()+' hào quang · E tia lửa (mọi nơi) · Chuột phải chém'};
 })();
