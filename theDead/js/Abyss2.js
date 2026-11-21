@@ -9,9 +9,9 @@ const PTX=98,PTY=18;            /* cổng ánh sáng quay lên */
 const STX=84,STY=83;            /* tảng đá (khối 2x2, góc trái-trên) */
 const SWa={x:(STX+1)*T,y:(STY+2)*T};
 const CHM=[[85,14,18,8],[45,36,16,9],[125,36,16,9],[85,56,18,9],[35,76,14,9],[135,76,14,9],[85,86,24,11]];
-const MS={human:{sp:1.5,wind:.55,sight:95,hear:60,reach:19,alert:.7},
-  snake:{sp:1.3,wind:.4,sight:85,hear:50,reach:21,alert:.5},
-  spider:{sp:1.7,wind:.32,sight:90,hear:55,reach:21,alert:.4}};
+const MS={human:{sp:1.9,wind:.55,sight:95,hear:60,reach:19,alert:.7},
+  snake:{sp:1.1,wind:.4,sight:85,hear:50,reach:21,alert:.5},
+  spider:{sp:1.25,wind:.32,sight:90,hear:55,reach:21,alert:.4}};
 const D4=[[1,0],[-1,0],[0,1],[0,-1]];
 let M2=null,OBJ2=[],MON=[],PEND2=[],PT2=[],WF={x:83,y:9},QX=0,QY=0,lastSay=0;
 const r=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(QX+a,QY+b,w,h)};
@@ -139,7 +139,7 @@ function tickMon(dt){
       if(d<14){m.st='bite';m.t=0;m.tgt=P;return}
       /* tốc độ đuổi: bị choáng thì chậm, tối đa 1.9 (chậm hơn người chạy Q = 2.1) */
       const sp=Math.min(1.9,m.slow>0?.6:S.sp);
-      if(los2(m,P))step2(m,P.x,P.y,sp);
+      if(los2(m,P))step2(m,V.x,V.y,S.sp*1.3) 
       else{if(--m.rt<=0||!m.path.length){m.rt=12;m.path=bfs2(tcx(m.x),tcx(m.y),tcx(P.x),tcx(P.y))||[]}
         if(m.path.length&&step2(m,m.path[0][0],m.path[0][1],sp))m.path.shift()}}
     else if(m.st==='bite'){
