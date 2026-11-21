@@ -393,6 +393,7 @@ function drawHeld(){
     const x=Math.round(P.x),y=Math.round(P.y),hx=x+(fc.f>0?5:-6);
     cx.globalAlpha=1;
     if(id==='mdagger'){
+      if(window.holyHeld&&window.holyHeld(P,hx,y,fc.f))return;
       R('#e8f6ff',hx,y-15,1,8);R('#8fc4e4',hx+1,y-14,1,7);R('#e8f6ff',hx,y-16,1,1);
       R('#d4a63a',hx-1,y-7,3,1);R('#3a2a22',hx,y-6,1,2);R('#f1c27d',hx,y-5,1,1)}
     else{
@@ -444,6 +445,7 @@ skl.innerHTML='<svg id="sklI" viewBox="0 0 100 100"><defs><linearGradient id="mg
 $('topRow').appendChild(skl);
 function hudSkill(){
   const w=curWeapon(sel);
+  window.curWeapon=curWeapon;
   if(!w){skl.hidden=true;return}
   skl.hidden=false;
   const s=SK[sel]||{t:0,cd:0,cdMax:CD_MISS};let f,tip;
@@ -486,4 +488,292 @@ if(typeof _gi==='function')window.giveItem=function(n,id){
 
 /* tạo lại thế giới một lần để bản đồ đầu tiên đã có hàng rào */
 reset();
+})();
+
+
+/* ===== holy.js: 3 TIM + KIẾM THÁNH (hào quang 6 đôi cánh, tia lửa xanh đỏ) + MÁU QUÁI + PHÍM J =====
+   Nạp CUỐI CÙNG (sau Abyss2.js). Cần 3 chỗ sửa nhỏ: window.curWeapon, window.holyHeld (Playerkit.js), window.MONS (Abyss2.js). */
+(()=>{
+if(typeof killPlayer!=='function'||typeof allPl!=='function'||typeof window.curWeapon!=='function'){
+  console.warn('holy.js: thiếu window.curWeapon');return}
+const MONS=()=>typeof window.MONS==='function'?window.MONS():[];
+
+/* ---------- Thông số ---------- */
+const AURA_KEY='r';                 /* phím hào quang (đổi thành 'q' nếu muốn, nhưng Q đang là chạy nhanh) */
+const MAXHP=3,IV_T=1.5;             /* số tim, thời gian bất tử sau khi trúng đòn (giây) */
+const AURA_T=1.5,CD_HIT=120,CD_MISS=5;
+const CD2=3,BEAM_DMG=35,BEAM_CRIT=.2,BEAM_CDMG=56;
+const MELEE=[10,26],MELEE_R=28,MELEE_CD=.35;
+const MHP={human:100,snake:80,spider:80};
+const WID2=22;
+const PKEY='deadisland:holypower',INVKEY='deadisland:inv1';
+/* vị trí tảng đá kiếm + cổng ánh sáng ở tầng 2 (khớp Abyss2.js) */
+const SWX=1016,SWY=1022,PTX=1180,PTY=220;
+
+let PWR={},HP={},IV={},AU={},S2={},SC={},BM=[],PT3=[],FT=[],MS={x:0,y:0,has:0},slOn=true,lastChk=-99,bc=null,bcf=-99;
+try{PWR=JSON.parse(localStorage.getItem(PKEY))||{}}catch(_){PWR={}}
+const savePw=()=>{try{localStorage.setItem(PKEY,JSON.stringify(PWR))}catch(_){}};
+const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),w,h)};
+const visFl=f=>inside?f===curF:!f;
+const playerOf=n=>allPl().find(p=>p.pl===n);
+const fmt=s=>{const t=Math.ceil(s);return t>=60?Math.floor(t/60)+':'+String(t%60).padStart(2,'0'):t+'s'};
+const powered=n=>!!PWR[n];
+const hasW=n=>!!window.curWeapon(n);
+
+function bagOf(n){
+  if(frame-bcf>=10||!bc){bcf=frame;try{bc=JSON.parse(localStorage.getItem(INVKEY))||{}}catch(_){bc={}}}
+  return Array.isArray(bc[n])?bc[n]:[]}
+
+/* ---------- Hạt + chữ nổi ---------- */
+function burst(x,y,fl,n,cols,big){
+  for(let i=0;i<n;i++){const l=24+rnd(26);
+    PT3.push({x:x+rnd(7)-3,y:y+rnd(5)-2,vx:(Math.random()-.5)*(big?3:1.6),vy:-(.2+Math.random()*(big?2.4:1.4)),l,m:l,c:cols[rnd(cols.length)],fl,s:1+rnd(2)})}}
+const FIRE=['#ff3b2a','#ff8a3d','#2fb8f0','#9ae8ff','#ffffff'],GOLD=['#ffd23f','#fff3a0','#ffffff','#ffb02e'];
+
+/* ---------- Nhận sức mạnh kiếm thánh ---------- */
+function checkPower(){
+  allPl().forEach(P=>{
+    const n=P.pl;if(PWR[n])return;
+    const q=window.sentQuest?window.sentQuest.get(n):0;
+    if(bagOf(n).includes('holysword')||q>=2){
+      PWR[n]=1;savePw();
+      burst(P.x,P.y-10,P.fl|0,60,GOLD,1);flash=14;
+      cap('P'+n+' nhận được SỨC MẠNH CỦA KIẾM THÁNH! Dao phép hóa thành kiếm thánh. R: hào quang 6 đôi cánh · E: bắn tia lửa xanh đỏ (hang quái).')}})}
+
+/* ---------- 3 tim ---------- */
+const _kp=killPlayer;
+killPlayer=function(n){
+  const P=playerOf(n);if(!P)return _kp(n);
+  const a=AU[n];
+  if(a&&a.t>0){                                  /* hào quang đỡ mọi đòn */
+    a.hit=1;burst(P.x,P.y-10,P.fl|0,22,GOLD,1);shake=Math.max(shake,4);
+    cap('Hào quang cánh thiên thần đã đỡ đòn!');return}
+  if(IV[n]>0)return;
+  HP[n]=(HP[n]===undefined?MAXHP:HP[n])-1;
+  if(HP[n]<=0){HP[n]=0;return _kp(n)}
+  IV[n]=IV_T;flash=14;shake=Math.max(shake,8);
+  burst(P.x,P.y-10,P.fl|0,26,['#ff3b2a','#8a0f18','#ffffff'],1);
+  cap('P'+n+' bị trúng đòn! Còn '+HP[n]+'/'+MAXHP+' tim.')};
+
+/* tia sáng của oan hồn / quái: nếu hào quang đang bật thì đỡ luôn */
+const _ph=window.parryHit;
+window.parryHit=function(V,att){
+  const a=AU[V.pl];
+  if(powered(V.pl)&&a&&a.t>0){a.hit=1;burst(V.x,V.y-10,V.fl|0,30,GOLD,1);shake=Math.max(shake,5);cap('Hào quang đỡ được đòn! Kẻ tấn công bị choáng.');return true}
+  return _ph?_ph(V,att):false};
+
+/* ---------- Gây sát thương quái ---------- */
+function hurt(m,d,crit,n){
+  const mx=MHP[m.k]||80;if(m.hp===undefined)m.hp=mx;m.mhp=mx;
+  m.hp-=d;
+  FT.push({x:m.x,y:m.y-(m.k==='human'?32:m.k==='spider'?22:16),t:0,txt:d+(crit?'!':''),c:crit?'#ffd23f':'#ffffff'});
+  burst(m.x,m.y-10,WID2,crit?14:8,FIRE,crit);
+  if(m.st==='idle'){m.st='chase';m.lost=0;m.path=[];m.wt=null;m.rage=Math.max(m.rage||0,3)}
+  if(m.hp<=0){
+    const A=window.MONS(),i=A.indexOf(m);if(i>=0)A.splice(i,1);
+    burst(m.x,m.y-10,WID2,36,['#c9a8ff','#7cfff0','#ffffff'],1);
+    cap('P'+n+' đã hạ gục một con quái!')}}
+
+/* ---------- Chém thường (chuột phải) ---------- */
+addEventListener('pointerdown',e=>{
+  if(e.button!==2||e.target!==cv)return;
+  if(state!=='island'||trans||TK)return;
+  const iv=$('inv');if(iv&&!iv.hidden)return;
+  const n=sel,P=playerOf(n);if(!P||!hasW(n)||(SC[n]||0)>0)return;
+  SC[n]=MELEE_CD;
+  if(P.fl!==WID2)return;
+  const r=cv.getBoundingClientRect(),k=inside?IS:1,
+    wx=(e.clientX-r.left)/r.width*CW/k+camX,wy=(e.clientY-r.top)/r.height*CH/k+camY,
+    ang=Math.atan2(wy-(P.y-7),wx-P.x);
+  window.MONS().slice().forEach(m=>{
+    const dx=m.x-P.x,dy=m.y-P.y;
+    if(Math.hypot(dx,dy)>MELEE_R)return;
+    const da=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-ang),Math.cos(Math.atan2(dy,dx)-ang)));
+    if(da<1.25)hurt(m,ri(MELEE[0],MELEE[1]),false,n)})},true);
+cv.addEventListener('pointermove',e=>{MS.x=e.clientX;MS.y=e.clientY;MS.has=1});
+function mouseW(){const r=cv.getBoundingClientRect(),k=inside?IS:1;return{x:(MS.x-r.left)/r.width*CW/k+camX,y:(MS.y-r.top)/r.height*CH/k+camY}}
+
+/* ---------- Phím: R = hào quang, E = tia lửa, J = bảng thông tin ---------- */
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.repeat||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(state!=='island'||TK||trans)return;
+  const iv=$('inv');if(iv&&!iv.hidden)return;
+  const k=e.key.toLowerCase(),n=sel,P=playerOf(n);if(!P)return;
+  if(k===AURA_KEY&&powered(n)){
+    e.stopImmediatePropagation();                       /* thay kỹ năng đỡ cũ */
+    if(!hasW(n)){cap('Cần cầm kiếm để dùng hào quang.');return}
+    const a=AU[n]||(AU[n]={t:0,cd:0,cdMax:CD_MISS,hit:0});
+    if(a.t>0)return;
+    if(a.cd>0){cap('Hào quang đang hồi: '+fmt(a.cd)+'.');return}
+    a.t=AURA_T;a.hit=0;burst(P.x,P.y-10,P.fl|0,24,GOLD,1);
+    cap('Hào quang 6 đôi cánh bao quanh bạn, đỡ mọi đòn!');return}
+  if(k==='e'&&powered(n)&&hasW(n)&&P.fl===WID2){
+    const tk=$('tk');if(tk&&!tk.hidden)return;
+    if(Math.hypot(P.x-SWX,P.y-(SWY+6))<30||Math.hypot(P.x-PTX,P.y-PTY)<20)return;   /* đang tương tác kiếm / cổng */
+    fire(P)}},true);
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.repeat)return;
+  if(e.key.toLowerCase()==='j'&&state==='island')togSl()});
+
+function fire(P){
+  const n=P.pl,s=S2[n]||(S2[n]={cd:0});
+  if(s.cd>0){cap('Tia lửa đang hồi: '+fmt(s.cd)+'.');return}
+  let ang=0;if(MS.has){const w=mouseW();ang=Math.atan2(w.y-(P.y-8),w.x-P.x)}
+  const c=Math.cos(ang),sn=Math.sin(ang);
+  BM.push({n,x:P.x+c*6,y:P.y-8+sn*6,vx:c*1.9,vy:sn*1.9,l:56,fl:P.fl|0,tr:[]});
+  s.cd=CD2;burst(P.x+c*8,P.y-8+sn*8,P.fl|0,8,FIRE,0)}
+
+function tickBeams(){
+  BM.forEach(b=>{
+    for(let i=0;i<2&&!b.dead;i++){
+      b.x+=b.vx;b.y+=b.vy;
+      b.tr.push({x:b.x,y:b.y});if(b.tr.length>12)b.tr.shift();
+      if(b.fl===WID2){
+        const t=((FL[WID2].im[Math.floor(b.y/T)])||[])[Math.floor(b.x/T)];
+        if(t!==0){b.dead=1;burst(b.x,b.y,b.fl,10,FIRE,0);break}
+        for(const m of window.MONS()){
+          if(Math.hypot(b.x-m.x,b.y-(m.y-8))<11){
+            const crit=Math.random()<BEAM_CRIT;
+            hurt(m,crit?BEAM_CDMG:BEAM_DMG,crit,b.n);b.dead=1;break}}}}
+    if(--b.l<=0)b.dead=1});
+  BM=BM.filter(b=>!b.dead)}
+
+/* ---------- Cập nhật mỗi khung hình ---------- */
+function tick(){
+  if(state!=='island')return;
+  const dt=Math.min(.25,DM||.016);
+  if(frame-lastChk>=10){lastChk=frame;checkPower()}
+  Object.keys(IV).forEach(k=>{if(IV[k]>0)IV[k]-=dt});
+  Object.keys(SC).forEach(k=>{if(SC[k]>0)SC[k]-=dt});
+  Object.keys(S2).forEach(k=>{if(S2[k].cd>0)S2[k].cd=Math.max(0,S2[k].cd-dt)});
+  Object.keys(AU).forEach(k=>{const a=AU[k];
+    if(a.t>0){a.t-=dt;if(a.t<=0){a.t=0;a.cd=a.hit?CD_HIT:CD_MISS;a.cdMax=a.cd;if(+k===sel)cap(a.hit?'Đỡ đòn thành công! Hào quang hồi 2 phút.':'Hào quang tan, đỡ hụt, hồi 5 giây.')}}
+    else if(a.cd>0)a.cd=Math.max(0,a.cd-dt)});
+  tickBeams();
+  PT3.forEach(q=>{q.x+=q.vx;q.y+=q.vy;q.vx*=.97;q.vy-=.01;q.l--});PT3=PT3.filter(q=>q.l>0);
+  FT.forEach(f=>f.t++);FT=FT.filter(f=>f.t<45);
+  hud()}
+const _st=step;step=function(){_st();tick()};
+const _mk=mkPeople;mkPeople=function(){_mk();PWR={};savePw();HP={};IV={};AU={};S2={};SC={};BM=[];PT3=[];FT=[]};
+const _rs=restore;restore=function(s){_rs(s);HP={};IV={};AU={};S2={};BM=[];PT3=[];FT=[]};
+
+/* ---------- Vẽ: kiếm thánh cầm tay ---------- */
+window.holyHeld=function(P,hx,y){
+  if(!powered(P.pl))return false;
+  const t=frame;
+  cx.globalAlpha=.22+.1*Math.sin(t*.12);R('#ffa030',hx-6,y-33,13,27);cx.globalAlpha=1;
+  /* cánh nhỏ trên chắn kiếm */
+  [-1,1].forEach(s=>{const o=s<0?-6:3;
+    R('#ffffff',hx+o,y-18,3,4);R('#e6eefb',hx+o+(s<0?-1:1),y-21,2,4);R('#ffffff',hx+o+(s<0?-2:2),y-23,1,4);R('#c8d6ec',hx+o,y-14,3,1)});
+  /* lưỡi rực lửa */
+  R('#ff7a1a',hx-1,y-27,3,14);R('#ffd23f',hx,y-28,1,14);R('#ffb02e',hx,y-30,1,2);
+  const h=((t>>2)%6);R('#fff3a0',hx,y-26+h*2,1,2);
+  /* chắn kiếm đồng + ngọc xanh */
+  R('#8a6a3a',hx-4,y-13,9,2);R('#b8864f',hx-4,y-13,9,1);R('#2f9bd6',hx,y-13,1,2);R('#bfefff',hx,y-13,1,1);
+  /* cán + chuôi */
+  R('#4a3a2a',hx,y-11,1,4);R('#7a6a50',hx,y-10,1,1);R('#2f9bd6',hx,y-7,1,1);R('#f1c27d',hx,y-6,1,1);
+  if(t%3===0)R('#ffd23f',hx+rnd(5)-2,y-30-rnd(6),1,1);
+  return true};
+
+/* ---------- Vẽ: hào quang 6 đôi cánh ---------- */
+function drawAura(P,a){
+  const x=P.x,y=P.y-9,t=frame,life=a.t/AURA_T,al=life<.2?Math.max(.25,life/.2):1;
+  cx.globalAlpha=(.16+.06*Math.sin(t*.2))*al;R('#ffe9a8',x-28,y-24,56,48);R('#ffffff',x-14,y-30,28,60);cx.globalAlpha=al;
+  for(let k=0;k<6;k++)for(const s of[-1,1]){
+    const ang=-1.5708+s*(.32+k*.52)+Math.sin(t*.05+k)*.05,L=17+(k%2?4:0);
+    for(let f=-2;f<=2;f++){
+      const aa=ang+f*.11,Lf=L-Math.abs(f)*1.8;
+      for(let r=7;r<=Lf;r+=1.7){
+        const px=x+Math.cos(aa)*r,py=y+Math.sin(aa)*r*.85;
+        R(r>Lf-2.4?'#ffe9a8':(f&1?'#ffffff':'#e6eefb'),px-1,py-1,2,2)}}}
+  for(let q=0;q<6.28;q+=.4)R('#ffd23f',x+Math.cos(q+t*.04)*7,y+Math.sin(q+t*.04)*4-14,2,1);
+  for(let i=0;i<5;i++)R('#7cfff0',x+Math.cos(t*.07+i*1.26)*22,y+Math.sin(t*.07+i*1.26)*18,1,1);
+  cx.globalAlpha=1}
+
+function drawAll(){
+  allPl().forEach(P=>{
+    if(!visFl(P.fl|0))return;
+    const a=AU[P.pl];if(a&&a.t>0)drawAura(P,a);
+    if(IV[P.pl]>0&&((frame>>2)&1)){cx.globalAlpha=.35;R('#ff3b3b',P.x-6,P.y-20,12,20);cx.globalAlpha=1}});
+  /* thanh máu quái */
+  if(inside&&curF===WID2)window.MONS().forEach(m=>{
+    if(m.hp===undefined||m.hp>=m.mhp)return;
+    const H0=m.k==='human'?26:m.k==='snake'?14:18,w=18,fw=Math.max(0,Math.round(w*m.hp/m.mhp));
+    R('#000',m.x-w/2-1,m.y-H0-13,w+2,4);R('#5a0f16',m.x-w/2,m.y-H0-12,w,2);R(m.hp/m.mhp>.4?'#3ddc97':'#ff3b2a',m.x-w/2,m.y-H0-12,fw,2)});
+  /* tia lửa xanh đỏ */
+  BM.forEach(b=>{
+    if(!visFl(b.fl))return;
+    b.tr.forEach((p,i)=>{cx.globalAlpha=(i+1)/b.tr.length*.85;
+      R(((i+(frame>>1))&1)?'#ff3b2a':'#2fb8f0',p.x-1,p.y-1,i>8?3:2,i>8?3:2);
+      R(((i+(frame>>1))&1)?'#ffb02e':'#9ae8ff',p.x+Math.sin(frame*.5+i)*2,p.y+Math.cos(frame*.5+i)*2,1,1)});
+    cx.globalAlpha=1;
+    R('#ffffff',b.x-1,b.y-1,3,3);
+    R('#ff3b2a',b.x+Math.cos(frame*.6)*3-1,b.y+Math.sin(frame*.6)*3-1,2,2);
+    R('#2fb8f0',b.x-Math.cos(frame*.6)*3-1,b.y-Math.sin(frame*.6)*3-1,2,2)});
+  PT3.forEach(q=>{if(!visFl(q.fl))return;cx.globalAlpha=Math.min(1,q.l/10);R(q.c,q.x,q.y,q.s,q.s)});
+  cx.globalAlpha=1;
+  /* chữ sát thương */
+  cx.save();cx.textAlign='center';cx.font='bold 7px monospace';cx.lineWidth=2;cx.strokeStyle='#000';
+  FT.forEach(f=>{const y=f.y-f.t*.5;cx.strokeText(f.txt,f.x,y);cx.fillStyle=f.c;cx.fillText(f.txt,f.x,y)});
+  cx.restore()}
+const _glow=glow;glow=function(){_glow();if(!inside)drawAll()};
+const _drawIn=drawIn;drawIn=function(){_drawIn();drawAll()};
+
+/* ================= GIAO DIỆN ================= */
+const sty=document.createElement('style');
+sty.textContent='#hp{font-size:16px;letter-spacing:2px;line-height:1.2}#hp.hit{background:rgba(120,10,20,.7)}'+
+ '#hs1,#hs2{padding:4px;min-width:0;position:relative}#hs1 svg,#hs2 svg{display:block;width:40px;height:40px;transition:filter .15s}'+
+ '#hs1 .cd,#hs2 .cd{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 13px monospace;color:#fff;text-shadow:1px 1px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000;pointer-events:none}';
+document.head.appendChild(sty);
+
+/* bảng tim */
+const hp=document.createElement('div');hp.className='pnl';hp.id='hp';
+$('hud').insertBefore(hp,$('sl'));
+
+/* icon skill 1 (copy icon đỡ đòn cũ) + skill 2 (kiếm thánh) */
+const skl=$('skl'),topRow=$('topRow');
+const h1=skl?skl.cloneNode(true):document.createElement('div');
+h1.id='hs1';h1.className='pnl';h1.hidden=true;
+const sv=h1.querySelector('svg');if(sv)sv.removeAttribute('id');
+h1.insertAdjacentHTML('beforeend','<span class="cd"></span>');
+const h2=document.createElement('div');h2.className='pnl';h2.id='hs2';h2.hidden=true;
+h2.innerHTML='<svg viewBox="0 0 100 100"><defs><linearGradient id="hsb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3a0"/><stop offset=".5" stop-color="#ffb02e"/><stop offset="1" stop-color="#e0541a"/></linearGradient></defs>'+
+ '<rect width="100" height="100" rx="12" fill="#141a30"/><circle cx="50" cy="55" r="34" fill="#ffa030" opacity=".18"/>'+
+ '<g id="hw"><path d="M45 44 C30 40 10 36 4 12 C16 17 26 19 32 26 C26 16 24 8 26 2 C36 10 44 24 46 38 Z" fill="#f4f8ff" stroke="#c9d6ee" stroke-width="1.5"/>'+
+ '<path d="M44 52 C32 52 18 50 12 40 C22 42 30 44 36 46 Z" fill="#e6eefb" stroke="#c9d6ee" stroke-width="1.2"/></g>'+
+ '<use href="#hw" transform="translate(100,0) scale(-1,1)"/>'+
+ '<polygon points="44,46 56,46 56,84 50,97 44,84" fill="url(#hsb)" stroke="#ff7a1a" stroke-width="1.5"/>'+
+ '<rect x="47" y="48" width="3" height="40" fill="#fff6c0" opacity=".7"/>'+
+ '<rect x="30" y="40" width="40" height="7" rx="2" fill="#8a6a3a" stroke="#4a3a2a"/><circle cx="50" cy="43" r="4.5" fill="#2f9bd6" stroke="#bfefff"/>'+
+ '<rect x="47" y="24" width="6" height="16" fill="#5a4a3a"/><circle cx="50" cy="20" r="4.5" fill="#2f9bd6" stroke="#bfefff"/></svg><span class="cd"></span>';
+if(skl)skl.after(h1);else topRow.appendChild(h1);
+h1.after(h2);
+
+function hud(){
+  const n=sel,h=HP[n]===undefined?MAXHP:HP[n];
+  hp.innerHTML='❤️'.repeat(h)+'🖤'.repeat(Math.max(0,MAXHP-h));
+  hp.classList.toggle('hit',IV[n]>0);
+  const pw=powered(n),ok=pw&&hasW(n);
+  if(skl&&pw)skl.hidden=true;                       /* icon đỡ đòn cũ nhường chỗ cho bản nâng cấp */
+  h1.hidden=!ok;h2.hidden=!ok;
+  if(!ok)return;
+  const a=AU[n]||{t:0,cd:0,cdMax:CD_MISS},s=S2[n]||{cd:0};
+  let f,tx='';
+  if(a.t>0){f='brightness(1.25) drop-shadow(0 0 4px #ffd23f)';tx='✦'}
+  else if(a.cd>0){const k=1-a.cd/a.cdMax;f='brightness('+(.15+.85*k).toFixed(2)+') saturate('+(.2+.8*k).toFixed(2)+')';tx=fmt(a.cd)}
+  else f='none';
+  h1.querySelector('svg').style.filter=f;h1.querySelector('.cd').textContent=tx;
+  h1.title='Hào quang 6 đôi cánh ['+AURA_KEY.toUpperCase()+']: đỡ mọi đòn';
+  const k2=1-s.cd/CD2;
+  h2.querySelector('svg').style.filter=s.cd>0?'brightness('+(.15+.85*k2).toFixed(2)+') saturate('+(.2+.8*k2).toFixed(2)+')':'none';
+  h2.querySelector('.cd').textContent=s.cd>0?fmt(s.cd):'';
+  h2.title='Tia lửa xanh đỏ [E]: 35 sát thương (20% crit 56), hồi 3s'}
+
+/* phím J: bật / tắt bảng thông tin số lượng */
+function togSl(){slOn=!slOn;$('sl').hidden=!slOn}
+const jb=document.createElement('button');jb.className='btn alt';jb.id='jBtn';jb.textContent='J';
+jb.title='Bật / tắt bảng thông tin';jb.onclick=togSl;$('tools').insertBefore(jb,$('hudBtn'));
+const _sh=showHud;showHud=function(){_sh();
+  $('sl').hidden=!slOn;
+  const g=$('gd');if(g)g.innerHTML+='<br>J: Ẩn / hiện bảng thông tin<br>Kiếm thánh: '+AURA_KEY.toUpperCase()+' hào quang · E tia lửa · Chuột phải chém'};
 })();

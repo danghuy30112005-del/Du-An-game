@@ -399,5 +399,6 @@ const _step=step;step=function(){
   tickMon(dt)};
 const _gen=gen;gen=function(sd){_gen(sd);build2()};
 const _mk=mkPeople;mkPeople=function(){_mk();build2();PT2=[]};
+window.MONS=()=>MON;
 build2();   /* bản đồ đầu tiên đã được tạo trước khi file này nạp */
 })();
