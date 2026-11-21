@@ -402,7 +402,7 @@ const _step=step;step=function(){
   tickMon(dt)};
 const _gen=gen;gen=function(sd){_gen(sd);build2()};
 const _mk=mkPeople;mkPeople=function(){_mk();build2();PT2=[]};
-window.MONS=()=>MON;
+window.MONS=()=>{const s=window.SKYMONS&&window.SKYMONS();return s||MON};
 build2();   /* bản đồ đầu tiên đã được tạo trước khi file này nạp */
 })();
 
@@ -720,7 +720,10 @@ function bfsA(sx,sy,tx,ty){
 const pls2=()=>ins.filter(p=>p.pl&&p.fl===WID2);
 function puff(x,y,n,cols,sp,up){for(let i=0;i<n;i++)FXP.push({x,y,vx:(Math.random()-.5)*sp,vy:-(Math.random()*up),l:30+rnd(40),c:cols[rnd(cols.length)],s:1+rnd(2)})}
 
-window.onMonKilled=function(mo){if(mo.k==='boss'){bossDead(mo);return}CORP.push({x:mo.x,y:mo.y,k:mo.k})};
+window.onMonKilled=function(mo){
+  if(mo.sky){if(window.SKYKILL)window.SKYKILL(mo);return}   /* boss / sọ ở đảo bay */
+  if(mo.k==='boss'){bossDead(mo);return}
+  CORP.push({x:mo.x,y:mo.y,k:mo.k})};
 
 function startCut(){
   window.A2S.phase=2;

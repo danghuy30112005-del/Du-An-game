@@ -951,14 +951,15 @@ function tick(dt){
   updateHaz(dt);
   bossAI(dt,A)}
 
-const _M=window.MONS;
-window.MONS=function(){
-  if(inside&&curF===WID3&&B){
-    if(B.inv||B.S==='xform'||B.S==='die'||B.S==='dead'||B.S==='appear')return SK.slice();
-    return[B].concat(SK)}
-  return _M?_M():[]};
-const _omk=window.onMonKilled;
-window.onMonKilled=function(mo){
+/* xuất ra ngoài để Abyss2.js dùng (không bị ghi đè nữa) */
+window.SKYMONS=function(){
+  if(!(inside&&curF===WID3))return null;           /* không ở đảo bay: để Abyss2 xử lý */
+  if(!B)return[];                                  /* chưa có boss: không có quái nào */
+  if(B.inv||B.S==='xform'||B.S==='die'||B.S==='dead'||B.S==='appear')return SK.slice();
+  return[B].concat(SK)};
+window.SKYKILL=function(mo){
+  if(mo.skull){SK=SK.filter(s=>s!==mo);fx(mo.x,mo.y,12,['#e8e4d0','#7aff7a'],120,80,.5,10);return}
+  bossDown()};{
   if(mo&&mo.sky){
     if(mo.skull){SK=SK.filter(s=>s!==mo);fx(mo.x,mo.y,12,['#e8e4d0','#7aff7a'],120,80,.5,10);return}
     bossDown();return}

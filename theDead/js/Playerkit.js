@@ -291,9 +291,9 @@ function drawSwings(){
     const P=playerOf(s.n);if(!P||!visFl(P.fl||0))return;
     const p=s.t/s.d,a1=s.ang-1.1+2.2*p,ox=P.x,oy=P.y-7;
     for(let i=0;i<9;i++){const a=a1-i*.13;cx.globalAlpha=(1-p*.5)*(1-i/9);
-      R('#dff2ff',Math.round(ox+Math.cos(a)*15),Math.round(oy+Math.sin(a)*15),2,2)}
+      R('#dff2ff',Math.round(ox+Math.cos(a)*40),Math.round(oy+Math.sin(a)*40),2,2)}
     cx.globalAlpha=1;
-    for(let r=3;r<=15;r+=1.5)R(r<6?'#d4a63a':'#cfe9ff',Math.round(ox+Math.cos(a1)*r)-1,Math.round(oy+Math.sin(a1)*r)-1,2,2)});
+    for(let r=3;r<=40;r+=1.5)R(r<6?'#d4a63a':'#cfe9ff',Math.round(ox+Math.cos(a1)*r)-1,Math.round(oy+Math.sin(a1)*r)-1,2,2)});
   cx.globalAlpha=1}
 function doSwing(e){
   if(state!=='island'||trans||TK)return;
@@ -307,7 +307,7 @@ function doSwing(e){
   SWC[n]=SWCD;SWG.push({n,ang,t:0,d:10});
   if(FN&&!FN.open&&!P.fl&&!inside){
     const d=Math.hypot(FN.gcx-P.x,FN.gcy-P.y);
-    if(d<=30){
+    if(d<=46){
       const ga=Math.atan2(FN.gcy-(P.y-7),FN.gcx-P.x),df=Math.abs(Math.atan2(Math.sin(ang-ga),Math.cos(ang-ga)));
       if(df<1.3)openGate();else cap('Hãy vung dao về phía cổng để chém khóa.')}}}
 function openGate(){
@@ -506,7 +506,7 @@ const AURA_KEY='r';                 /* phím hào quang (đổi thành 'q' nếu
 const MAXHP=3,IV_T=1.5;             /* số tim, thời gian bất tử sau khi trúng đòn (giây) */
 const AURA_T=1.5,CD_HIT=120,CD_MISS=5;
 const CD2=1,BEAM_DMG=35,BEAM_CRIT=.2,BEAM_CDMG=56;
-const MELEE=[10,26],MELEE_R=28,MELEE_CD=.35;
+const MELEE=[10,26],MELEE_R=52,MELEE_ARC=1.45,MELEE_CD=.35;   /* tầm chém 28 -> 52 */
 const MHP={human:100,snake:80,spider:80,boss:400};
 const WID2=22;
 const inArena=f=>f===WID2||f===23;
@@ -603,13 +603,19 @@ addEventListener('pointerdown',e=>{
   if(state!=='island'||trans||TK)return;
   const iv=$('inv');if(iv&&!iv.hidden)return;
   const n=sel,P=playerOf(n);if(!P||!hasW(n)||(SC[n]||0)>0)return;
+  if(!inArena(P.fl|0))return;                         /* chỉ chém quái ở tầng 2 / đảo bay */
   SC[n]=MELEE_CD;
+  const r=cv.getBoundingClientRect(),k=inside?IS:1,
+    wx=(e.clientX-r.left)/r.width*CW/k+camX,wy=(e.clientY-r.top)/r.height*CH/k+camY,
+    ang=Math.atan2(wy-(P.y-7),wx-P.x);
   window.MONS().slice().forEach(m=>{
-    const cy=m.sky?m.y-(m.z||0)-(m.k==='boss'?30:8):m.y;
-    const dx=m.x-P.x,dy=cy-P.y;
-    if(Math.hypot(dx,dy)>MELEE_R+(m.sky&&m.k==='boss'?50:m.k==='boss'?16:0))return;
-    const da=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-ang),Math.cos(Math.atan2(dy,dx)-ang)));
-    if(da<1.25)hurt(m,ri(MELEE[0],MELEE[1]),false,n)})},true);
+    const boss=m.k==='boss',
+      cy=m.sky?m.y-(m.z||0)-(boss?30:8):m.y,
+      dx=m.x-P.x,dy=cy-P.y,d=Math.hypot(dx,dy),
+      reach=MELEE_R+(m.sky&&boss?55:boss?18:0);       /* boss to nên cộng thêm tầm */
+    if(d>reach)return;
+    const a=Math.atan2(dy,dx),da=Math.abs(Math.atan2(Math.sin(a-ang),Math.cos(a-ang)));
+    if(da<MELEE_ARC||d<22)hurt(m,ri(MELEE[0],MELEE[1]),false,n)})},true);
   const r=cv.getBoundingClientRect(),k=inside?IS:1,
     wx=(e.clientX-r.left)/r.width*CW/k+camX,wy=(e.clientY-r.top)/r.height*CH/k+camY,
     ang=Math.atan2(wy-(P.y-7),wx-P.x);
@@ -668,7 +674,7 @@ function tickBeams(){
       if(inArena(b.fl)){
         for(const mo of window.MONS()){
           const hy=mo.sky?mo.y-(mo.z||0)-(mo.k==='boss'?30:8):mo.y-(mo.k==='boss'?20:8),
-                hr=mo.sky&&mo.k==='boss'?46:mo.k==='boss'?24:mo.sky?12:11;
+                hr=mo.sky&&mo.k==='boss'?64:mo.k==='boss'?24:mo.sky?12:11;
           if(Math.hypot(b.x-mo.x,b.y-hy)<hr){
             const crit=Math.random()<BEAM_CRIT;
             hurt(mo,crit?BEAM_CDMG:BEAM_DMG,crit,b.n);b.dead=1;break}}}}
@@ -1000,12 +1006,15 @@ function fireBeam(n,ang){
   const off=window.islOffset?window.islOffset(P):0,x=P.x,y=P.y-off-8,c=Math.cos(ang),s=Math.sin(ang);
   BMS.push({x,y,a:ang,t:0,d:.9,fl:P.fl|0});
   shake=Math.max(shake,6);
-  if(P.fl!==WID2||!window.MONS)return;
+  if((P.fl!==WID2&&P.fl!==23)||!window.MONS)return;       /* thêm tầng 23 = đảo bay boss */
   let hit=0;
   window.MONS().slice().forEach(m=>{
-    const mx=m.x-x,my=(m.y-8)-y,d=mx*c+my*s;
+    const sb=m.sky&&m.k==='boss',
+      cy=m.sky?m.y-(m.z||0)-(m.k==='boss'?30:8):m.y-8,
+      mx=m.x-x,my=cy-y,d=mx*c+my*s;
     if(d<0||d>BLEN)return;
-    const perp=Math.abs(-mx*s+my*c),k=d/BLEN,hw=3+22*Math.pow(k,1.3)+(m.k==='boss'?14:6);
+    const perp=Math.abs(-mx*s+my*c),k=d/BLEN,
+      hw=3+22*Math.pow(k,1.3)+(sb?50:m.k==='boss'?14:6);   /* boss đảo bay to hơn */
     if(perp>hw)return;
     hurt(m,Math.round(DMAX-(DMAX-DMIN)*k),n);hit++});
   if(hit)cap('Tia năng lượng xuyên qua '+hit+' kẻ địch!')}
