@@ -511,7 +511,7 @@ const MHP={human:100,snake:80,spider:80,boss:400};
 const WID2=22;
 const PKEY='deadisland:holypower',INVKEY='deadisland:inv1';
 /* vị trí tảng đá kiếm + cổng ánh sáng ở tầng 2 (khớp Abyss2.js) */
-const SWX=1016,SWY=1022,PTX=1180,PTY=220;
+const SWX=1016,SWY=1016,PTX=1180,PTY=220;
 
 let PWR={},HP={},IV={},AU={},S2={},SC={},BM=[],PT3=[],FT=[],MS={x:0,y:0,has:0},slOn=true,lastChk=-99,bc=null,bcf=-99,AN={},RN=[];
 try{PWR=JSON.parse(localStorage.getItem(PKEY))||{}}catch(_){PWR={}}
@@ -626,7 +626,7 @@ addEventListener('keydown',e=>{
     const a=AU[n]||(AU[n]={t:0,cd:0,cdMax:CD_MISS,hit:0});
     if(a.t>0)return;
     if(a.cd>0){cap('Hào quang đang hồi: '+fmt(a.cd)+'.');return}
-    a.t=AURA_T;a.hit=0;burst(P.x,P.y-10,P.fl|0,24,GOLD,1);
+    a.t=AURA_T;a.hit=0;burst(P.x,P.y-10,P.fl|0,24,GOLD,1);if(window.angelCast)window.angelCast(P,'shield');if(window.angelCast)window.angelCast(P,'shield');
     cap('Hào quang 6 đôi cánh bao quanh bạn, đỡ mọi đòn!');return}
   if(k==='e'&&powered(n)&&hasW(n)){
     const tk=$('tk');if(tk&&!tk.hidden)return;
@@ -641,8 +641,9 @@ function fire(P){
   if(s.cd>0){cap('Tia lửa đang hồi: '+fmt(s.cd)+'.');return}
   let ang=0;if(MS.has){const w=mouseW();ang=Math.atan2(w.y-(P.y-8),w.x-P.x)}
   const c=Math.cos(ang),sn=Math.sin(ang);
-  BM.push({n,x:P.x+c*6,y:P.y-8+sn*6,vx:c*1.9,vy:sn*1.9,l:56,fl:P.fl|0,tr:[]});
-  s.cd=CD2;angelFx(P,.6,0);burst(P.x+c*8,P.y-8+sn*8,P.fl|0,8,FIRE,0)}
+  const go=()=>{const Q=playerOf(n)||P;BM.push({n,x:Q.x+c*6,y:Q.y-8+sn*6,vx:c*1.9,vy:sn*1.9,l:56,fl:Q.fl|0,tr:[]});burst(Q.x+c*8,Q.y-8+sn*8,Q.fl|0,8,FIRE,0)};
+if(window.angelCast){window.angelCast(P,'sword',ang);setTimeout(go,560)}else go();
+  s.cd=CD2;if(!window.angelCast)angelFx(P,.6,0)}
 
 /* tia lửa có va chạm theo từng khu vực: ngoài trời, nhà, hang, Vực sâu */
 function blocked(b){

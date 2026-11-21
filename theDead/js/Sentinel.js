@@ -11,6 +11,7 @@ const WID=21,WALL=62,AW=300,AH=170,INVKEY='deadisland:inv1',OKEY='deadisland:sen
 const AB=()=>window.ABYSS();
 let GA=null,AG=null,KA=null,OPEN=false,PT=[],PEND=[],GN=0;
 try{OPEN=localStorage.getItem(OKEY)==='1'}catch(_){}
+let LEAVE=null,GONE=OPEN,AGT=null;   /* GONE: Sentinel đã rời đi */
 const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),Math.round(w),Math.round(h))};
 const curP=()=>allPl().find(p=>p.pl===sel&&p.fl===WID);
 const bagOf=n=>{try{const I=JSON.parse(localStorage.getItem(INVKEY))||{};return Array.isArray(I[n])?I[n]:[]}catch(_){return[]}};
@@ -92,11 +93,14 @@ function setup(){
   let gy=0;for(let y=90;y<114;y++){const q=A.mt.get(y*AW+211);if(q&&q.k==='b'){gy=y;break}}
   if(!gy){GA=null;return}
   GA={x:211,y:gy};
-  const s=nearFloor(A,208,gy-2,6);AG={x:s[0]*T+4,y:s[1]*T+6};A.im[s[1]][s[0]]=WALL;A.ob[s[1]][s[0]]=1;
+  const s=nearFloor(A,208,gy-2,6);AG={x:s[0]*T+4,y:s[1]*T+6};AGT=[s[0],s[1]];if(!GONE){A.im[s[1]][s[0]]=WALL;A.ob[s[1]][s[0]]=1}
   const k=nearFloor(A,262,90,10);KA={x:k[0]*T+4,y:k[1]*T+7};A.im[k[1]][k[0]]=WALL;A.ob[k[1]][k[0]]=1;
   gateT(!OPEN)}
 const _gen=gen;gen=function(sd){_gen(sd);setup()};
-const _mk=mkPeople;mkPeople=function(){_mk();OPEN=false;SQ={};try{localStorage.removeItem(OKEY)}catch(_){}gateT(true);PT=[];if(TK&&TK.ang)closeTalk()};
+const _mk=mkPeople;mkPeople=function(){_mk();OPEN=false;SQ={};try{localStorage.removeItem(OKEY);localStorage.removeItem(QKEY)}catch(_){}gateT(true);PT=[];
+  if(TK&&TK.ang){TK.opened=0;closeTalk()}
+  LEAVE=null;GONE=false;
+  {const A=AB();if(A&&AGT){A.im[AGT[1]][AGT[0]]=WALL;A.ob[AGT[1]][AGT[0]]=1}}};
 setup();
 
 /* ---------- Hạt sáng ---------- */
@@ -111,16 +115,53 @@ function takeKey(n){
   if(has(n)){cap('P'+n+' đã mang Chìa khóa Thiên giới rồi.');return}
   if(typeof window.giveItem!=='function'){cap('Cần nạp Playerkit.js để nhận đồ vào túi.');return}
   if(window.giveItem(n,'sentkey'))burst(KA.x,KA.y-14,24)}
-
+/* ---------- Angel Sentinel bay đi theo một tia sáng ---------- */
+window.islOffset=p=>p.fl===WID?offAt(Math.floor(p.x/T),Math.floor(p.y/T)):0;   /* Finale.js dùng để bù độ cao đảo bay */
+function startLeave(){
+  if(GONE||LEAVE||!AG)return;
+  LEAVE={t:0,d:3,sx:AG.x,sy:AG.y};
+  burst(AG.x,AG.y-30,30);
+  cap('Angel Sentinel dang rộng đôi cánh, hóa thành một tia sáng bay về Thiên giới...')}
+function leaveTick(){
+  if(!LEAVE)return;
+  const dt=Math.min(.25,DM||.016),L=LEAVE;L.t+=dt;
+  const p=L.t/L.d,k=Math.max(0,(p-.25)/.75),e=Math.pow(k,1.7);
+  if(k>0&&frame%2===0)burst(L.sx+e*150,L.sy-e*320-30,2);
+  if(L.t>=L.d){
+    burst(L.sx+150,L.sy-350,40);LEAVE=null;GONE=true;
+    const A=AB();if(A&&AGT){A.im[AGT[1]][AGT[0]]=0;A.ob[AGT[1]][AGT[0]]=0}
+    cap('Angel Sentinel đã biến mất trong ánh sáng. Cổng lên Vườn Hoa Treo đã mở.')}}
+function leaveDraw(){
+  const L=LEAVE,p=Math.min(1,L.t/L.d),k=Math.max(0,(p-.25)/.75),e=Math.pow(k,1.7),c=Math.min(1,p/.25),
+    x=L.sx+e*150,y=L.sy-e*320-Math.sin(c*1.5708)*14,s=Math.max(.08,1-e*.9);
+  cx.save();cx.globalCompositeOperation='lighter';
+  let g=cx.createRadialGradient(L.sx,L.sy-34,2,L.sx,L.sy-34,30+60*c);
+  g.addColorStop(0,'rgba(255,245,190,'+(.55*(1-k*.6)).toFixed(3)+')');g.addColorStop(1,'rgba(255,200,80,0)');
+  cx.fillStyle=g;cx.fillRect(L.sx-95,L.sy-130,190,190);
+  if(k>0){
+    const bx=x,by=y-34*s;
+    g=cx.createLinearGradient(L.sx,L.sy-34,bx,by);
+    g.addColorStop(0,'rgba(255,200,80,0)');g.addColorStop(.6,'rgba(255,235,150,.6)');g.addColorStop(1,'rgba(255,255,255,.95)');
+    cx.strokeStyle=g;cx.lineCap='round';
+    [[9,.3],[5,.5],[2,1]].forEach(([w,a])=>{cx.globalAlpha=a;cx.lineWidth=w*(.4+.6*s);cx.beginPath();cx.moveTo(L.sx,L.sy-34);cx.lineTo(bx,by);cx.stroke()});
+    cx.globalAlpha=1;
+    g=cx.createRadialGradient(bx,by,0,bx,by,24);
+    g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(1,'rgba(255,220,120,0)');
+    cx.fillStyle=g;cx.fillRect(bx-24,by-24,48,48)}
+  cx.restore();cx.globalAlpha=1;
+  cx.save();cx.translate(x,y);cx.scale(s,s);cx.translate(-x,-y);
+  const pos={x,y},f=window.drawAngelPlus;
+  if(f)f(pos,true,null);else{const o=AG;AG=pos;try{drawAngel()}finally{AG=o}}
+  cx.restore();cx.globalAlpha=1}
 /* ---------- Khoảng cách tương tác ---------- */
-const nearAng=P=>AG&&Math.hypot(P.x-AG.x,P.y-(AG.y-4))<36;
-const nearGate=P=>GA&&Math.hypot(P.x-(GA.x*T+8),P.y-(GA.y*T+4))<26;
+const nearAng=P=>AG&&!GONE&&!LEAVE&&Math.hypot(P.x-AG.x,P.y-(AG.y-4))<36;
+const nearGate=P=>GA&&!GONE&&!LEAVE&&Math.hypot(P.x-(GA.x*T+8),P.y-(GA.y*T+4))<26;
 const nearKey=P=>KA&&Math.hypot(P.x-KA.x,P.y-(KA.y-6))<22;
 const keyOn=n=>window.sentQuest.get(n)>=2;   /* chỉ thấy / lấy được chìa khóa sau khi trả kiếm */
 
 /* ---------- Hội thoại ---------- */
 function node(k,n){
-  if((k===0||k===1)&&q===1&&hasI(n,'holysword'))return{t:'Ta cảm nhận được hơi thở của thanh kiếm thánh! Ngươi đã mang nó về cho ta sao?',o:[{t:'Trao thanh kiếm thánh',act:'return'},{t:'Chưa',end:1}]};
+  if((k===0||k===1)&&window.sentQuest.get(n)===1&&hasI(n,'holysword'))return{t:'Ta cảm nhận được hơi thở của thanh kiếm thánh! Ngươi đã mang nó về cho ta sao?',o:[{t:'Trao thanh kiếm thánh',act:'return'},{t:'Chưa',end:1}]};
   const ASK={t:'Ngài là ai?',go:2},q=window.sentQuest.get(n),Q=q<2?[{t:'Ngài có cần ta giúp gì không?',go:4}]:[];
   if(k===0)return OPEN?{t:'Cổng đã mở. Hãy bước nhẹ thôi, những bông hoa treo rất mong manh.',o:[{t:'Cảm ơn ngài',end:1},...Q,ASK]}
     :{t:'Dừng bước, kẻ hạ giới! Phía sau cánh cổng này là Vườn Hoa Treo. Không có Chìa khóa Thiên giới, không ai được phép đi qua.',o:[{t:'Tôi muốn lên khu hái hoa',go:1},...Q,ASK,{t:'Tôi sẽ quay lại',end:1}]};
@@ -135,7 +176,7 @@ function node(k,n){
     return{t:'Cánh cửa xoáy ở bên trái bãi đáp, dùng chìa khóa ta đã đưa. Hãy mang thanh kiếm thánh về đây.',o:[{t:'Tôi hiểu rồi',end:1}]}}
   if(k===5)return{t:'Đây là chìa khóa cánh cửa xoáy. Hãy cẩn thận, đừng để bầy quái nghe thấy tiếng bước chân của ngươi.',o:[{t:'Cảm ơn ngài',end:1}]};
   if(k===6)return{t:'Thanh kiếm thánh đã trở về. Ta nợ ngươi một ân huệ: chìa khóa cổng nằm trên bệ đá ở tận cùng phía đông của hang. Hãy lấy nó rồi quay lại đây, ta sẽ mở cổng.',o:[{t:'Cảm ơn ngài',end:1}]};
-  return{t:'Chìa khóa thật. Cổng đã mở và sẽ không đóng lại nữa. Đừng làm hỏng những bông hoa.',o:[{t:'Cảm ơn ngài',end:1}]}}
+  return{t:'Chìa khóa thật. Cổng đã mở và sẽ không đóng lại nữa. Ta cũng phải trở về Thiên giới rồi. Đừng làm hỏng những bông hoa.',o:[{t:'Cảm ơn ngài',end:1}]}}
 function aRender(){
   const n=node(TK.node,TK.P.pl),o=$('dO');
   $('dlg').hidden=false;
@@ -153,7 +194,7 @@ function aPick(a){
   if(!TK||!TK.ang)return;
   if(a.end){closeTalk();return}
   const n=TK.P.pl;
-  if(a.act==='gate'){if(!has(n)){closeTalk();return}openGate();TK.node=3}
+  if(a.act==='gate'){if(!has(n)){closeTalk();return}openGate();TK.opened=1;TK.node=3}
   else if(a.act==='accept'){ensure();window.sentQuest.set(n,1);if(!hasI(n,'wdkey')&&window.giveItem)window.giveItem(n,'wdkey');TK.node=5}
   else if(a.act==='return'){
     if(!hasI(n,'holysword')){closeTalk();return}
@@ -162,7 +203,7 @@ function aPick(a){
   else TK.node=a.go;
   aRender()}
 function aOpen(P){TK={P,ang:1,node:0};$('tk').hidden=true;aRender()}
-const _close=closeTalk;closeTalk=function(){if(TK&&TK.ang){TK=null;$('dlg').hidden=true;return}_close()};
+const _close=closeTalk;closeTalk=function(){if(TK&&TK.ang){const op=TK.opened;TK=null;$('dlg').hidden=true;if(op)startLeave();return}_close()};
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.repeat||e.key.toLowerCase()!=='e'||e.ctrlKey||e.metaKey||e.altKey)return;
   if(state!=='island'||TK||trans)return;
@@ -251,15 +292,135 @@ const _ap=allPl;allPl=function(){
     const q=Object.create(p);Object.defineProperty(q,'y',{value:p.y-o});return q})};
 const _di=drawIn;drawIn=function(){
   if(curF!==WID||!GA||!AG||!KA)return _di();
-  PEND=[{y:GA.y*T+8,d:drawGate},{y:AG.y,d:()=>window.drawAngelPlus?window.drawAngelPlus(AG,OPEN,curP()):drawAngel()},{y:KA.y,d:drawAltar}].sort((a,b)=>a.y-b.y);
+  PEND=[{y:GA.y*T+8,d:drawGate},...(GONE?[]:[{y:AG.y,d:()=>LEAVE?leaveDraw():(window.drawAngelPlus?window.drawAngelPlus(AG,OPEN,curP()):drawAngel())}]),{y:KA.y,d:drawAltar}].sort((a,b)=>a.y-b.y);
   DRAWING=1;try{_di()}finally{DRAWING=0}
   while(PEND.length)PEND.shift().d();
   decor();
   PT.forEach(q=>{cx.globalAlpha=Math.max(0,Math.min(1,q.l/20));R(q.c,q.x,q.y,2,2)});cx.globalAlpha=1};
 const _st=step;step=function(){
-  _st();if(state!=='island')return;
+  _st();if(state!=='island')return;leaveTick();
   PT.forEach(q=>{q.x+=q.vx;q.y+=q.vy;q.vy-=.01;q.l--});PT=PT.filter(q=>q.l>0);
   const P=curP(),n=!!(P&&GA&&!OPEN&&nearGate(P));
   if(n&&!GN)cap('Cổng bị khóa chặt, một thiên thần khổng lồ đang canh giữ bên cạnh. Bấm E để nói chuyện.');
   GN=n?1:0};
+})();
+
+/* ===== Finale.js: ANGEL SENTINEL xuất hiện khi dùng kỹ năng kiếm thánh =====
+   Nạp CUỐI CÙNG (sau Abyss2.js). Cần các chỗ sửa nhỏ trong PATCHES.md.
+   - E (tia lửa): Angel Sentinel bay lên trên đầu người chơi, giơ kiếm rồi chém, tia lửa bắn ra
+     đúng lúc nhát chém hoàn tất, sau đó thiên thần bay lên và biến mất.
+   - R (hào quang): Angel Sentinel bay lên, vung khiên, bùng một vòng sáng bảo hộ rồi biến mất.
+   Hàm dùng chung: window.angelCast(P, 'sword'|'shield', gócRadian) */
+(()=>{
+if(typeof step!=='function'||typeof glow!=='function'||typeof drawIn!=='function'||typeof allPl!=='function'){
+  console.warn('Finale.js: hãy nạp CUỐI CÙNG (sau Abyss2.js)');return}
+
+const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),w,h)};
+const visFl=f=>inside?f===curF:!f;
+const GOLD=['#ffd23f','#fff3a0','#ffffff','#ffb02e'],FIRE=['#ff3b2a','#ff8a3d','#2fb8f0','#9ae8ff','#ffffff'];
+let CA=[],FP=[],RG=[];
+
+window.angelCast=function(P,kind,ang){
+  CA=CA.filter(a=>a.n!==P.pl);
+  CA.push({n:P.pl,kind,t:0,d:kind==='sword'?1.1:1.7,ang:ang||0,hit:0,ring:0})};
+
+function spark(x,y,fl,n,cols,sp){
+  sp=sp||1;
+  for(let i=0;i<n;i++){const l=20+rnd(22);
+    FP.push({x:x+rnd(9)-4,y:y+rnd(9)-4,vx:(Math.random()-.5)*1.6*sp,vy:-(.2+Math.random()*1.3)*sp,l,m:l,c:cols[rnd(cols.length)],fl})}}
+
+function disc(c,x,y,r){
+  r=Math.max(1,Math.round(r));cx.fillStyle=c;
+  for(let j=-r;j<=r;j++){const w=Math.round(Math.sqrt(r*r-j*j));cx.fillRect(x-w,y+j,w*2,1)}}
+
+/* thanh kiếm lửa của thiên thần: lưỡi hướng theo góc th */
+function sword(hx,hy,th,L,w){
+  cx.save();cx.translate(Math.round(hx),Math.round(hy));cx.rotate(th);
+  const Q=(c,a,b,ww,h)=>{cx.fillStyle=c;cx.fillRect(a,b,ww,h)};
+  cx.globalAlpha=.25;Q('#ffa030',2,-w-4,L,w*2+8);cx.globalAlpha=1;
+  Q('#ff7a1a',3,-w-1,L,w*2+2);Q('#ffd23f',3,-w,L-2,w*2);Q('#fff3a0',4,-1,Math.max(2,L-6),1);Q('#ffd23f',3+L,-1,2,2);
+  Q('#b8864f',0,-w-3,3,w*2+6);Q('#2f9bd6',0,-1,2,2);Q('#4a3a2a',-7,-1,7,2);Q('#b8864f',-9,-2,2,4);
+  cx.restore()}
+
+/* khiên vàng, nền xanh, thập tự sáng */
+function shield(x,y,r,rot){
+  r=Math.max(3,Math.round(r));
+  cx.save();cx.translate(Math.round(x),Math.round(y));cx.rotate(rot);
+  cx.globalCompositeOperation='lighter';cx.globalAlpha=.28;disc('#ffd23f',0,0,r+5);
+  cx.globalCompositeOperation='source-over';cx.globalAlpha=1;
+  disc('#5a3a12',0,0,r+1);disc('#e0a526',0,0,r);disc('#f4c542',0,0,r-1);disc('#1c3a8a',0,0,r-3);
+  const Q=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(a,b,w,h)},k=Math.max(2,Math.round(r*.18));
+  Q('#fff3a0',-1,-r+3,2,r*2-6);Q('#fff3a0',-r+3,-1,r*2-6,2);Q('#ffffff',-k,-k,k*2,k*2);Q('#2f9bd6',-1,-1,2,2);
+  cx.restore()}
+
+function drawCast(a,P){
+  const sw=a.kind==='sword',p=a.t/a.d,t1=sw?.22:.2,t2=sw?.72:.78,fl=P.fl|0;
+  const off=window.islOffset?window.islOffset(P):0,gx=P.x,gy=P.y-off;
+  let rise,sc;
+  if(p<t1){const u=1-Math.pow(1-p/t1,3);rise=60*u;sc=.28+.4*u}          /* bay lên */
+  else if(p<t2){rise=60+Math.sin(a.t*8)*1.5;sc=.68}                       /* lơ lửng, ra đòn */
+  else{const u=(p-t2)/(1-t2);rise=60+150*u*u;sc=.68*(1-.88*u)}            /* bay vút lên, nhỏ dần, biến mất */
+  const ax=gx-(sw?Math.cos(a.ang)*12:0),ay=gy-6-rise,
+    al=p<t1?p/t1:p>t2?Math.max(0,1-(p-t2)/(1-t2)):1,z=Math.max(.6,sc*1.55);
+  /* cột sáng nối từ chân người chơi lên thiên thần */
+  cx.save();cx.globalCompositeOperation='lighter';
+  const top=ay-60*sc,g=cx.createLinearGradient(0,top,0,gy);
+  g.addColorStop(0,'rgba(255,240,170,0)');
+  g.addColorStop(.5,'rgba(255,240,170,'+(.32*al).toFixed(3)+')');
+  g.addColorStop(1,'rgba(255,255,255,'+(.5*al).toFixed(3)+')');
+  cx.fillStyle=g;cx.fillRect(Math.round(gx-7),Math.round(top),14,Math.max(1,Math.round(gy-top)));
+  cx.globalAlpha=.8*al;
+  for(let q=0;q<6.28;q+=.4)R(q*5%2<1?'#ffd23f':'#7cfff0',gx+Math.cos(q+a.t*3)*15,gy+Math.sin(q+a.t*3)*5,2,1);
+  cx.restore();cx.globalAlpha=1;
+  /* thân thiên thần (dùng lại hình Angel Sentinel, thu nhỏ quanh điểm chân) */
+  cx.save();cx.translate(ax,ay);cx.scale(sc,sc);cx.translate(-ax,-ay);
+  if(window.drawAngelPlus)window.drawAngelPlus({x:ax,y:ay},true,null);
+  cx.restore();cx.globalAlpha=1;
+  if(frame%2===0)spark(ax+rnd(21)-10,ay-30*sc,fl,1,GOLD,.6);
+
+  if(sw){
+    const hx=ax+13*sc,hy=ay-33*sc,th0=a.ang-2.4,th1=a.ang+.35,L=34*z;
+    let th;
+    if(p<.38)th=th0+(p<t1?0:Math.sin(a.t*18)*.07);                       /* giơ kiếm lên */
+    else if(p<.52){const u=(p-.38)/.14;th=th0+(th1-th0)*u*u}              /* chém xuống */
+    else th=th1;
+    if(p>=.52&&!a.hit){a.hit=1;spark(hx+Math.cos(th1)*L,hy+Math.sin(th1)*L,fl,28,FIRE,1.6);shake=Math.max(shake,3)}
+    if(p>=.38&&p<.66){                                                    /* vệt chém */
+      const f=p<.52?1:Math.max(0,1-(p-.52)/.14);
+      for(let k=0;k<16;k++){const ak=th-k*.12;if(ak<th0)break;
+        cx.globalAlpha=f*(1-k/16);
+        R(k<5?'#ffffff':'#ffb02e',hx+Math.cos(ak)*L*.95-1,hy+Math.sin(ak)*L*.95-1,3,3);
+        R('#ff7a1a',hx+Math.cos(ak)*L*.7,hy+Math.sin(ak)*L*.7,2,2)}
+      cx.globalAlpha=1}
+    sword(hx,hy,th,L,Math.max(1,Math.round(1.4*z)))}
+  else{
+    const hx=ax-13*sc,hy=ay-33*sc,grow=1-Math.pow(1-Math.min(1,p/t1),3),sz=Math.max(5,13*z*grow);
+    let ph=0;if(p>=t1&&p<.62)ph=Math.sin((p-t1)*22)*1.1;                   /* vung khiên qua lại */
+    const sx=hx+Math.sin(ph)*17*z,sy=hy-8*z-Math.abs(Math.cos(ph))*4*z;
+    shield(sx,sy,sz,ph*.6);
+    if(p>=t1&&p<.62&&frame%2===0)spark(sx,sy,fl,2,GOLD,1);
+    if(p>=.62&&!a.ring){a.ring=1;spark(gx,gy-10,fl,40,GOLD,1.8);RG.push({x:gx,y:gy-10,fl,t:0,d:24});shake=Math.max(shake,4)}}
+}
+
+function drawAll(){
+  if(!CA.length&&!FP.length&&!RG.length)return;
+  const L=allPl();
+  CA.forEach(a=>{const P=L.find(q=>q.pl===a.n);if(!P||!visFl(P.fl|0))return;drawCast(a,P)});
+  RG.forEach(r=>{
+    if(!visFl(r.fl))return;
+    const rad=5+r.t*1.6;cx.globalAlpha=Math.max(0,1-r.t/r.d);
+    for(let g=0;g<6.28;g+=.25)R(g*4%2<1?'#ffd23f':'#fff3a0',r.x+Math.cos(g)*rad,r.y+Math.sin(g)*rad*.8,2,2)});
+  FP.forEach(q=>{if(!visFl(q.fl))return;cx.globalAlpha=Math.min(1,q.l/10);R(q.c,q.x,q.y,2,2)});
+  cx.globalAlpha=1}
+
+function tick(){
+  const dt=Math.min(.25,DM||.016);
+  CA.forEach(a=>a.t+=dt);CA=CA.filter(a=>a.t<a.d);
+  FP.forEach(q=>{q.x+=q.vx;q.y+=q.vy;q.vx*=.97;q.vy-=.01;q.l--});FP=FP.filter(q=>q.l>0);
+  RG.forEach(r=>r.t++);RG=RG.filter(r=>r.t<r.d)}
+
+const _glow=glow;glow=function(){_glow();if(!inside)drawAll()};
+const _drawIn=drawIn;drawIn=function(){_drawIn();drawAll()};
+const _step=step;step=function(){_step();tick()};
+const _mk=mkPeople;mkPeople=function(){_mk();CA=[];FP=[];RG=[]};
 })();

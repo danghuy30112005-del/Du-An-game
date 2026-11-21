@@ -179,7 +179,7 @@ function pullSword(P){
   if(st>=2){cap('Thanh kiếm thánh đã được trao trả cho Angel Sentinel.');return}
   if(typeof window.giveItem!=='function')return;
   if(window.giveItem(n,'holysword')){
-    burst(SWa.x,SWa.y-30,50);BC.f=-99;window.A2S.sealed=1;window.A2S.phase=1;window.A2S.sealed=1;window.A2S.phase=1;
+    burst(SWa.x,SWa.y-30,50);BC.f=-99;awaken(P);window.A2S.sealed=1;window.A2S.phase=1;window.A2S.sealed=1;window.A2S.phase=1;
     cap('P'+n+' rút được Thanh kiếm thánh! Tiếng gầm vang khắp hang, bầy quái đã thức dậy! Chạy về cổng ánh sáng ở phía bắc!')}}
 function askUp(n){
   window.abyssAsk('Một vòng sáng dẫn ngược lên Vực sâu. Bạn có muốn quay lên không?',[
