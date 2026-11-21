@@ -509,6 +509,7 @@ const CD2=1,BEAM_DMG=35,BEAM_CRIT=.2,BEAM_CDMG=56;
 const MELEE=[10,26],MELEE_R=28,MELEE_CD=.35;
 const MHP={human:100,snake:80,spider:80,boss:400};
 const WID2=22;
+const inArena=f=>f===WID2||f===23;
 const PKEY='deadisland:holypower',INVKEY='deadisland:inv1';
 /* vị trí tảng đá kiếm + cổng ánh sáng ở tầng 2 (khớp Abyss2.js) */
 const SWX=1016,SWY=1016,PTX=1180,PTY=220;
@@ -586,14 +587,15 @@ window.parryHit=function(V,att){
 function hurt(m,d,crit,n){
   const mx=MHP[m.k]||80;if(m.hp===undefined)m.hp=mx;m.mhp=mx;
   m.hp-=d;
-  FT.push({x:m.x,y:m.y-(m.k==='human'?32:m.k==='spider'?22:16),t:0,txt:d+(crit?'!':''),c:crit?'#ffd23f':'#ffffff'});
-  burst(m.x,m.y-10,WID2,crit?14:8,FIRE,crit);
+  FT.push({x:m.x,y:m.y-(m.z||0)-(m.sky&&m.k==='boss'?70:m.k==='human'?32:m.k==='spider'?22:16),t:0,txt:d+(crit?'!':''),c:crit?'#ffd23f':'#ffffff'});
+  burst(m.x,m.y-(m.z||0)-10,m.sky?23:WID2,crit?14:8,FIRE,crit);
   if(m.st==='idle'){m.st='chase';m.lost=0;m.path=[];m.wt=null;m.rage=Math.max(m.rage||0,3)}
   if(m.hp<=0){
     const A=window.MONS(),i=A.indexOf(m);if(i>=0)A.splice(i,1);
     if(window.onMonKilled)window.onMonKilled(m);
-    burst(m.x,m.y-10,WID2,36,['#c9a8ff','#7cfff0','#ffffff'],1);
+    burst(m.x,m.y-10,m.sky?23:WID2,36,['#c9a8ff','#7cfff0','#ffffff'],1);
     cap('P'+n+' đã hạ gục một con quái!')}}
+  window.holyHurt=hurt;
 
 /* ---------- Chém thường (chuột phải) ---------- */
 addEventListener('pointerdown',e=>{
@@ -602,7 +604,12 @@ addEventListener('pointerdown',e=>{
   const iv=$('inv');if(iv&&!iv.hidden)return;
   const n=sel,P=playerOf(n);if(!P||!hasW(n)||(SC[n]||0)>0)return;
   SC[n]=MELEE_CD;
-  if(P.fl!==WID2)return;
+  window.MONS().slice().forEach(m=>{
+    const cy=m.sky?m.y-(m.z||0)-(m.k==='boss'?30:8):m.y;
+    const dx=m.x-P.x,dy=cy-P.y;
+    if(Math.hypot(dx,dy)>MELEE_R+(m.sky&&m.k==='boss'?50:m.k==='boss'?16:0))return;
+    const da=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-ang),Math.cos(Math.atan2(dy,dx)-ang)));
+    if(da<1.25)hurt(m,ri(MELEE[0],MELEE[1]),false,n)})},true);
   const r=cv.getBoundingClientRect(),k=inside?IS:1,
     wx=(e.clientX-r.left)/r.width*CW/k+camX,wy=(e.clientY-r.top)/r.height*CH/k+camY,
     ang=Math.atan2(wy-(P.y-7),wx-P.x);
@@ -658,9 +665,11 @@ function tickBeams(){
       b.x+=b.vx;b.y+=b.vy;
       b.tr.push({x:b.x,y:b.y});if(b.tr.length>12)b.tr.shift();
       if(blocked(b)){b.dead=1;burst(b.x,b.y,b.fl,10,FIRE,0);break}
-      if(b.fl===WID2){
+      if(inArena(b.fl)){
         for(const mo of window.MONS()){
-          if(Math.hypot(b.x-mo.x,b.y-(mo.y-(mo.k==='boss'?20:8)))<(mo.k==='boss'?24:11)){
+          const hy=mo.sky?mo.y-(mo.z||0)-(mo.k==='boss'?30:8):mo.y-(mo.k==='boss'?20:8),
+                hr=mo.sky&&mo.k==='boss'?46:mo.k==='boss'?24:mo.sky?12:11;
+          if(Math.hypot(b.x-mo.x,b.y-hy)<hr){
             const crit=Math.random()<BEAM_CRIT;
             hurt(mo,crit?BEAM_CDMG:BEAM_DMG,crit,b.n);b.dead=1;break}}}}
     if(--b.l<=0)b.dead=1});
