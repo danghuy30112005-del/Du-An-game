@@ -24,7 +24,7 @@ const ITEMS={
   meat:{icon:'🍖',name:'Thịt sống',d:'Thịt tươi từ thợ săn.'},
   gem:{icon:'💎',name:'Tinh thể',d:'Viên tinh thể lấp lánh từ hang động.'}};
 const START=['bread','water','bandage'];         /* đồ có sẵn khi bắt đầu */
-
+window.ITEMS=ITEMS;window.giveItem=giveItem;
 /* ---------- Trạng thái ---------- */
 let INV={},ST={},held={shift:0},open=false,selSlot=-1,muted=false,stepAcc=0,lastSel=0,lastKey='';
 try{INV=JSON.parse(localStorage.getItem(SAVE))||{}}catch(_){INV={}}

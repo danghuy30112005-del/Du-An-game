@@ -106,6 +106,7 @@ function openGate(){
   gateT(false);burst(GA.x*T+8,GA.y*T-6,40);shake=Math.max(shake,6);
   cap('Ổ khóa tan thành ánh sáng vàng, cổng lên Vườn Hoa Treo đã mở.')}
 function takeKey(n){
+    if(!keyOn(n))return;
   ensure();
   if(has(n)){cap('P'+n+' đã mang Chìa khóa Thiên giới rồi.');return}
   if(typeof window.giveItem!=='function'){cap('Cần nạp Playerkit.js để nhận đồ vào túi.');return}
@@ -115,22 +116,38 @@ function takeKey(n){
 const nearAng=P=>AG&&Math.hypot(P.x-AG.x,P.y-(AG.y-4))<36;
 const nearGate=P=>GA&&Math.hypot(P.x-(GA.x*T+8),P.y-(GA.y*T+4))<26;
 const nearKey=P=>KA&&Math.hypot(P.x-KA.x,P.y-(KA.y-6))<22;
+const keyOn=n=>window.sentQuest.get(n)>=2;   /* chỉ thấy / lấy được chìa khóa sau khi trả kiếm */
 
 /* ---------- Hội thoại ---------- */
 function node(k,n){
   const ASK={t:'Ngài là ai?',go:2},q=window.sentQuest.get(n),Q=q<2?[{t:'Ngài có cần ta giúp gì không?',go:4}]:[];
   if(k===0)return OPEN?{t:'Cổng đã mở. Hãy bước nhẹ thôi, những bông hoa treo rất mong manh.',o:[{t:'Cảm ơn ngài',end:1},...Q,ASK]}
     :{t:'Dừng bước, kẻ hạ giới! Phía sau cánh cổng này là Vườn Hoa Treo. Không có Chìa khóa Thiên giới, không ai được phép đi qua.',o:[{t:'Tôi muốn lên khu hái hoa',go:1},...Q,ASK,{t:'Tôi sẽ quay lại',end:1}]};
-  if(k===1)return has(n)?{t:'Ta thấy ánh vàng của chìa khóa trong túi ngươi. Ngươi muốn dùng nó để mở cổng chứ?',o:[{t:'Dùng chìa khóa mở cổng',act:'gate'},{t:'Chưa',end:1}]}
-    :{t:'Ngươi chưa có chìa khóa. Nó nằm trên bệ đá ở tận cùng phía đông của hang. Hãy mang nó tới đây, ta sẽ mở cổng.',o:[{t:'Tôi hiểu rồi',end:1},ASK]};
+  if(k===1){
+    if(q<2)return{t:'Ta không chỉ đường cho kẻ chưa giúp ta. Thanh kiếm thánh của ta đang bị cắm ở đáy Vực sâu. Hãy mang nó về đây, khi đó ta mới nói chỗ có chìa khóa mở cổng.',o:[q===0?{t:'Ngài cần ta làm gì?',go:4}:{t:'Tôi sẽ đi lấy kiếm',end:1},ASK]};
+    return has(n)?{t:'Ta thấy ánh vàng của chìa khóa trong túi ngươi. Ngươi muốn dùng nó để mở cổng chứ?',o:[{t:'Dùng chìa khóa mở cổng',act:'gate'},{t:'Chưa',end:1}]}
+      :{t:'Chìa khóa nằm trên bệ đá ở tận cùng phía đông của hang. Hãy mang nó tới đây, ta sẽ mở cổng.',o:[{t:'Tôi hiểu rồi',end:1},ASK]}}
   if(k===2)return{t:'Ta là Angel Sentinel, người canh giữ lối lên những hòn đảo treo trên Vực sâu. Mỗi chiếc lông của ta là một con mắt, không kẻ nào qua mặt được ta.',o:[{t:'Quay lại',go:0}]};
   if(k===4){
-    if(q===0)return{t:'Thanh kiếm thánh của ta bị cắm trong tảng đá ở đáy tầng 2 của Vực sâu, bầy quái bị nấm ký sinh canh giữ nó. Hãy mang nó về, ta sẽ đưa chìa khóa cánh cửa xoáy bên trái bãi đáp.',o:[{t:'Tôi sẽ đi lấy',act:'accept'},{t:'Để sau',end:1}]};
+    if(q===0)return{t:'Thanh kiếm thánh của ta bị cắm trong tảng đá ở đáy tầng 2 của Vực sâu, bầy quái bị nấm ký sinh canh giữ nó. Hãy mang nó về, ta sẽ đưa chìa khóa cánh cửa xoáy bên trái bãi đáp và chỉ chỗ có chìa khóa cổng.',o:[{t:'Tôi sẽ đi lấy',act:'accept'},{t:'Để sau',end:1}]};
     if(hasI(n,'holysword'))return{t:'Ta cảm nhận được hơi thở của thanh kiếm thánh! Ngươi mang nó về cho ta chứ?',o:[{t:'Trao kiếm',act:'return'},{t:'Chưa',end:1}]};
     return{t:'Cánh cửa xoáy ở bên trái bãi đáp, dùng chìa khóa ta đã đưa. Hãy mang thanh kiếm thánh về đây.',o:[{t:'Tôi hiểu rồi',end:1}]}}
   if(k===5)return{t:'Đây là chìa khóa cánh cửa xoáy. Hãy cẩn thận, đừng để bầy quái nghe thấy tiếng bước chân của ngươi.',o:[{t:'Cảm ơn ngài',end:1}]};
-  if(k===6)return{t:'Thanh kiếm thánh đã trở về. Ta nợ ngươi một ân huệ, kẻ hạ giới.',o:[{t:'Cảm ơn ngài',end:1}]};
+  if(k===6)return{t:'Thanh kiếm thánh đã trở về. Ta nợ ngươi một ân huệ: chìa khóa cổng nằm trên bệ đá ở tận cùng phía đông của hang. Hãy lấy nó rồi quay lại đây, ta sẽ mở cổng.',o:[{t:'Cảm ơn ngài',end:1}]};
   return{t:'Chìa khóa thật. Cổng đã mở và sẽ không đóng lại nữa. Đừng làm hỏng những bông hoa.',o:[{t:'Cảm ơn ngài',end:1}]}}
+function aRender(){
+  const n=node(TK.node,TK.P.pl),o=$('dO');
+  $('dlg').hidden=false;
+  $('dN').textContent='Angel Sentinel (nói với P'+TK.P.pl+')';
+  $('dT').textContent=n.t;
+  o.innerHTML='';
+  n.o.forEach((a,i)=>{
+    const b=document.createElement('button');
+    b.className='btn';
+    b.textContent=(i+1)+'. '+a.t;
+    b.onclick=()=>aPick(a);
+    o.append(b)});
+  o.firstChild.focus()}
 function aPick(a){
   if(!TK||!TK.ang)return;
   if(a.end){closeTalk();return}
@@ -150,11 +167,11 @@ addEventListener('keydown',e=>{
   if(state!=='island'||TK||trans)return;
   const iv=$('inv');if(iv&&!iv.hidden)return;
   const P=curP();if(!P||!AG)return;
-  if(nearKey(P))takeKey(P.pl);else if(nearAng(P)||nearGate(P))aOpen(P)});
+  if(nearKey(P)&&keyOn(P.pl))takeKey(P.pl);else if(nearAng(P)||nearGate(P))aOpen(P)});
 const _tk=tkUI;tkUI=function(){
   _tk();const e=$('tk'),P=curP();
   if(!e||!P||state!=='island'||TK||trans||!AG)return;
-  if(nearKey(P)){e.innerHTML='Bấm <b>E</b> để lấy Chìa khóa Thiên giới';e.hidden=false}
+  if(nearKey(P)&&keyOn(P.pl)){e.innerHTML='Bấm <b>E</b> để lấy Chìa khóa Thiên giới';e.hidden=false}
   else if(nearAng(P)||nearGate(P)){e.innerHTML='Bấm <b>E</b> để nói chuyện với Angel Sentinel';e.hidden=false}};
 
 /* ---------- Vẽ: cổng, Sentinel, bệ chìa khóa ---------- */
@@ -206,11 +223,11 @@ function drawAltar(){
   const x=KA.x,y=KA.y,f=frame,P=curP(),got=has(sel);
   R('rgba(0,0,0,.3)',x-8,y+1,16,3);R('#59658a',x-6,y-6,12,7);R('#8190b8',x-6,y-6,12,2);R('#262e48',x-6,y,12,1);
   cx.globalAlpha=.4+.3*Math.sin(f*.08);R('#46e0d0',x-4,y-7,8,1);cx.globalAlpha=1;
-  if(!got){const b=Math.round(Math.sin(f*.08)*2);
+  if(!got&&keyOn(sel)){const b=Math.round(Math.sin(f*.08)*2);
     cx.globalAlpha=.25+.12*Math.sin(f*.1);R('#ffe9a8',x-9,y-26+b,18,18);cx.globalAlpha=1;
     R('#ffd23f',x-1,y-17+b,2,8);R('#ffd23f',x-3,y-21+b,6,5);R('#0d1436',x-1,y-20+b,2,3);R('#ffd23f',x+1,y-11+b,3,1);R('#ffd23f',x+1,y-13+b,2,1);
     if((f>>3)%5===0)R('#fff',x+2,y-21+b,1,1)}
-  if(P&&nearKey(P)&&!TK)lab(x,y-32,got?'Đã có chìa khóa':'E: Lấy chìa khóa',got?'#aaa':'#ffd23f')}
+  if(P&&nearKey(P)&&!TK&&keyOn(sel))lab(x,y-32,got?'Đã có chìa khóa':'E: Lấy chìa khóa',got?'#aaa':'#ffd23f')}
 
 /* ---------- Móc vào vòng vẽ ---------- */
 const _pp=person;person=function(p){
