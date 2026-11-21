@@ -216,6 +216,7 @@ function heldId(n){
 function curWeapon(n){
   const id=heldId(n);
   return id&&ITEMS[id]&&ITEMS[id].weapon?id:null}
+window.curWeapon=curWeapon; 
 
 /* ---------- Tạo hàng rào + cổng ---------- */
 function buildFence(){
