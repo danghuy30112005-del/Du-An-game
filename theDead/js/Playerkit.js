@@ -505,7 +505,7 @@ const MONS=()=>typeof window.MONS==='function'?window.MONS():[];
 const AURA_KEY='r';                 /* phím hào quang (đổi thành 'q' nếu muốn, nhưng Q đang là chạy nhanh) */
 const MAXHP=3,IV_T=1.5;             /* số tim, thời gian bất tử sau khi trúng đòn (giây) */
 const AURA_T=1.5,CD_HIT=120,CD_MISS=5;
-const CD2=3,BEAM_DMG=35,BEAM_CRIT=.2,BEAM_CDMG=56;
+const CD2=1,BEAM_DMG=35,BEAM_CRIT=.2,BEAM_CDMG=56;
 const MELEE=[10,26],MELEE_R=28,MELEE_CD=.35;
 const MHP={human:100,snake:80,spider:80,boss:400};
 const WID2=22;
@@ -828,4 +828,274 @@ jb.title='Bật / tắt bảng thông tin';jb.onclick=togSl;$('tools').insertBef
 const _sh=showHud;showHud=function(){_sh();
   $('sl').hidden=!slOn;
   const g=$('gd');if(g)g.innerHTML+='<br>J: Ẩn / hiện bảng thông tin<br>Kiếm thánh: '+AURA_KEY.toUpperCase()+' hào quang · E tia lửa (mọi nơi) · Chuột phải chém'};
+})();
+
+/* ===== equip.js: Ô TRANG BỊ + DREAMCATCHER + QUẢ CẦU PHÉP + KỸ NĂNG C (TIA NĂNG LƯỢNG) =====
+   Nạp CUỐI CÙNG trong deadisland.html (sau Abyss2.js):  <script src="../js/equip.js"></script>
+   Kèm PATCHES.md (vài sửa nhỏ trong Playerkit.js). Item mới chỉ cần thuộc tính slot: 'neck'|'ring'|'wrist'|'ear'. */
+(()=>{
+if(typeof window.giveItem!=='function'||!window.ITEMS||!$('inv')||typeof glow!=='function'||typeof drawIn!=='function'){
+  console.warn('equip.js: hãy nạp CUỐI CÙNG');return}
+const ITEMS=window.ITEMS,INVKEY='deadisland:inv1',EKEY='deadisland:equip',GKEY='deadisland:dcgiven';
+const WID2=22,CCD=1,BLEN=300,DMAX=150,DMIN=50,FIRE_AT=.9,CAST_D=2.0;
+const SLOTS=[['neck','Dây chuyền','📿'],['ring','Nhẫn','💍'],['wrist','Vòng tay','⭕'],['ear','Hoa tai','🧿']];
+ITEMS.dreamcatcher={icon:'📿',name:'Vòng cổ Dreamcatcher',slot:'neck',
+  d:'Vòng cổ bắt giấc mơ. Trang bị vào ô dây chuyền: quả cầu phép bay quanh bạn và mở khóa kỹ năng C.'};
+let EQ={},GV={},CC={},BMS=[],CST=[],MSX=0,MSY=0,MHAS=0,sealMsg=false;
+try{EQ=JSON.parse(localStorage.getItem(EKEY))||{}}catch(_){}
+try{GV=JSON.parse(localStorage.getItem(GKEY))||{}}catch(_){}
+const save=()=>{try{localStorage.setItem(EKEY,JSON.stringify(EQ));localStorage.setItem(GKEY,JSON.stringify(GV))}catch(_){}};
+const eq=n=>EQ[n]||(EQ[n]={});
+const bagOf=n=>{try{const I=JSON.parse(localStorage.getItem(INVKEY))||{};return Array.isArray(I[n])?I[n]:[]}catch(_){return[]}};
+const visFl=f=>inside?f===curF:!f;
+const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),w,h)};
+const fmt=s=>Math.ceil(s)+'s';
+const hasNeck=n=>eq(n).neck==='dreamcatcher';
+
+/* Dao phép giữ nguyên hình dao, không hóa kiếm thánh */
+window.holyHeld=()=>false;
+
+/* ---------- Hình pixel: Dreamcatcher ---------- */
+const DCI=(()=>{
+  const c=document.createElement('canvas');c.width=20;c.height=34;const g=c.getContext('2d');
+  const P=(col,x,y,w=1,h=1)=>{g.fillStyle=col;g.fillRect(x,y,w,h)};
+  const ring=(a,b,r,col,th)=>{for(let y=0;y<34;y++)for(let x=0;x<20;x++){const d=Math.hypot(x+.5-a,y+.5-b);if(d<=r&&d>r-th)P(col,x,y)}};
+  const disc=(a,b,r,col)=>{for(let y=0;y<34;y++)for(let x=0;x<20;x++)if(Math.hypot(x+.5-a,y+.5-b)<=r)P(col,x,y)};
+  P('#f0c0e8',9,0,2,3);
+  ring(10,10,7.5,'#b06cc8',1.6);ring(10,10,4.5,'#f060b0',1.3);
+  P('#f5c0f0',10,4,1,13);P('#f5c0f0',4,10,13,1);P('#f060b0',9,9,2,2);
+  [[4,20],[16,20],[10,23]].forEach(([x,y])=>{disc(x,y,3.4,'#f5c0f0');ring(x,y,3.4,'#f060b0',1.3);P('#f060b0',x,y,1,1)});
+  P('#f0c0e8',10,17,1,3);P('#f0c0e8',4,17,1,2);P('#f0c0e8',16,17,1,2);
+  [['#78c8f0',1,22,2,5],['#8a6ae0',4,24,2,5],['#f5c0f0',3,29,2,4],['#78c8f0',7,26,2,4],['#8a6ae0',8,28,2,4],
+   ['#f060b0',6,30,2,3],['#78c8f0',11,27,2,4],['#8a6ae0',12,29,2,5],['#f5c0f0',14,24,2,5],['#8a6ae0',17,22,2,5],['#78c8f0',15,28,2,4],['#8a6ae0',9,31,2,3]]
+   .forEach(([c2,x,y,w,h])=>P(c2,x,y,w,h));
+  return c})();
+
+/* ---------- Hình pixel: quả cầu phép ---------- */
+const ORB=(()=>{
+  const c=document.createElement('canvas');c.width=15;c.height=15;const g=c.getContext('2d');
+  for(let y=0;y<15;y++)for(let x=0;x<15;x++){
+    const dx=x+.5-7.5,dy=y+.5-7.5,r=Math.hypot(dx,dy),a=Math.atan2(dy,dx),h=hs(x*3+1,y*7+2)%100;
+    const outer=6.6+(Math.sin(a*8)>.5?.9:0)-(h<25?.7:0);
+    if(r>outer)continue;
+    let col;
+    if(r<1.1)col='#ffffff';
+    else if(r<2.2)col=h<50?'#fff0e8':'#f8d8d0';
+    else if(r<3.8)col=Math.sin(a*10)>.7?'#e08a8a':['#c0586a','#a04060','#8a3050'][h%3];
+    else if(r<5.1)col=h%5===0?'#e0805a':(h&1?'#4a5f7e':'#42587a');
+    else if(r<5.7)col='#62d0b4';
+    else if(r<6.6)col='#f8e4ac';
+    else col='#f4b6bc';
+    g.fillStyle=col;g.fillRect(x,y,1,1)}
+  return c})();
+
+/* ---------- 6 đôi cánh bọc quanh quả cầu (sc: tỉ lệ, open: 0..1 độ xòe) ---------- */
+function wings(x,y,t,al,sc,open){
+  const px=Math.max(1,Math.round(2*sc));
+  for(let k=0;k<6;k++)for(const s of[-1,1]){
+    const ang=-1.5708+s*(.35+k*.5)+Math.sin(t*.08+k)*.04,L=(9+(k%2?3:0))*sc*open;
+    if(L<2)continue;
+    for(let f=-1;f<=1;f++){
+      const aa=ang+f*.12,Lf=L-Math.abs(f)*1.5*sc;
+      for(let r=3*sc;r<=Lf;r+=1.4*sc){
+        cx.globalAlpha=al;
+        R(r>Lf-2*sc?'#ffffff':(f?'#c3ccda':'#e6ebf3'),x+Math.cos(aa)*r-px/2,y+Math.sin(aa)*r*.9-px/2,px,px)}}}
+  cx.globalAlpha=1}
+function magicOrb(x,y,sc,al,open){
+  cx.save();cx.imageSmoothingEnabled=false;
+  cx.globalAlpha=(.16+.06*Math.sin(frame*.12))*al;R('#ffd0c0',x-12*sc,y-12*sc,24*sc,24*sc);
+  cx.globalAlpha=1;wings(x,y,frame,al,sc,open);
+  cx.globalAlpha=al;const s=15*sc;
+  cx.drawImage(ORB,Math.round(x-s/2),Math.round(y-s/2),Math.round(s),Math.round(s));
+  cx.restore()}
+window.magicOrb=magicOrb;
+
+/* quả cầu nhỏ bay quanh người khi đeo vòng */
+function drawOrbs(){
+  if(state!=='island')return;
+  const t=frame;
+  allPl().forEach(P=>{
+    if(!hasNeck(P.pl)||!visFl(P.fl|0))return;
+    const off=window.islOffset?window.islOffset(P):0,a=t*.035+P.pl*1.7;
+    magicOrb(P.x+Math.cos(a)*14,P.y-off-14+Math.sin(a)*4+Math.sin(t*.1),.6,1,1)})}
+
+/* ---------- Hiệu ứng: Angel Sentinel triệu hồi quả cầu từ tay, bắn tia C ---------- */
+function startOrb(P,ang){
+  CST=CST.filter(c=>c.n!==P.pl);
+  CST.push({n:P.pl,ang,t:0,d:CAST_D,fired:0})}
+const _ac=window.angelCast;
+window.angelCast=function(P,kind,ang){
+  if(kind==='orb')return startOrb(P,ang||0);
+  if(_ac)return _ac(P,kind,ang)};
+function drawCast(c,P){
+  const p=c.t/c.d,off=window.islOffset?window.islOffset(P):0,gx=P.x,gy=P.y-off;
+  let rise,sc;
+  if(c.t<.3){const u=1-Math.pow(1-c.t/.3,3);rise=60*u;sc=.28+.4*u}
+  else if(c.t<1.7){rise=60+Math.sin(c.t*8)*1.5;sc=.68}
+  else{const u=(c.t-1.7)/(c.d-1.7);rise=60+150*u*u;sc=.68*(1-.88*u)}
+  const ax=gx,ay=gy-6-rise;
+  cx.save();cx.globalCompositeOperation='lighter';
+  const top=ay-60*sc,g=cx.createLinearGradient(0,top,0,gy);
+  g.addColorStop(0,'rgba(255,240,170,0)');g.addColorStop(.5,'rgba(255,240,170,.3)');g.addColorStop(1,'rgba(255,255,255,.45)');
+  cx.fillStyle=g;cx.fillRect(Math.round(gx-7),Math.round(top),14,Math.max(1,Math.round(gy-top)));
+  cx.restore();cx.globalAlpha=1;
+  cx.save();cx.translate(ax,ay);cx.scale(sc,sc);cx.translate(-ax,-ay);
+  if(window.drawAngelPlus)window.drawAngelPlus({x:ax,y:ay},true,null);
+  cx.restore();cx.globalAlpha=1;
+  /* quả cầu bay lên từ bàn tay Angel, xòe cánh, biến mất khi tia kết thúc */
+  const hx=ax-13*sc,hy=ay-33*sc,u=Math.min(1,c.t/.8),e=1-Math.pow(1-u,3),
+    open=Math.min(1,Math.max(0,(c.t-.25)/.45)),fade=c.t>c.d-.25?Math.max(0,(c.d-c.t)/.25):1;
+  magicOrb(hx,hy-3-26*e,.4+.7*e,fade,open)}
+function drawBeams(){
+  BMS.forEach(b=>{
+    if(!visFl(b.fl))return;
+    const p=b.t/b.d,ext=Math.min(1,b.t/.18),fade=p>.6?1-(p-.6)/.4:1,L=BLEN*ext;
+    cx.save();cx.translate(b.x,b.y);cx.rotate(b.a);cx.globalCompositeOperation='lighter';
+    for(let u=0;u<L;u+=2){
+      const k=u/BLEN,hw=1.5+16*Math.pow(k,1.3)*(.85+.15*Math.sin(frame*.4+u*.15)),j=Math.sin(u*.35+frame*.5)*3*k;
+      cx.globalAlpha=.18*fade;cx.fillStyle=k<.4?'#2f4fff':'#8a3fff';cx.fillRect(u,j-hw*1.7,2,hw*3.4);
+      cx.globalAlpha=.5*fade;cx.fillStyle=k<.45?'#4a7aff':'#c050ff';cx.fillRect(u,j-hw,2,hw*2);
+      cx.globalAlpha=.9*fade;cx.fillStyle=k<.5?'#9ac4ff':'#ffd0ff';cx.fillRect(u,j-hw*.3,2,Math.max(1,hw*.6));
+      cx.globalAlpha=fade;cx.fillStyle='#fff';cx.fillRect(u,j-.5,2,1);
+      if(u%6===0&&hs(u,frame>>1)%3===0){
+        const q=(hs(u,7)%2?1:-1)*hw*(1.1+(hs(u,frame>>2)%10)/10);
+        cx.globalAlpha=.8*fade;cx.fillStyle='#e080ff';cx.fillRect(u,j+q,1,3)}}
+    cx.restore();cx.globalAlpha=1})}
+function drawAll(){
+  const L=allPl();
+  CST.forEach(c=>{const P=L.find(q=>q.pl===c.n);if(P&&visFl(P.fl|0))drawCast(c,P)});
+  drawOrbs();drawBeams()}
+const _glow=glow;glow=function(){_glow();if(!inside)drawAll()};
+const _drawIn=drawIn;drawIn=function(){_drawIn();drawAll()};
+
+/* ---------- Kỹ năng C: tia năng lượng ---------- */
+cv.addEventListener('pointermove',e=>{MSX=e.clientX;MSY=e.clientY;MHAS=1});
+function mouseW(){const r=cv.getBoundingClientRect(),k=inside?IS:1;return{x:(MSX-r.left)/r.width*CW/k+camX,y:(MSY-r.top)/r.height*CH/k+camY}}
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.key.toLowerCase()!=='c')return;
+  if(state!=='island'||TK||trans)return;
+  const iv=$('inv');if(iv&&!iv.hidden)return;
+  const n=sel,P=allPl().find(p=>p.pl===n);if(!P||!hasNeck(n))return;
+  if((CC[n]||0)>0){cap('Tia năng lượng đang hồi: '+fmt(CC[n])+'.');return}
+  CC[n]=CCD;
+  let ang=0;if(MHAS){const w=mouseW();ang=Math.atan2(w.y-(P.y-8),w.x-P.x)}
+  startOrb(P,ang);
+  cap('Angel Sentinel triệu hồi quả cầu phép... tia năng lượng sắp bắn ra!')});
+function hurt(m,d,n){
+  if(window.holyHurt)return window.holyHurt(m,d,false,n);
+  const mx={human:100,snake:80,spider:80,boss:400}[m.k]||80;
+  if(m.hp===undefined)m.hp=mx;m.mhp=mx;m.hp-=d;
+  if(m.hp<=0){const A=window.MONS(),i=A.indexOf(m);if(i>=0)A.splice(i,1);if(window.onMonKilled)window.onMonKilled(m)}}
+function fireBeam(n,ang){
+  const P=allPl().find(p=>p.pl===n);if(!P)return;
+  const off=window.islOffset?window.islOffset(P):0,x=P.x,y=P.y-off-8,c=Math.cos(ang),s=Math.sin(ang);
+  BMS.push({x,y,a:ang,t:0,d:.9,fl:P.fl|0});
+  shake=Math.max(shake,6);
+  if(P.fl!==WID2||!window.MONS)return;
+  let hit=0;
+  window.MONS().slice().forEach(m=>{
+    const mx=m.x-x,my=(m.y-8)-y,d=mx*c+my*s;
+    if(d<0||d>BLEN)return;
+    const perp=Math.abs(-mx*s+my*c),k=d/BLEN,hw=3+22*Math.pow(k,1.3)+(m.k==='boss'?14:6);
+    if(perp>hw)return;
+    hurt(m,Math.round(DMAX-(DMAX-DMIN)*k),n);hit++});
+  if(hit)cap('Tia năng lượng xuyên qua '+hit+' kẻ địch!')}
+
+/* ---------- Icon kỹ năng C ---------- */
+const hsty=document.createElement('style');
+hsty.textContent='#hsC{padding:4px;min-width:0;position:relative}#hsC canvas{width:40px;height:40px;image-rendering:pixelated;display:block}'+
+ '#hsC .cd{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 13px monospace;color:#fff;text-shadow:1px 1px 0 #000,-1px -1px 0 #000}';
+document.head.appendChild(hsty);
+const hc=document.createElement('div');hc.className='pnl';hc.id='hsC';hc.hidden=true;
+const hic=document.createElement('canvas');hic.width=15;hic.height=15;hic.getContext('2d').drawImage(ORB,0,0);
+const hcd=document.createElement('span');hcd.className='cd';
+hc.append(hic,hcd);$('topRow').appendChild(hc);
+setInterval(()=>{
+  const ok=state==='island'&&hasNeck(sel);hc.hidden=!ok;if(!ok)return;
+  const c=CC[sel]||0;hic.style.filter=c>0?'brightness(.3) saturate(.3)':'none';
+  hcd.textContent=c>0?fmt(c):'C';
+  hc.title='Tia năng lượng [C]: 100→50 sát thương theo khoảng cách, hồi 30s';
+  /* R giữ icon cũ (kỹ năng đỡ đòn của dao phép), ẩn icon hào quang kiếm thánh */
+  const h1=$('hs1');if(h1)h1.hidden=true;
+  const sk=$('skl');if(sk&&window.curWeapon)sk.hidden=!window.curWeapon(sel)},150);
+
+/* ---------- Bảng trang bị cạnh túi đồ ---------- */
+const sty=document.createElement('style');
+sty.textContent='#eqp{position:absolute;top:50%;transform:translateY(-50%);width:104px;padding:8px;background:rgba(10,14,28,.96);border:3px solid var(--ink);box-shadow:4px 4px 0 #000;line-height:1.3;z-index:6}'+
+ '#eqp h3{margin:0 0 6px;font-size:13px;text-align:center}#eqS{display:grid;grid-template-columns:1fr 1fr;gap:6px}'+
+ '#eqS .eqc{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:400;text-align:center}'+
+ '#eqS .slot{width:100%;font-size:20px}#eqS .slot canvas{height:80%;width:auto;image-rendering:pixelated}';
+document.head.appendChild(sty);
+const panel=document.createElement('div');panel.id='eqp';panel.hidden=true;
+panel.innerHTML='<h3>🎽 Trang bị</h3><div id="eqS"></div>';
+$('stage').appendChild(panel);
+let sig='';
+function render(){
+  const E=eq(sel),s=sel+JSON.stringify(E);if(s===sig)return;sig=s;
+  const box=$('eqS');box.innerHTML='';
+  SLOTS.forEach(([k,name,ph])=>{
+    const id=E[k],w=document.createElement('div'),b=document.createElement('button'),l=document.createElement('span');
+    w.className='eqc';b.className='slot'+(id?'':' empty');l.textContent=name;
+    if(id==='dreamcatcher'){const c=document.createElement('canvas');c.width=20;c.height=34;c.getContext('2d').drawImage(DCI,0,0);b.append(c)}
+    else b.textContent=id?ITEMS[id].icon:ph;
+    b.title=id?ITEMS[id].name+' (bấm để tháo)':name+' (trống)';
+    b.onclick=()=>unequip(sel,k);
+    w.append(b,l);box.append(w)})}
+const selId=()=>{const i=[...$('invGrid').children].findIndex(c=>c.classList.contains('sel'));return i>=0?bagOf(sel)[i]:null};
+const btn=document.createElement('button');btn.className='btn';btn.id='invEq';btn.textContent='Trang bị';btn.disabled=true;
+$('invUse').after(btn);
+function equip(n,id){
+  const it=ITEMS[id];if(!it||!it.slot)return;
+  const E=eq(n),old=E[it.slot];
+  if(!window.takeItem(n,id))return;
+  E[it.slot]=id;save();
+  if(old)window.giveItem(n,old);
+  cap('P'+n+' trang bị '+it.name+'.'+(id==='dreamcatcher'?' Quả cầu phép bay quanh bạn. Bấm C để phóng tia năng lượng!':''));
+  sig='';render()}
+function unequip(n,slot){
+  const E=eq(n),id=E[slot];if(!id)return;
+  if(window.giveItem(n,id)){E[slot]=null;save();cap('P'+n+' tháo '+ITEMS[id].name+'.');sig='';render()}}
+btn.onclick=()=>{const id=selId();if(id)equip(sel,id)};
+function sync(){const id=selId(),it=id&&ITEMS[id];btn.disabled=!(it&&it.slot);render()}
+$('invGrid').addEventListener('click',()=>setTimeout(sync,0));
+let tm=null;
+new MutationObserver(()=>{
+  const open=!$('inv').hidden;
+  panel.hidden=!open;
+  $('inv').style.left=open?'42%':'';
+  panel.style.left='calc(42% + min(47%,215px) + 8px)';
+  clearInterval(tm);if(open){sig='';sync();tm=setInterval(sync,150)}
+}).observe($('inv'),{attributes:true,attributeFilter:['hidden']});
+
+/* ---------- Rút kiếm thánh: phong ấn cổng + nhận Dreamcatcher ---------- */
+function giveCheck(){
+  allPl().forEach(P=>{
+    const n=P.pl;if(GV[n])return;
+    const b=bagOf(n),q=window.sentQuest?window.sentQuest.get(n):0;
+    if(hasNeck(n)||b.includes('dreamcatcher')){GV[n]=1;save();return}
+    if(b.includes('holysword')||q>=2){
+      if(window.giveItem(n,'dreamcatcher')){GV[n]=1;save();
+        setTimeout(()=>cap('P'+n+' nhận Vòng cổ Dreamcatcher! Bấm B, chọn vòng rồi bấm Trang bị.'),120)}}})}
+function sealCheck(){
+  const S=window.A2S;if(!S)return;
+  if(!S.sealed){sealMsg=false;
+    /* phòng khi đã giữ kiếm từ trước mà cổng chưa đóng */
+    if(S.phase===0&&window.MONS&&window.MONS().length&&window.sentQuest&&
+       allPl().some(p=>p.fl===WID2&&bagOf(p.pl).includes('holysword')&&(window.sentQuest.get(p.pl)|0)<2)){S.sealed=1;S.phase=1}
+    return}
+  if(S.phase===1&&!sealMsg){sealMsg=true;
+    cap('Cổng lên Vực sâu tầng 1 bị phong ấn! Hãy tiêu diệt hết quái vật ở Vực sâu tầng 2 để mở lại cổng.')}}
+
+/* ---------- Vòng lặp ---------- */
+const _step=step;step=function(){
+  _step();
+  if(state!=='island')return;
+  const dt=Math.min(.25,DM||.016);
+  Object.keys(CC).forEach(k=>{if(CC[k]>0)CC[k]-=dt});
+  CST.forEach(c=>{c.t+=dt;if(!c.fired&&c.t>=FIRE_AT){c.fired=1;fireBeam(c.n,c.ang)}});
+  CST=CST.filter(c=>c.t<c.d);
+  BMS.forEach(b=>b.t+=dt);BMS=BMS.filter(b=>b.t<b.d);
+  if(frame%20===0)giveCheck();
+  if(frame%10===0)sealCheck()};
+const _mk=mkPeople;mkPeople=function(){_mk();EQ={};GV={};CC={};BMS=[];CST=[];sealMsg=false;save();sig=''};
 })();

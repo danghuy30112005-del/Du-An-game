@@ -20,9 +20,9 @@ const hasI=(n,id)=>bagOf(n).includes(id);
 const QKEY='deadisland:sentq';let SQ={};
 try{SQ=JSON.parse(localStorage.getItem(QKEY))||{}}catch(_){}
 window.sentQuest={get:n=>SQ[n]|0,set(n,v){SQ[n]=v;try{localStorage.setItem(QKEY,JSON.stringify(SQ))}catch(_){}}};
-function ensure(){const I=window.ITEMS;if(I&&!I.sentkey)I.sentkey={icon:'🔑',name:'Chìa khóa Thiên giới',d:'Chìa khóa vàng khắc hình cánh chim, mở cổng lên Vườn Hoa Treo.'}}
-ensure();addEventListener('load',ensure);
-
+function ensure(){const I=window.ITEMS;if(!I)return;
+  if(!I.sentkey)I.sentkey={icon:'🔑',name:'Chìa khóa Thiên giới',d:'Chìa khóa vàng khắc hình cánh chim, mở cổng lên Vườn Hoa Treo.'};
+  if(!I.wdkey)I.wdkey={icon:'🗝️',name:'Chìa khóa cửa xoáy',d:'Chìa khóa bạc khắc hình xoáy ốc. Mở cánh cửa xoáy bên trái bãi đáp Vực sâu, dẫn xuống tầng 2.'}}
 /* ---------- Đổi màu đất đảo bay cũ sang xanh ngọc (chỉ khi đang ở Vực sâu) ---------- */
 const MAP={'#3f8c52':'#1f5f7e','#37804a':'#1a5472','#62c273':'#46e0d0','#27613a':'#12405a','#7fd890':'#7cf3e6','#2a6a40':'#123f5a',
   '#6b5a3e':'#2a5a7a','#3a2f22':'#0d2438','#6a6478':'#3f7fa0','#4a4658':'#2a5a7a','#2c2838':'#143048'};
@@ -175,8 +175,11 @@ function node(k,n){
     if(hasI(n,'holysword'))return{t:'Ta cảm nhận được hơi thở của thanh kiếm thánh! Ngươi mang nó về cho ta chứ?',o:[{t:'Trao kiếm',act:'return'},{t:'Chưa',end:1}]};
     return{t:'Cánh cửa xoáy ở bên trái bãi đáp, dùng chìa khóa ta đã đưa. Hãy mang thanh kiếm thánh về đây.',o:[{t:'Tôi hiểu rồi',end:1}]}}
   if(k===5)return{t:'Đây là chìa khóa cánh cửa xoáy. Hãy cẩn thận, đừng để bầy quái nghe thấy tiếng bước chân của ngươi.',o:[{t:'Cảm ơn ngài',end:1}]};
+  if(k===8)return{t:'Túi của ngươi đã đầy, ta không thể đưa chìa khóa. Hãy dọn bớt đồ (phím B) rồi nói chuyện lại với ta.',o:[{t:'Tôi hiểu rồi',end:1}]};
   if(k===6)return{t:'Thanh kiếm thánh đã trở về. Ta nợ ngươi một ân huệ: chìa khóa cổng nằm trên bệ đá ở tận cùng phía đông của hang. Hãy lấy nó rồi quay lại đây, ta sẽ mở cổng.',o:[{t:'Cảm ơn ngài',end:1}]};
-  return{t:'Chìa khóa thật. Cổng đã mở và sẽ không đóng lại nữa. Ta cũng phải trở về Thiên giới rồi. Đừng làm hỏng những bông hoa.',o:[{t:'Cảm ơn ngài',end:1}]}}
+      return hasI(n,'wdkey')
+      ?{t:'Cánh cửa xoáy ở bên trái bãi đáp, dùng chìa khóa ta đã đưa. Hãy mang thanh kiếm thánh về đây.',o:[{t:'Tôi hiểu rồi',end:1}]}
+      :{t:'Ngươi làm mất chìa khóa cửa xoáy sao? Cầm lấy, lần này giữ cho kỹ.',o:[{t:'Nhận lại chìa khóa',act:'key'},{t:'Thôi',end:1}]}}
 function aRender(){
   const n=node(TK.node,TK.P.pl),o=$('dO');
   $('dlg').hidden=false;
@@ -195,7 +198,12 @@ function aPick(a){
   if(a.end){closeTalk();return}
   const n=TK.P.pl;
   if(a.act==='gate'){if(!has(n)){closeTalk();return}openGate();TK.opened=1;TK.node=3}
-  else if(a.act==='accept'){ensure();window.sentQuest.set(n,1);if(!hasI(n,'wdkey')&&window.giveItem)window.giveItem(n,'wdkey');TK.node=5}
+    else if(a.act==='accept'||a.act==='key'){
+    ensure();
+    if(!hasI(n,'wdkey')){
+      if(typeof window.giveItem!=='function'||!window.giveItem(n,'wdkey')){TK.node=8;aRender();return}   /* túi đầy / lỗi: chưa tính nhiệm vụ */
+    }
+    window.sentQuest.set(n,1);TK.node=5}
   else if(a.act==='return'){
     if(!hasI(n,'holysword')){closeTalk();return}
     if(window.takeItem)window.takeItem(n,'holysword');
