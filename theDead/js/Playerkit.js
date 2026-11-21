@@ -845,7 +845,7 @@ const _sh=showHud;showHud=function(){_sh();
 if(typeof window.giveItem!=='function'||!window.ITEMS||!$('inv')||typeof glow!=='function'||typeof drawIn!=='function'){
   console.warn('equip.js: hãy nạp CUỐI CÙNG');return}
 const ITEMS=window.ITEMS,INVKEY='deadisland:inv1',EKEY='deadisland:equip',GKEY='deadisland:dcgiven';
-const WID2=22,CCD=30,BLEN=300,DMAX=150,DMIN=50,FIRE_AT=.9,CAST_D=2.0;
+const WID2=22,CCD=.5,BLEN=300,DMAX=150,DMIN=50,FIRE_AT=.9,CAST_D=2.0;
 const SLOTS=[['neck','Dây chuyền','📿'],['ring','Nhẫn','💍'],['wrist','Vòng tay','⭕'],['ear','Hoa tai','🧿']];
 ITEMS.dreamcatcher={icon:'📿',name:'Vòng cổ Dreamcatcher',slot:'neck',
   d:'Vòng cổ bắt giấc mơ. Trang bị vào ô dây chuyền: quả cầu phép bay quanh bạn và mở khóa kỹ năng C.'};
