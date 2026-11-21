@@ -133,7 +133,7 @@ function transfer(n,id){
   const go=()=>{W2.enter(q);if(q.pl===sel)syncView(true)};
   if(q.pl===sel)SW={t:0,d:2.4,cb:go,fired:0};else go();
   return true}
-window.worldTransfer=transfer;
+window.worldTransfer=transfer;window.abyssAsk=ask;
 
 /* ---------- Hiệu ứng vòng xoáy ---------- */
 function spiral(ox,oy,Rm,rot,al){
@@ -224,10 +224,13 @@ new MutationObserver(()=>{
 
 /* ---------- Các cánh cửa ---------- */
 function askBack(n){
+  if(window.doorHook&&window.doorHook(n))return; 
+  
   ask('Cánh cửa gỗ dẫn về mặt đất. Bạn có muốn quay lại không?',[
     ['Quay về',()=>{cap('P'+n+' mở cánh cửa gỗ bước ra...');transfer(n,'surface')}],['Chưa',()=>{}]])}
 function askDoor(n){
   const to=DOOR_TO&&WORLDS[DOOR_TO];
+  if(window.doorHook&&window.doorHook(n))return;
   if(!to){cap('Cánh cửa xoáy phía tây vẫn im lìm, chưa thể mở được...');return}
   ask('Cánh cửa xoáy đang chờ bạn. Bước qua để tới: '+to.name+'?',[
     ['Bước qua',()=>transfer(n,DOOR_TO)],['Chưa',()=>{}]])}
@@ -502,7 +505,7 @@ function drawFront(){
   const b=nearBush(P);
   if(b)label(b.x*T+4,b.y*T-14,GOT[sel]?'Đã hái 1 bông':'E: Hái hoa đầm lầy',GOT[sel]?'#aaa':'#ffd23f');
   else if(nearDoor(P,D2))label(D2.x,D2.y-40,'E: Cửa về mặt đất','#ffc84a');
-  else if(nearDoor(P,D))label(D.x,D.y-30,'Cánh cửa xoáy (chưa mở)','#aaa')}
+  else if(nearDoor(P,D))label(D.x,D.y-30,'E: Cánh cửa xoáy','#ffd23f')
 
 /* [SỬA 4] bọc person và drawIn tách riêng, mỗi cái chỉ bọc 1 lần */
 const _personA=person;
@@ -545,9 +548,11 @@ const _step=step;step=function(){
     PT.forEach(q=>{q.x+=q.vx;q.y+=q.vy;q.vy-=.01;q.l--});PT=PT.filter(q=>q.l>0);
     regionWatch()}};
 
+
 /* ---------- Móc vào vòng đời game ---------- */
 const _gen=gen;gen=function(sd){_gen(sd);buildAbyss()};
 const _mk=mkPeople;mkPeople=function(){_mk();GOT={};saveG();PT=[];SW=null;closeAsk();flagN=0;lastReg=''};
+window.ABYSS=()=>AB;   /* Sentinel.js cần dòng này để lấy dữ liệu Vực sâu */
 buildAbyss();   /* bản đồ đầu tiên đã được tạo trước khi file này nạp */
 })();
 

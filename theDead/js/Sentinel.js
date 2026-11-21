@@ -110,7 +110,7 @@ function takeKey(n){
 /* ---------- Khoảng cách tương tác ---------- */
 const nearAng=P=>AG&&Math.hypot(P.x-AG.x,P.y-(AG.y-4))<36;
 const nearGate=P=>GA&&Math.hypot(P.x-(GA.x*T+8),P.y-(GA.y*T+4))<26;
-const nearKey=P=>KA&&Math.hypot(P.x-KA.x,P.y-(KA.y-4))<22;
+const nearKey=P=>false;
 
 /* ---------- Hội thoại ---------- */
 function node(k,n){
