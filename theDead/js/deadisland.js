@@ -1116,7 +1116,10 @@ function glow(){
   cx.fillStyle='#ff9a3c';cx.globalAlpha=.12*nk;cx.fillRect(CAMPX*T-20,CAMPY*T-14,48,36);cx.globalAlpha=.2*nk*fl;cx.fillRect(CAMPX*T-8,CAMPY*T-6,24,20);
   cx.restore()}
 
-function loop(){step();draw();requestAnimationFrame(loop)}
+function loop(){
+  try{step();draw()}catch(e){console.error(e)}
+  requestAnimationFrame(loop)
+}
 
 /* ===== Ngày đêm: 24 giờ trong game = 24 phút ngoài đời (1 giây thật = 1 phút game) ===== */
 const day=()=>Math.floor(gm/1440)+1;
