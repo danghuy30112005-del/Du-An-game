@@ -1,11 +1,12 @@
-/* ===== crystal.js: CỔNG ĐÁ CỔ + CUỐC + CRYSTAL WORLD =====
-   Nạp CUỐI CÙNG trong deadisland.html (sau heroes.js):  <script src="../js/crystal.js"></script>
-   - Giữa hang cấm: cổng đá cổ (như hình 1) bị đống đá chặn kín, dưới chân có trận pháp (hình 2).
-   - Hầm đào đá nhỏ ở NGOÀI cửa hang (đi theo ván gỗ về phía đông): lấy Cuốc ở giá (E). Cuốc nằm trong túi (B), có thể bấm "Cầm".
-   - Có cuốc: lại gần cổng bấm E để đập đá. Cổng mở -> bước vào hang sáng để sang Crystal World.
+/* ===== crystal.js (sader.js): CỔNG ĐÁ CỔ + CUỐC + CRYSTAL WORLD =====
+   Nạp CUỐI CÙNG trong deadisland.html (sau heroes.js):  <script src="../js/sader.js"></script>
+   - Giữa hang cấm: cổng đá cổ bị đống đá chặn kín, dưới chân có trận pháp.
+   - Cuốc nằm trong THÙNG CUỐC ở các hang quặng (hang than, hang sắt/vàng). Lại gần bấm E để lấy. Cuốc nằm trong túi (B).
+   - Có cuốc: lại gần cổng bấm E để đập đá (~2,6 giây). Cổng mở -> đi bộ vào khung cổng để sang Crystal World.
    - Crystal World: bãi tinh thể, hồ sáng, thác nước. Bấm E để đào tinh thể (Mảnh tinh thể, mọc lại sau 40s).
      Hang cổ ở phía bắc có bệ đá: đào ra "Viên đá trong hang cổ" (vật phẩm trong danh sách của Pháp sư), mỗi người 1 viên.
-   - Vòng trận pháp ở chỗ xuất hiện: bấm E để quay lại hang. */
+   - Vòng trận pháp ở chỗ xuất hiện: bấm E để quay lại hang.
+   BẢN SỬA: thêm hook step() để tick() chạy; nhãn "E: Lấy cuốc" luôn hiện; tầm lấy cuốc rộng hơn. */
 (()=>{
 if(typeof putIn!=='function'||typeof mineCarts!=='function'||typeof caveLight!=='function'||typeof allPl!=='function'||!window.WORLDS||typeof window.worldTransfer!=='function'||typeof window.abyssAsk!=='function'||typeof window.giveItem!=='function'){console.warn('crystal.js: hãy nạp CUỐI CÙNG (sau heroes.js)');return}
 
@@ -13,10 +14,11 @@ if(typeof putIn!=='function'||typeof mineCarts!=='function'||typeof caveLight!==
 const WC=26,WALL=62,CW0=150,CH0=110,VW=420;
 const GX=85,GB=49,GY0=46,GX0=81,GX1=89,CCX=85,CCY=53;        /* cổng đá + trận pháp trong hang (ô) */
 const GPX=GX*T+4,GPY=(GB+1)*T,CPX=CCX*T+4,CPY=CCY*T+4;
-const KEY='deadisland:cgate:',SKEY='deadisland:cstone',INV='deadisland:inv1';                                   /* giá cuốc ở hầm đào đá (px) */
+const KEY='deadisland:cgate:',SKEY='deadisland:cstone',INV='deadisland:inv1';
 const BX=75*T+4,BY=87*T+4;                                      /* trận pháp trong Crystal World (px) */
 const GREY=['#6d727c','#8b919b','#4b4f57','#aab0ba'];
 const PAL=[['#ff5fb8','#ffc0ea','#a02a84','#ff9ad8'],['#38d8ff','#b8f4ff','#1470a8','#7ae8ff'],['#9a7cff','#d8c8ff','#5a38b0','#b8a0ff']];
+const CRATE_R=32;                                               /* tầm lấy cuốc (px) */
 
 const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),w,h)};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -27,6 +29,27 @@ function ensure(){const I=window.ITEMS;if(!I)return;
   if(!I.cshard)I.cshard={icon:'🔷',name:'Mảnh tinh thể',d:'Mảnh tinh thể lấp lánh đào từ Crystal World.'};
   if(!I.wstone)I.wstone={icon:'💎',name:'Viên đá trong hang cổ',d:'Viên đá pha lê lấy từ hang cổ.'}}
 ensure();addEventListener('load',ensure);
+
+/* ---------- Icon "Viên đá trong hang cổ" trong túi đồ: dùng đúng ảnh trong Danh sách của Pháp sư ----------
+   Ảnh nằm trong village.js (khối witch.js, khóa "stone"). Đọc thẳng từ file đó để khỏi chép lại chuỗi base64. */
+const STONE_NAME='Viên đá trong hang cổ';
+let STONE=null;
+function skinInv(){
+  const g=$('invGrid');if(!g||!STONE)return;
+  [...g.children].forEach(s=>{
+    if(s.getAttribute('aria-label')!==STONE_NAME||s.querySelector('img'))return;
+    [...s.childNodes].forEach(n=>{if(n.nodeType===3)n.remove()});
+    const im=new Image();im.src=STONE;im.alt=STONE_NAME;
+    im.style.cssText='height:88%;width:auto;image-rendering:pixelated;pointer-events:none;display:block';
+    s.insertBefore(im,s.firstChild)})}
+try{
+  fetch('../js/village.js').then(r=>r.text()).then(t=>{
+    const m=t.match(/"stone"\s*:\s*"(data:image\/png;base64,[^"]+)"/);
+    if(m){STONE=m[1];skinInv()}
+  }).catch(()=>{})
+}catch(_){}
+if($('invGrid'))new MutationObserver(skinInv).observe($('invGrid'),{childList:true});
+
 function label(x,y,t,col){
   cx.save();cx.textAlign='center';cx.font='bold 6px monospace';
   const w=Math.ceil(cx.measureText(t).width)+6,bx=Math.round(x-w/2),by=Math.round(y);
@@ -38,7 +61,7 @@ const mk=(w,h,f)=>{const c=document.createElement('canvas');c.width=w;c.height=h
 const disc=(g,c,x,y,r)=>{g.fillStyle=c;for(let j=-r;j<=r;j++){const w=Math.round(Math.sqrt(r*r-j*j));g.fillRect(x-w,y+j,w*2,1)}};
 const line=(g,x0,y0,x1,y1)=>{const n=Math.max(1,Math.ceil(Math.max(Math.abs(x1-x0),Math.abs(y1-y0))));for(let i=0;i<=n;i++)g.fillRect(Math.round(x0+(x1-x0)*i/n),Math.round(y0+(y1-y0)*i/n),1,1)};
 
-/* cổng đá cổ: gò đá tối phủ rêu, vòm đá nâu, lối vào đen (hình 1) */
+/* cổng đá cổ: gò đá tối phủ rêu, vòm đá nâu, lối vào đen */
 const GS=mk(96,84,g=>{
   const P=(c,x,y)=>{g.fillStyle=c;g.fillRect(x,y,1,1)},O=48,B=80,BR=['#c4803c','#a8642c','#d89a52','#8c4e22'];
   for(let u=0;u<=74;u++){
@@ -68,7 +91,7 @@ const RB=mk(96,84,g=>{
     g.fillStyle='#4b4f57';g.fillRect(X-r+2,Y+r-2,r*2-3,1);
     if(i%2){g.fillStyle='#4a7a34';g.fillRect(X-2,Y-r,4,1)}});
   g.fillStyle='#2a2c33';line(g,44,50,50,66);line(g,52,44,47,58);line(g,40,66,46,74)});
-/* trận pháp (hình 2): 2 vòng, sao 8 cánh, sao nhỏ, hoa văn giữa */
+/* trận pháp: 2 vòng, sao 8 cánh, sao nhỏ, hoa văn giữa */
 const mkCir=(col,fill)=>mk(64,64,g=>{
   const C=32,ring=r=>{for(let a=0;a<6.2832;a+=1/r)g.fillRect(Math.round(C+Math.cos(a)*r),Math.round(C+Math.sin(a)*r),1,1)};
   g.fillStyle=fill;for(let j=-30;j<=30;j++){const w=Math.round(Math.sqrt(900-j*j));g.fillRect(C-w,C+j,w*2,1)}
@@ -81,24 +104,9 @@ const mkCir=(col,fill)=>mk(64,64,g=>{
   st(17,9,-Math.PI/2+Math.PI/8);ring(6);ring(4);
   for(let i=0;i<8;i++){const a=i*Math.PI/4;line(g,C,C,C+Math.cos(a)*4,C+Math.sin(a)*4)}});
 const CIR0=mkCir('#4aa8c8','rgba(6,10,36,.6)'),CIRL=mkCir('#7cfff0','rgba(0,0,0,0)'),CIRO=mkCir('#ff8ae8','rgba(0,0,0,0)');
-/* hầm đào đá ngoài cửa hang */
-const MS=mk(88,64,g=>{
-  const P=(c,x,y,w,h)=>{g.fillStyle=c;g.fillRect(x,y,w||1,h||1)},O=44,B=60;
-  for(let u=0;u<=50;u++){const hw=Math.round(30*Math.sqrt(Math.max(0,1-Math.pow(u/52,2.2))))+(hs(u,9)%3-1);
-    for(let x=-hw;x<=hw;x++){const h=hs(x+90,u*3+1),ax=Math.abs(x);
-      let c=['#6e6052','#7d6e5e','#5f5246'][h%3];
-      if(x>9)c=['#4f443a','#5a4d42'][h%2];
-      if(u>38&&h%3<2)c=['#4a7a34','#5a9040','#3a6428'][h%3];
-      else if(h%13===0)c='#8f8070';else if(h%29===0)c='#ffd23f';else if(h%31===0)c='#5ad1ff';
-      if(ax>=hw-1)c='#2a2018';
-      P(c,O+x,B-u)}}
-  for(let u=0;u<=24;u++){const hw=u<=16?8:Math.round(Math.sqrt(Math.max(0,64-(u-16)*(u-16))));for(let x=-hw;x<hw;x++)P(u<3?'#1a1424':'#0a070e',O+x,B-u)}
-  for(let u=0;u<=24;u++){P('#6b4423',O-11,B-u,3,1);P('#8a5a2e',O-11,B-u);P('#6b4423',O+8,B-u,3,1);P('#4a2f17',O+10,B-u)}
-  P('#6b4423',O-13,B-26,27,3);P('#8a5a2e',O-13,B-26,27,1);P('#4a2f17',O-13,B-24,27,1);
-  [[-30,1],[-27,2],[28,1],[25,3],[-24,0]].forEach(([x,u])=>P('#6a5e50',O+x,B-u,3,2))});
 
 /* ---------- Trạng thái ---------- */
-let G={open:false,mine:null},MINE=null,D=null,PT=[],MN={},GOT={},hintG=0;
+let G={open:false,mine:null},D=null,PT=[],MN={},GOT={},hintG=0;
 try{GOT=JSON.parse(localStorage.getItem(SKEY))||{}}catch(_){GOT={}}
 const saveG=()=>{try{localStorage.setItem(SKEY,JSON.stringify(GOT))}catch(_){}};
 const burst=(x,y,fl,n,cols,sp,up)=>{for(let i=0;i<n;i++)PT.push({x:x+rnd(7)-3,y:y+rnd(5)-2,vx:(Math.random()-.5)*sp,vy:-Math.random()*up,l:28+rnd(30),c:cols[rnd(cols.length)],s:1+rnd(2),fl})};
@@ -123,7 +131,7 @@ function loadGate(){try{if(localStorage.getItem(KEY+seed)==='1')applyOpen()}catc
 const nearCircle=P=>Math.hypot(P.x-GPX,P.y-(CPY-6))<40;
 function gateE(P){
   if(G.mine||G.open)return;
-  if(!hasPick(P.pl)){cap('Cổng đá cổ bị một đống đá lớn chặn kín. Cần một chiếc cuốc để đập đá... Có một hầm đào đá nhỏ ngoài đầm lầy, phía đông cửa hang.');return}
+  if(!hasPick(P.pl)){cap('Cổng đá cổ bị một đống đá lớn chặn kín. Cần một chiếc cuốc để đập đá... Cuốc nằm trong các thùng cuốc ở hang than và hang sắt/vàng.');return}
   G.mine={n:P.pl,t:0,d:2.6,hit:0};cap('P'+P.pl+' vung cuốc đập đống đá chắn cổng...')}
 function openGate(){
   G.mine=null;applyOpen();try{localStorage.setItem(KEY+seed,'1')}catch(_){}
@@ -146,14 +154,16 @@ function drawGate(){
     cx.restore()}
   drawPT(6)}
 function gateGlow(){
+  /* nhãn thùng cuốc: vẽ TRƯỚC lệnh return để luôn hiện khi đứng gần thùng */
+  const P=allPl().find(p=>p.pl===sel&&p.fl===6);
+  if(P){const cr=nearCrate(P);if(cr)label(cr.x*T+4,cr.y*T-26,hasPick(sel)?'Đã có cuốc':'E: Lấy cuốc','#ffd23f')}
   if(GPX+80<camX||GPX-80>camX+CW/IS||GPY+60<camY||GPY-92>camY+CH/IS)return;
   cx.save();cx.globalCompositeOperation='lighter';
   let g=cx.createRadialGradient(CPX,CPY,4,CPX,CPY,56);g.addColorStop(0,'rgba(124,255,240,'+(G.open?.5:.16)+')');g.addColorStop(1,'rgba(124,255,240,0)');
   cx.fillStyle=g;cx.fillRect(CPX-56,CPY-56,112,112);
   if(G.open){g=cx.createRadialGradient(GPX,GPY-20,2,GPX,GPY-20,46);g.addColorStop(0,'rgba(255,170,240,.45)');g.addColorStop(1,'rgba(255,170,240,0)');cx.fillStyle=g;cx.fillRect(GPX-46,GPY-66,92,92)}
   cx.restore();
-  if(G.mine){const P=allPl().find(p=>p.pl===G.mine.n&&p.fl===6);if(P)pickSwing(P,GPX,G.mine.t)}
-  const P=allPl().find(p=>p.pl===sel&&p.fl===6);  if(P){const cr=nearCrate(P);if(cr)label(cr.x*T+4,cr.y*T-26,hasPick(sel)?'Đã có cuốc':'E: Lấy cuốc','#ffd23f')}
+  if(G.mine){const M=allPl().find(p=>p.pl===G.mine.n&&p.fl===6);if(M)pickSwing(M,GPX,G.mine.t)}
   if(P&&nearCircle(P)&&!G.mine)label(GPX,GPY-90,G.open?'Cổng đã mở':'E: Đập đá mở cổng',G.open?'#7cfff0':'#ffd23f')}
 const _mc=mineCarts;mineCarts=function(F,a,b,c,d){_mc(F,a,b,c,d);crateDraw(F,a,b,c,d);drawGate()};
 const _cl=caveLight;caveLight=function(){_cl();gateGlow()};
@@ -178,7 +188,7 @@ function buildCrates(){
     for(let i=0;i<2;i++)for(let k=0;k<40;k++){
       const t=L[hs(id*31+i*7+k,(seed|0)+5)%L.length];
       if(!CR.some(q=>Math.hypot(q.x-t[0],q.y-t[1])<9)){CR.push({x:t[0],y:t[1],room:id});break}}})}
-const nearCrate=P=>P.fl===6?CR.find(c=>Math.hypot(P.x-(c.x*T+4),P.y-(c.y*T+4))<20):null;
+const nearCrate=P=>P.fl===6?CR.find(c=>Math.hypot(P.x-(c.x*T+4),P.y-(c.y*T+4))<CRATE_R):null;
 function takePick(n,c){
   ensure();
   if(hasPick(n)){cap('P'+n+' đã có cuốc trong túi rồi.');return}
@@ -347,7 +357,7 @@ function drawFront(){
 
 /* ---------- Đào ---------- */
 function startMine(P,tg){
-  if(!hasPick(P.pl)){cap('Bạn cần một chiếc cuốc để đào. Cuốc ở giá trong hầm đào đá, ngoài cửa hang cấm.');return}
+  if(!hasPick(P.pl)){cap('Bạn cần một chiếc cuốc để đào. Cuốc nằm trong các thùng cuốc ở hang than và hang sắt/vàng của hang cấm.');return}
   if(MN[P.pl])return;
   if(tg.t==='altar'&&GOT[P.pl]){cap('P'+P.pl+' đã đào Viên đá trong hang cổ rồi.');return}
   MN[P.pl]={o:tg.o,t:0,d:tg.t==='altar'?2.6:1.2,k:tg.t,hit:0};
@@ -375,7 +385,7 @@ function tick(dt){
   if(nr&&!hintG)cap('Một cổng đá cổ bị đống đá lớn chặn kín, dưới chân có trận pháp mờ nhạt đang phát sáng. Có lẽ cần cuốc để đập đá.');
   hintG=nr?1:0;
   /* bước vào cổng đã mở */
-  if(G.open&&!trans)ins.forEach(p=>{if(p.pl&&p.fl===6){const tx=Math.floor(p.x/T),ty=Math.floor(p.y/T);if(tx>=84&&tx<=86&&ty<=47)window.worldTransfer(p.pl,'crystal')}});
+  if(G.open&&!trans)ins.forEach(p=>{if(p.pl&&p.fl===6){const tx=Math.floor(p.x/T),ty=Math.floor(p.y/T);if(tx>=84&&tx<=86&&ty<=48)window.worldTransfer(p.pl,'crystal')}});
   if(!D)return;
   Object.keys(MN).forEach(k=>{
     const s=MN[k],P=allPl().find(p=>p.pl===+k&&p.fl===WC);
@@ -404,8 +414,7 @@ addEventListener('keydown',e=>{
   if(state!=='island'||TK||trans)return;
   const iv=$('inv');if(iv&&!iv.hidden)return;
   const P=allPl().find(p=>p.pl===sel);if(!P)return;
-if(P.fl===6){const cr=nearCrate(P);if(cr){e.stopImmediatePropagation();takePick(P.pl,cr);return}}
-// XÓA dòng if(!P.fl&&!inside&&nearRack(P))...
+  if(P.fl===6){const cr=nearCrate(P);if(cr){e.stopImmediatePropagation();takePick(P.pl,cr);return}}
   if(P.fl===6&&!G.open&&nearCircle(P)){e.stopImmediatePropagation();gateE(P);return}
   if(P.fl===WC&&D){const tg=target(P);if(!tg)return;e.stopImmediatePropagation();if(tg.t==='back')askBack(P.pl);else startMine(P,tg)}},true);
 
@@ -424,6 +433,11 @@ const _di=drawIn;drawIn=function(){
   _di()};
 
 /* ---------- Vòng đời game ---------- */
+/* QUAN TRỌNG: gắn tick() vào vòng lặp game (bản cũ thiếu đoạn này nên đá chỉ rung, không vỡ) */
+const _step=step;step=function(){
+  _step();
+  if(state!=='island')return;
+  try{tick(Math.min(.25,DM||.016))}catch(e){console.error('sader tick',e)}};
 const _gen=gen;gen=function(sd){_gen(sd);buildGate();buildCrates();buildCW();loadGate()};
 const _mk=mkPeople;mkPeople=function(){_mk();
   MN={};GOT={};PT=[];
