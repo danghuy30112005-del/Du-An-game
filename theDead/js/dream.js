@@ -929,10 +929,11 @@ function stairCheck(P,i){
     if(P.pl===sel){syncView(true);BN={t:0,txt:NAMES[j]};cap('Bạn '+(d>0?'đi lên ':'đi xuống ')+NAMES[j]+'.')}})}
 
 function tick(dt){
-  const c=YT.clock();
-  if(c.on){const h0=(6+c.g/60)%24;c.g+=dt*((h0>=6&&h0<23)?2:1)}   // ngày x2, đêm x1
-  const h=hour(),night=!!c.on&&(h>=22||h<6),nid=Math.floor((c.g-960)/1440);
-  if(M.fx){
+  if(!YG.on&&!YG.ending&&allPl().some(p=>isY(p.fl))){
+    YG.on=1;YG.pend=0;YG.g=START_G;gm=START_G;lastMin=-1}
+  if(YG.on){const h=(6+YG.g/60)%24;YG.g+=dt*((h>=6&&h<23)?2:1);gm=YG.g}
+  if(YG.pend&&(YG.pt+=dt)>5)YG.pend=0;
+  if(!YG.on&&!YG.pend){
   }
       if(!YG.on&&!YG.ending&&allPl().some(p=>isY(p.fl))){
     YG.on=1;YG.pend=0;YG.g=START_G;gm=START_G;lastMin=-1;
