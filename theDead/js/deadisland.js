@@ -1299,7 +1299,7 @@ function gather(D){
   [D.butler].concat(D.maids).forEach((p,i)=>{if(!p)return;lock(p);p.goal={fl:1,x:STBY[i][0],y:STBY[i][1],kind:'wait'}});
   D.owner=ins.find(p=>p.role==='Chủ nhân');
   CART={x:82*T+4,y:19*T+7,dx:0,dy:1,lx:0,ly:0,full:1};
-  if(D.d===1)D.forced=0;else showMeal();
+  if(D.d===1&&D.k===1)D.forced=0;else showMeal();
   cap('Còn 15 phút nữa là tới giờ ăn. Gia đình chủ dinh thự đang ra bàn ăn lớn ở đại sảnh.')}
 
 function mealAns(n,yes){
@@ -1348,7 +1348,7 @@ function dineTick(){
   const D=DN,t=gm-D.st;
   if(D.ph===0&&t>=-15)gather(D);
   if(D.ph===1){
-    if(D.d===1&&!D.forced&&!trans)forceAll(D);
+    if(D.d===1&&D.k===1&&!D.forced&&!trans)forceAll(D);
     if(MQ&&frame%20===0){const c=$('mC');if(c)c.textContent=Math.max(0,Math.ceil(-t))}
     if(t>=0){MQ=null;$('meal').hidden=true;pushCart(D)}}
   if(D.ph===2){

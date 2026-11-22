@@ -371,7 +371,7 @@ function gateFx(){
     R('#d4a63a',x-3,y-2,6,5);R('#8a6a1f',x-3,y+2,6,1);R('#222',x,y,1,2);
     if((frame>>4)%4===0)R('#fff',x-2,y-1,1,1);
     if(FN.near){const w=curWeapon(sel);
-      gbub(x,y-10,w?['Đã bị khóa','Cần chìa khóa để mở','']:['Đã bị khóa','Cần thứ gì đó sắc nhọn để mở'])}}
+      gbub(x,y-10,w?['Đã bị khóa','Cần chìa khóa để mở','']:['Đã bị khóa','Cần chìa khóa để mở'])}}
   else if(LKA){
     const t=LKA.t;cx.globalAlpha=Math.max(0,1-t/40);
     R('#d4a63a',x-4-Math.round(t*.2),y-1+Math.round(t*t*.04),3,4);
