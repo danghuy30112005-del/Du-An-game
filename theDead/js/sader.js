@@ -13,8 +13,7 @@ if(typeof putIn!=='function'||typeof mineCarts!=='function'||typeof caveLight!==
 const WC=26,WALL=62,CW0=150,CH0=110,VW=420;
 const GX=85,GB=49,GY0=46,GX0=81,GX1=89,CCX=85,CCY=53;        /* cổng đá + trận pháp trong hang (ô) */
 const GPX=GX*T+4,GPY=(GB+1)*T,CPX=CCX*T+4,CPY=CCY*T+4;
-const KEY='deadisland:cgate:',SKEY='deadisland:cstone',INV='deadisland:inv1';
-const RK={x:98*T,y:120*T+4};                                    /* giá cuốc ở hầm đào đá (px) */
+const KEY='deadisland:cgate:',SKEY='deadisland:cstone',INV='deadisland:inv1';                                   /* giá cuốc ở hầm đào đá (px) */
 const BX=75*T+4,BY=87*T+4;                                      /* trận pháp trong Crystal World (px) */
 const GREY=['#6d727c','#8b919b','#4b4f57','#aab0ba'];
 const PAL=[['#ff5fb8','#ffc0ea','#a02a84','#ff9ad8'],['#38d8ff','#b8f4ff','#1470a8','#7ae8ff'],['#9a7cff','#d8c8ff','#5a38b0','#b8a0ff']];
@@ -24,7 +23,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const bagOf=n=>{try{const I=JSON.parse(localStorage.getItem(INV))||{};return Array.isArray(I[n])?I[n]:[]}catch(_){return[]}};
 const hasPick=n=>bagOf(n).includes('pickaxe');
 function ensure(){const I=window.ITEMS;if(!I)return;
-  if(!I.pickaxe)I.pickaxe={icon:'⛏️',name:'Cuốc',d:'Cuốc đá chắc tay. Dùng đập đá chắn cổng và đào tinh thể. Có thể bấm Cầm.'};
+  if(!I.pickaxe)I.pickaxe={icon:'⛏️',name:'Cuốc',d:'Cuốc đá chắc tay. Lấy từ thùng cuốc trong hang quặng. Dùng đập đá chắn cổng và đào tinh thể. Có thể bấm Cầm.'};
   if(!I.cshard)I.cshard={icon:'🔷',name:'Mảnh tinh thể',d:'Mảnh tinh thể lấp lánh đào từ Crystal World.'};
   if(!I.wstone)I.wstone={icon:'💎',name:'Viên đá trong hang cổ',d:'Viên đá pha lê lấy từ hang cổ.'}}
 ensure();addEventListener('load',ensure);
@@ -154,12 +153,48 @@ function gateGlow(){
   if(G.open){g=cx.createRadialGradient(GPX,GPY-20,2,GPX,GPY-20,46);g.addColorStop(0,'rgba(255,170,240,.45)');g.addColorStop(1,'rgba(255,170,240,0)');cx.fillStyle=g;cx.fillRect(GPX-46,GPY-66,92,92)}
   cx.restore();
   if(G.mine){const P=allPl().find(p=>p.pl===G.mine.n&&p.fl===6);if(P)pickSwing(P,GPX,G.mine.t)}
-  const P=allPl().find(p=>p.pl===sel&&p.fl===6);
+  const P=allPl().find(p=>p.pl===sel&&p.fl===6);  if(P){const cr=nearCrate(P);if(cr)label(cr.x*T+4,cr.y*T-26,hasPick(sel)?'Đã có cuốc':'E: Lấy cuốc','#ffd23f')}
   if(P&&nearCircle(P)&&!G.mine)label(GPX,GPY-90,G.open?'Cổng đã mở':'E: Đập đá mở cổng',G.open?'#7cfff0':'#ffd23f')}
-const _mc=mineCarts;mineCarts=function(F,a,b,c,d){_mc(F,a,b,c,d);drawGate()};
+const _mc=mineCarts;mineCarts=function(F,a,b,c,d){_mc(F,a,b,c,d);crateDraw(F,a,b,c,d);drawGate()};
 const _cl=caveLight;caveLight=function(){_cl();gateGlow()};
 
-
+/* ================= THÙNG CUỐC TRONG CÁC HANG QUẶNG (than 3,7,10 · sắt/vàng 4,9) ================= */
+let CR=[];
+function buildCrates(){
+  const F=FL[6];CR=[];if(!F||!F.im)return;
+  const lamp=(x,y)=>F.lamps.some(l=>Math.abs(l[0]-x)<2&&Math.abs(l[1]-y)<2);
+  const fine=(x,y)=>{
+    if(F.rail.has(y*IW+x)||lamp(x,y))return false;
+    for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++)if(F.im[y+j][x+i]!==0||F.rail.has((y+j)*IW+x+i))return false;
+    return true};
+  [3,4,7,9,10].forEach(id=>{
+    const c=[];
+    for(let y=3;y<IH-3;y++)for(let x=3;x<IW-3;x++)if(F.rid[y][x]===id&&fine(x,y))c.push([x,y]);
+    if(!c.length)return;
+    const mx=c.reduce((a,t)=>a+t[0],0)/c.length,my=c.reduce((a,t)=>a+t[1],0)/c.length,
+      dm=Math.max(...c.map(t=>Math.hypot(t[0]-mx,t[1]-my))),
+      ring=c.filter(t=>{const d=Math.hypot(t[0]-mx,t[1]-my);return d>dm*.3&&d<dm*.65});
+    const L=ring.length?ring:c;
+    for(let i=0;i<2;i++)for(let k=0;k<40;k++){
+      const t=L[hs(id*31+i*7+k,(seed|0)+5)%L.length];
+      if(!CR.some(q=>Math.hypot(q.x-t[0],q.y-t[1])<9)){CR.push({x:t[0],y:t[1],room:id});break}}})}
+const nearCrate=P=>P.fl===6?CR.find(c=>Math.hypot(P.x-(c.x*T+4),P.y-(c.y*T+4))<20):null;
+function takePick(n,c){
+  ensure();
+  if(hasPick(n)){cap('P'+n+' đã có cuốc trong túi rồi.');return}
+  if(window.giveItem(n,'pickaxe'))burst(c.x*T+4,c.y*T-6,6,16,['#aab0ba','#ffd23f','#ffffff'],1.6,1.6)}
+function crateDraw(F,x0,y0,x1,y1){
+  CR.forEach(c=>{
+    if(c.x<x0||c.x>x1||c.y<y0||c.y>y1)return;
+    const x=c.x*T+4,y=(c.y+1)*T;
+    R('rgba(0,0,0,.3)',x-8,y-2,16,3);
+    [[-4,-2],[0,0],[4,-2]].forEach(([i,o])=>{            /* 3 cây cuốc cắm trong thùng */
+      R('#6b4423',x+i,y-17+o,1,10);R('#8a5a2e',x+i,y-17+o,1,1);
+      R('#aab0ba',x+i-3,y-18+o,7,1);R('#6b7078',x+i-3,y-17+o,1,1);R('#6b7078',x+i+3,y-17+o,1,1)});
+    R('#3a2410',x-7,y-9,14,9);R('#8a5a2e',x-6,y-8,12,7);R('#b8864f',x-6,y-8,12,1);
+    R('#5a3a1e',x-6,y-5,12,1);R('#3a2410',x-1,y-8,1,7);
+    R('#aab0ba',x-6,y-8,1,1);R('#aab0ba',x+5,y-8,1,1);R('#aab0ba',x-6,y-2,1,1);R('#aab0ba',x+5,y-2,1,1);
+    if(((frame>>3)+c.x)%11===0)R('#fff',x+3,y-18,1,1)})}
 
 /* ================= CRYSTAL WORLD ================= */
 const ISLETS=[[10,20],[30,9],[55,5],[100,7],[132,13],[144,40],[5,50],[8,92],[142,86],[22,102],[118,103],[62,105],[92,4],[46,24]];
@@ -368,7 +403,7 @@ addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.repeat||e.key.toLowerCase()!=='e'||e.ctrlKey||e.metaKey||e.altKey)return;
   if(state!=='island'||TK||trans)return;
   const iv=$('inv');if(iv&&!iv.hidden)return;
-  const P=allPl().find(p=>p.pl===sel);if(!P)return;
+  const P=allPl().find(p=>p.pl===sel);if(P.fl===6){const cr=nearCrate(P);if(cr){e.stopImmediatePropagation();takePick(P.pl,cr);return}}
   if(!P.fl&&!inside&&nearRack(P)){e.stopImmediatePropagation();takePick(P.pl);return}
   if(P.fl===6&&!G.open&&nearCircle(P)){e.stopImmediatePropagation();gateE(P);return}
   if(P.fl===WC&&D){const tg=target(P);if(!tg)return;e.stopImmediatePropagation();if(tg.t==='back')askBack(P.pl);else startMine(P,tg)}},true);
@@ -388,11 +423,10 @@ const _di=drawIn;drawIn=function(){
   _di()};
 
 /* ---------- Vòng đời game ---------- */
-const _step=step;step=function(){_step();if(state!=='island')return;try{tick(Math.min(.25,DM||.016))}catch(err){console.error('crystal tick',err)}};
-const _gen=gen;gen=function(sd){_gen(sd);buildGate();buildMine();buildCW();loadGate()};
+const _gen=gen;gen=function(sd){_gen(sd);buildGate();buildCrates();buildCW();loadGate()};
 const _mk=mkPeople;mkPeople=function(){_mk();
-  G.open=false;G.mine=null;MN={};GOT={};PT=[];
+  MN={};GOT={};PT=[];
   try{localStorage.removeItem(KEY+seed);localStorage.removeItem(SKEY)}catch(_){}
   buildGate();if(D)D.OBJ.forEach(o=>{if(o.k==='cl'){o.alive=1;D.im[o.y][o.x]=WALL;D.rid[o.y][o.x]=0}})};
-buildGate();buildMine();buildCW();loadGate();   /* bản đồ đầu tiên đã được tạo trước khi file này nạp */
+buildGate();buildCrates();buildCW();loadGate();  /* bản đồ đầu tiên đã được tạo trước khi file này nạp */
 })();
