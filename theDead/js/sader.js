@@ -159,45 +159,7 @@ function gateGlow(){
 const _mc=mineCarts;mineCarts=function(F,a,b,c,d){_mc(F,a,b,c,d);drawGate()};
 const _cl=caveLight;caveLight=function(){_cl();gateGlow()};
 
-/* ================= HẦM ĐÀO ĐÁ NGOÀI CỬA HANG ================= */
-function buildMine(){
-  MINE=null;
-  if(!m||!m[CVY]||m[CVY][CVX]!==CAVE)return;
-  const set=(x,y,t)=>{if(m[y]&&m[y][x]!==undefined&&m[y][x]!==SEA)m[y][x]=t};
-  for(let y=119;y<=122;y++)for(let x=84;x<=98;x++)set(x,y,PATH);
-  for(let y=119;y<=120;y++)for(let x=79;x<=84;x++){const t=m[y]&&m[y][x];if(t!==CROCK&&t!==CAVE&&t!==SIGN)set(x,y,PATH)}
-  for(let y=115;y<=118;y++)for(let x=91;x<=96;x++)set(x,y,HSE);
-  MINE=true}
-const nearRack=P=>MINE&&!P.fl&&Math.hypot(P.x-RK.x,P.y-RK.y)<26;
-function takePick(n){
-  ensure();
-  if(bagOf(n).includes('pickaxe')){cap('P'+n+' đã có cuốc trong túi rồi.');return}
-  if(window.giveItem(n,'pickaxe'))cap('P'+n+' lấy một chiếc Cuốc từ giá. Bấm B để xem, có thể bấm Cầm.')}
-function drawMine(){
-  if(!MINE||iAlpha<=0)return;
-  const X=94*T,Y=119*T;
-  if(X+70<camX||X-70>camX+CW/IS||Y<camY||Y-80>camY+CH/IS)return;
-  cx.globalAlpha=iAlpha;cx.imageSmoothingEnabled=false;
-  cx.drawImage(MS,X-44,Y-60);
-  /* biển */
-  R('#3a2410',X-16,Y-58,32,10);R('#c9a85a',X-15,Y-57,30,8);
-  cx.font='bold 5px monospace';cx.textAlign='center';cx.fillStyle='#3a2410';cx.fillText('HẦM ĐÁ',X,Y-51);
-  /* đèn lồng treo */
-  const fl=(frame>>3)%2;R('#15151a',X-12,Y-34,1,7);R('#3a3a40',X-14,Y-28,5,1);R(fl?'#ffd23f':'#ffb347',X-13,Y-27,3,4);
-  cx.save();cx.globalCompositeOperation='lighter';cx.globalAlpha=iAlpha*(.18+.05*fl);R('#ffcc66',X-24,Y-38,24,24);cx.restore();
-  /* xe goòng chở đá */
-  const cx0=87*T+4,cy0=121*T;
-  R('rgba(0,0,0,.25)',cx0-9,cy0-1,19,3);R('#4a2f17',cx0-8,cy0-9,17,8);R('#6b4423',cx0-8,cy0-9,17,2);R('#2b2b33',cx0-6,cy0-2,3,3);R('#2b2b33',cx0+4,cy0-2,3,3);
-  R('#8b919b',cx0-6,cy0-12,5,4);R('#aab0ba',cx0-5,cy0-13,3,2);R('#ffd23f',cx0+1,cy0-11,3,3);R('#5ad1ff',cx0+5,cy0-11,2,2);
-  /* giá cuốc */
-  const rx=RK.x,yb=RK.y+2;
-  R('rgba(0,0,0,.25)',rx-10,yb-1,20,3);R('#4a2f17',rx-9,yb-22,2,22);R('#4a2f17',rx+7,yb-22,2,22);R('#6b4423',rx-10,yb-23,20,2);R('#8a5a2e',rx-10,yb-23,20,1);
-  [[-3,0],[3,2]].forEach(([dx,sh])=>{R('#8a5a2e',rx+dx,yb-20+sh,2,15-sh);R('#6b7078',rx+dx-6,yb-22+sh,14,3);R('#cfd6e3',rx+dx-6,yb-22+sh,14,1);R('#6b7078',rx+dx-7,yb-21+sh,2,3)});
-  cx.globalAlpha=1}
-const _clouds=clouds;clouds=function(){_clouds();drawMine()};
-const _glow=glow;glow=function(){_glow();
-  if(inside)return;
-  if(MINE){const P=people.find(p=>p.pl===sel&&p.vis);if(P&&nearRack(P))label(RK.x,RK.y-38,bagOf(sel).includes('pickaxe')?'Đã có cuốc':'E: Lấy cuốc','#ffd23f')}};
+
 
 /* ================= CRYSTAL WORLD ================= */
 const ISLETS=[[10,20],[30,9],[55,5],[100,7],[132,13],[144,40],[5,50],[8,92],[142,86],[22,102],[118,103],[62,105],[92,4],[46,24]];
