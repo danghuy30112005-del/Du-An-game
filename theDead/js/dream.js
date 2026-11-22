@@ -157,7 +157,7 @@ person=function(p){
 const _gen=gen;
 gen=function(sd){_gen(sd);load();KQ=null;lockAll();applyRooms()};
 const _mk=mkPeople;
-mkPeople=function(){_mk();endQ(false);S={seed,open:false,given:{},rooms:{}};save();lockAll()};
+mkPeople=function(){_mk();endQ(false);dineSync();S={seed,open:false,given:{},rooms:{}};save();lockAll()};
 
 window.guestRooms={
   of:n=>S.rooms[n],
@@ -195,9 +195,9 @@ function label(x,y,t,col){
 /* ---------- Kích hoạt chứng buồn ngủ: hết bữa tối ngày 1 (bát đĩa được dọn đi) ---------- */
 const _end=endMeal;
 endMeal=function(D){
-  const lunch1=!!D&&D.d===1&&D.k===1;   // k: 0 = sáng, 1 = trưa, 2 = tối
+  const dinner1=!!D&&D.d===1&&D.k===1;   // k: 0 = sáng, 1 = trưa, 2 = tối
   _end(D);
-  if(lunch1)startDrowsy()};
+  if(dinner1)startDrowsy()};
 function startDrowsy(){
   const L=allPl().filter(p=>ACC[p.pl]&&!SL[p.pl]);
   if(!L.length)return;

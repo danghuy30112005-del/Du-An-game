@@ -1725,7 +1725,9 @@ function seatPl(n){
   const O=allPl().find(p=>p.pl===n);if(!O)return;
   const s=DSEAT[8+n];putIn(O,1,s.x,s.y);O.x=O.tx=s.x*T+4;O.y=O.ty=s.y*T+4;setSel(n)}
 function forceAll(D){
-  D.forced=1;const L=allPl().filter(p=>ACC[p.pl]).map(p=>p.pl);if(!L.length)return;
+  const L=allPl().filter(p=>ACC[p.pl]).map(p=>p.pl);
+  if(!L.length)return;            /* chưa ai đồng ý ở lại thì chờ, chưa đánh dấu đã ép */
+  D.forced=1;
   if(TK)closeTalk();
   trans={t:0,cb:()=>{L.forEach(seatPl);setSel(L[0]);cap('Đã tới giờ ăn! Mọi người được mời ra bàn ăn lớn ở đại sảnh.')}}}
 function showMeal(){MQ=allPl().filter(p=>ACC[p.pl]).map(p=>p.pl);const c=$('mC');if(c)c.textContent='15';renderMeal()}
