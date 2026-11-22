@@ -695,7 +695,7 @@ function drawFront(i){
       if(P.cl)label(P.cl.px+8,P.cl.py-10,'E: Chui ra khỏi tủ','#ffd23f');
       else{const w=nearWard(P);
         if(w)label(w.px+8,w.py-10,'E: Trốn vào tủ','#7cff9a');
-        else if(nearOwnBed(P)){const s=ownBedSpot(P);label(s.sx,s.sy-22,'E: Tỉnh dậy (về đảo)','#9ae8ff')}}}
+        else if(nearOwnBed(P)){const s=ownBedSpot(P);label(s.sx,s.sy-22,'E: Ngủ (vào thế giới kí ức)','#9ae8ff')}}}
     if(!VR){const SX=SXof(i);
       [[1,8,'u'],[SX,8,'u'],[1,21,'d'],[SX,21,'d']].forEach(([lx,ly,d])=>{if(d==='u'&&i>=NF-1||d==='d'&&i<=0)return;
         const x=(AX(lx)+1.5)*T,y=(AY(ly)+1.5)*T;if(Math.hypot(P.x-x,P.y-y)<30){const j=i+(d==='u'?1:-1);label(x,y-26,(d==='u'?'Lên ':'Xuống ')+NAMES[j].split(':')[0],d==='u'?'#ffd23f':'#7cfff0')}})}}}
@@ -808,7 +808,7 @@ function startDream(part){
 function backIsland(q){
   const rid=window.guestRooms&&window.guestRooms.of(q.pl),b=rid!==undefined?BEDS.find(b=>b.fl===2&&b.room===rid):null;
   q.cl=null;q.act='idle';
-  putIn(q,2,b?b.x+.5:59.5,b?b.y+.5:27.5);q.vis=1;
+  putIn(q,2,b?b.x+.5:59.5,b?b.y+.5:25.5);q.vis=1;
   if(q.pl===sel)syncView(true);
   if(!allPl().some(p=>isY(p.fl)))finishDream()}
 function finishDream(){
@@ -846,7 +846,11 @@ addEventListener('keydown',e=>{
   const iv=$('inv');if(iv&&!iv.hidden)return;
   const w=nearWard(P);
   if(w){e.stopImmediatePropagation();P.cl=w;P.path=[];P.moving=0;P.tx=P.x;P.ty=P.y;cap('P'+P.pl+' chui vào tủ đồ và nín thở...');return}
-  if(nearOwnBed(P)){e.stopImmediatePropagation();askWake()}},true);
+  if(nearOwnBed(P)){
+  e.stopImmediatePropagation();
+  if(window.memoryWorld)window.memoryWorld.enter(P.pl);
+  else cap('Chưa nạp G1.js (thế giới kí ức).');
+}},true);
 
 const _ctrl=ctrl;
 ctrl=function(){
@@ -925,6 +929,12 @@ function stairCheck(P,i){
     if(P.pl===sel){syncView(true);BN={t:0,txt:NAMES[j]};cap('Bạn '+(d>0?'đi lên ':'đi xuống ')+NAMES[j]+'.')}})}
 
 function tick(dt){
+  if(!YG.on&&!YG.ending&&allPl().some(p=>isY(p.fl))){
+    YG.on=1;YG.pend=0;YG.g=START_G;gm=START_G;lastMin=-1;
+  }
+      if(!YG.on&&!YG.ending&&allPl().some(p=>isY(p.fl))){
+    YG.on=1;YG.pend=0;YG.g=START_G;gm=START_G;lastMin=-1;
+  }
   if(YG.on){const h=(6+YG.g/60)%24;YG.g+=dt*((h>=6&&h<23)?2:1);gm=YG.g}   /* 6h-23h: x2, ban đêm: bình thường */
   if(YG.pend&&(YG.pt+=dt)>5)YG.pend=0;
   if(!YG.on&&!YG.pend){

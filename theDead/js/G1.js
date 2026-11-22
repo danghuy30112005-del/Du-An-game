@@ -184,6 +184,11 @@ function stairs(P){
   putIn(P,FM+j,s[0]+.5+(slot(P)-2)*.25,s[1]+.5);P.mb=60;
   if(P.pl===sel){syncView(true);M.ban={t0:performance.now(),txt:NAMES[j]};cap('Bạn '+(d>0?'đi lên ':'đi xuống ')+NAMES[j]+'.')}}
 function tick(dt){
+  if(!YG.on&&!YG.ending&&allPl().some(p=>isY(p.fl))){
+    YG.on=1;YG.pend=0;YG.g=START_G;gm=START_G;lastMin=-1;
+  }
+  if(YG.on){const h=(6+YG.g/60)%24;YG.g+=dt*((h>=6&&h<23)?2:1);gm=YG.g}
+
   const c=YT.clock(),h=hour(),night=!!c.on&&(h>=22||h<6),nid=Math.floor((c.g-960)/1440);
   if(M.fx){
     const f=M.fx;f.t+=dt;
