@@ -1,9 +1,26 @@
-/* ===== sader.js: CỔNG ĐÁ CỔ + CUỐC + CRYSTAL WORLD + PHÁP SƯ ĐÁ + NHẪN TRĂNG (PHÍM T) =====
+/* ===== sader.js (BẢN SỬA v2): CỔNG ĐÁ CỔ + CUỐC + CRYSTAL WORLD + PHÁP SƯ ĐÁ + NHẪN TRĂNG (PHÍM T) =====
    Nạp CUỐI CÙNG trong deadisland.html (sau heroes.js):  <script src="../js/sader.js"></script>
-   Bản này đã gộp: 2 loại tinh thể (xanh/tím), map rộng 240, núi khoáng thạch, hàng tinh thể chắn lối hang cổ,
-   Pháp sư Đá (nhiệm vụ 10 xanh + 10 tím, cắt cảnh nghi lễ), Nhẫn Trăng Tinh Thể, kỹ năng T. */
+   Thay đổi so với bản cũ:
+   - Tự kiểm tra phụ thuộc, nếu thiếu sẽ hiện dải đỏ trên màn hình + báo rõ trong Console (F12), không im lặng nữa.
+   - Không còn phụ thuộc cứng vào Abyss.js cho hộp hỏi và chuyển giới (có bản dự phòng).
+   - Mọi hàm vẽ / dựng map đều bọc try/catch: nếu có lỗi chỉ log một lần, game không bị đứng hình.
+   - Hàng tinh thể chắn lối lên hang cổ nay thật sự chặn kín (cổ chai 5 ô, đã kiểm tra bằng BFS), trước đây có thể đi vòng.
+   - Cổng chuyển giới chỉ kích hoạt khi bước vào đúng lối cổng.
+   Giữ nguyên: map 240x110, 2 loại tinh thể, núi khoáng thạch, lều + Pháp sư Đá, vòng phép, cắt cảnh, Nhẫn Trăng, phím T. */
 (()=>{
-if(typeof putIn!=='function'||typeof mineCarts!=='function'||typeof caveLight!=='function'||typeof allPl!=='function'||!window.WORLDS||typeof window.worldTransfer!=='function'||typeof window.abyssAsk!=='function'||typeof window.giveItem!=='function'){console.warn('sader.js: hãy nạp CUỐI CÙNG (sau heroes.js)');return}
+/* ---------- 0. Kiểm tra phụ thuộc ---------- */
+const banner=t=>{try{const b=document.createElement('div');b.style.cssText='position:fixed;left:0;right:0;top:0;z-index:99;padding:10px;background:#d8392b;color:#fff;font:600 14px monospace;text-align:center';b.textContent=t;document.body.appendChild(b)}catch(_){}};
+const has=n=>{try{return new Function('return typeof '+n)()!=='undefined'}catch(_){return false}};
+const REQ=['$','cx','T','IW','IH','hs','rnd','ri','putIn','mineCarts','caveLight','allPl','syncView','cam','ctrl','drawIn','glow','step','gen','mkPeople','closeTalk','tkUI','warp','slot','walk','FL','seed','cap'];
+const miss=REQ.filter(n=>!has(n));
+if(!window.ITEMS)miss.push('window.ITEMS (Playerkit.js)');
+if(typeof window.giveItem!=='function')miss.push('window.giveItem (Playerkit.js)');
+if(typeof window.takeItem!=='function')miss.push('window.takeItem (Playerkit.js)');
+if(miss.length){
+  const msg='sader.js: thiếu '+miss.join(', ')+'. Hãy nạp sader.js CUỐI CÙNG (sau Playerkit.js, Abyss.js, heroes.js) và mở Console (F12) xem file nào báo lỗi đỏ.';
+  console.error('[sader] '+msg);banner(msg);return}
+const warned={};
+const oops=(n,e)=>{if(!warned[n]){warned[n]=1;console.error('[sader] lỗi trong '+n+':',e)}};
 
 /* ---------- Thông số ---------- */
 const WC=26,WALL=62,CW0=240,CH0=110,VW=420;
@@ -11,6 +28,7 @@ const GX=85,GB=49,GY0=46,GX0=81,GX1=89,CCX=85,CCY=53;
 const GPX=GX*T+4,GPY=(GB+1)*T,CPX=CCX*T+4,CPY=CCY*T+4;
 const KEY='deadisland:cgate:',SKEY='deadisland:cstone',INV='deadisland:inv1';
 const BX=75*T+4,BY=87*T+4;
+const NK0=28,NK1=33,BAR_Y=[30,31],BAR_X0=73,BAR_X1=77;   /* cổ chai + hai hàng tinh thể chắn */
 const GREY=['#6d727c','#8b919b','#4b4f57','#aab0ba'];
 const PAL=[['#2fa8e8','#b8ecff','#1470a8','#7ae8ff'],   /* 0 = xanh dương */
            ['#8a63d8','#d8c8ff','#5a38b0','#b8a0ff']];  /* 1 = tím */
@@ -27,6 +45,31 @@ function ensure(){const I=window.ITEMS;if(!I)return;
   if(!I.wstone)I.wstone={icon:'💎',name:'Viên đá trong hang cổ',d:'Viên đá pha lê lấy từ hang cổ.'};
   if(!I.moonring)I.moonring={icon:'💍',name:'Nhẫn Trăng Tinh Thể',slot:'ring',d:'Nhẫn kết từ tinh thể xanh và tím. Trang bị vào ô Nhẫn, bấm T để triệu hồi ánh trăng làm tinh thể đâm lên.'}}
 ensure();addEventListener('load',ensure);
+
+/* ---------- Hộp hỏi + chuyển giới (dùng của Abyss.js nếu có, không thì dùng bản dự phòng) ---------- */
+const WORLDS=window.WORLDS||(window.WORLDS={});
+let FQ=null;
+function closeFQ(){FQ=null;const b=$('sdAsk');if(b)b.hidden=true}
+function fallbackAsk(text,opts){
+  let box=$('sdAsk');
+  if(!box){
+    box=document.createElement('div');box.id='sdAsk';
+    box.style.cssText='position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(0,0,10,.55);line-height:1.4';
+    box.innerHTML='<div style="width:min(92%,400px);padding:14px;background:rgba(10,14,28,.97);border:3px solid #ffd23f;box-shadow:4px 4px 0 #000"><p id="sdT" style="margin:0 0 10px;font-weight:400"></p><div id="sdB" style="display:flex;gap:8px"></div></div>';
+    $('stage').appendChild(box)}
+  $('sdT').textContent=text;const row=$('sdB');row.innerHTML='';
+  opts.forEach(([t,fn],i)=>{const b=document.createElement('button');b.className='btn'+(i?' alt':'');b.style.flex='1';b.textContent=(i+1)+'. '+t;b.onclick=()=>{closeFQ();fn()};row.append(b)});
+  FQ=opts;box.hidden=false;row.firstChild.focus()}
+addEventListener('keydown',e=>{
+  if(!FQ)return;
+  e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;
+  if(/^[1-9]$/.test(e.key)&&FQ[+e.key-1]){const f=FQ[+e.key-1][1];closeFQ();f()}
+  else if(e.key==='Escape')closeFQ()},true);
+const ask=(t,o)=>typeof window.abyssAsk==='function'?window.abyssAsk(t,o):fallbackAsk(t,o);
+function goWorld(n,id){
+  if(typeof window.worldTransfer==='function')return window.worldTransfer(n,id);
+  const q=allPl().find(p=>p.pl===n),W2=WORLDS[id];if(!q||!W2)return false;
+  warp(q,()=>{W2.enter(q);if(q.pl===sel)syncView(true)});return true}
 
 /* ---------- Icon pixel trong túi đồ ---------- */
 const STONE_NAME='Viên đá trong hang cổ';
@@ -65,8 +108,8 @@ function skinInv(){
     s.insertBefore(im,s.firstChild)})}
 try{
   fetch('../js/village.js').then(r=>r.text()).then(t=>{
-    const m=t.match(/"stone"\s*:\s*"(data:image\/png;base64,[^"]+)"/);
-    if(m){STONE=m[1];skinInv()}
+    const mm=t.match(/"stone"\s*:\s*"(data:image\/png;base64,[^"]+)"/);
+    if(mm){STONE=mm[1];skinInv()}
   }).catch(()=>{})
 }catch(_){}
 if($('invGrid'))new MutationObserver(skinInv).observe($('invGrid'),{childList:true});
@@ -83,7 +126,7 @@ const disc=(g,c,x,y,r)=>{g.fillStyle=c;for(let j=-r;j<=r;j++){const w=Math.round
 const line=(g,x0,y0,x1,y1)=>{const n=Math.max(1,Math.ceil(Math.max(Math.abs(x1-x0),Math.abs(y1-y0))));for(let i=0;i<=n;i++)g.fillRect(Math.round(x0+(x1-x0)*i/n),Math.round(y0+(y1-y0)*i/n),1,1)};
 
 const GS=mk(96,84,g=>{
-  const P=(c,x,y)=>{g.fillStyle=c;g.fillRect(x,y,1,1)},O=48,B=80,BR=['#c4803c','#a8642c','#d89a52','#8c4e22'];
+  const P=(c,x,y)=>{g.fillStyle=c;g.fillRect(x,y,1,1)},O=48,B=80,BRK=['#c4803c','#a8642c','#d89a52','#8c4e22'];
   for(let u=0;u<=74;u++){
     const hw=Math.round(40*Math.sqrt(Math.max(0,1-Math.pow(u/78,2.6))))+(hs(u,7)%3-1);
     const ow=u<=26?13:u<=39?Math.round(Math.sqrt(169-(u-26)*(u-26))):0;
@@ -95,7 +138,7 @@ const GS=mk(96,84,g=>{
         let id,edge;
         if(u<=26){id=((u/9)|0)*2+(x<0?0:1);edge=u%9===0||ax===ow}
         else{const a=Math.atan2(u-26,x);id=Math.floor((a+3.2)/.5)+40;edge=((a+3.2)%.5)<.09||(ow&&ax===ow)||Math.round(Math.sqrt(x*x+(u-26)*(u-26)))>=20}
-        c=edge?'#3a2418':BR[hs(id,5)%4];if(!edge&&h%9===0)c='#e8b068'}
+        c=edge?'#3a2418':BRK[hs(id,5)%4];if(!edge&&h%9===0)c='#e8b068'}
       else{
         c=['#2a2038','#231a30','#33283f'][h%3];if(x>10)c=['#1a1226','#201630'][h%2];
         if((u>50&&h%3<2)||h%17===0)c=['#3f8a2a','#5aa83a','#2f6a1f'][h%3];
@@ -115,7 +158,7 @@ const mkCir=(col,fill)=>mk(64,64,g=>{
   g.fillStyle=fill;for(let j=-30;j<=30;j++){const w=Math.round(Math.sqrt(900-j*j));g.fillRect(C-w,C+j,w*2,1)}
   g.fillStyle=col;ring(30);ring(28);
   for(let i=0;i<16;i++){const a=i*Math.PI/8;g.fillRect(Math.round(C+Math.cos(a)*25)-1,Math.round(C+Math.sin(a)*25)-1,2,2)}
-  const st=(ro,ri,rot)=>{const V=[];for(let i=0;i<16;i++){const a=rot+i*Math.PI/8,r=i%2?ri:ro;V.push([C+Math.cos(a)*r,C+Math.sin(a)*r])}
+  const st=(ro,ri2,rot)=>{const V=[];for(let i=0;i<16;i++){const a=rot+i*Math.PI/8,r=i%2?ri2:ro;V.push([C+Math.cos(a)*r,C+Math.sin(a)*r])}
     for(let i=0;i<16;i++){const p=V[i],q=V[(i+1)%16];line(g,p[0],p[1],q[0],q[1])}return V};
   const V=st(23,12,-Math.PI/2);
   for(let i=0;i<16;i+=2){const a=-Math.PI/2+i*Math.PI/8;line(g,V[i][0],V[i][1],C+Math.cos(a)*6,C+Math.sin(a)*6)}
@@ -124,7 +167,7 @@ const mkCir=(col,fill)=>mk(64,64,g=>{
 const CIR0=mkCir('#4aa8c8','rgba(6,10,36,.6)'),CIRL=mkCir('#7cfff0','rgba(0,0,0,0)'),CIRO=mkCir('#ff8ae8','rgba(0,0,0,0)');
 
 /* ---------- Trạng thái ---------- */
-let G={open:false,mine:null},D=null,PT=[],MN={},GOT={},hintG=0;
+let G={open:false,mine:null},D=null,PT=[],MN={},GOT={},hintG=0,hintB=0;
 try{GOT=JSON.parse(localStorage.getItem(SKEY))||{}}catch(_){GOT={}}
 const saveG=()=>{try{localStorage.setItem(SKEY,JSON.stringify(GOT))}catch(_){}};
 const burst=(x,y,fl,n,cols,sp,up)=>{for(let i=0;i<n;i++)PT.push({x:x+rnd(7)-3,y:y+rnd(5)-2,vx:(Math.random()-.5)*sp,vy:-Math.random()*up,l:28+rnd(30),c:cols[rnd(cols.length)],s:1+rnd(2),fl})};
@@ -182,8 +225,8 @@ function gateGlow(){
   cx.restore();
   if(G.mine){const M=allPl().find(p=>p.pl===G.mine.n&&p.fl===6);if(M)pickSwing(M,GPX,G.mine.t)}
   if(P&&nearCircle(P)&&!G.mine)label(GPX,GPY-90,G.open?'Cổng đã mở':'E: Đập đá mở cổng',G.open?'#7cfff0':'#ffd23f')}
-const _mc=mineCarts;mineCarts=function(F,a,b,c,d){_mc(F,a,b,c,d);crateDraw(F,a,b,c,d);drawGate()};
-const _cl=caveLight;caveLight=function(){_cl();gateGlow()};
+const _mc=mineCarts;mineCarts=function(F,a,b,c,d){_mc(F,a,b,c,d);try{crateDraw(F,a,b,c,d);drawGate()}catch(e){oops('cổng/thùng cuốc',e)}};
+const _cl=caveLight;caveLight=function(){_cl();try{gateGlow()}catch(e){oops('gateGlow',e)}};
 
 /* ================= THÙNG CUỐC TRONG CÁC HANG QUẶNG ================= */
 let CR=[];
@@ -228,6 +271,7 @@ const ISLETS=[[10,20],[30,9],[55,5],[100,7],[132,13],[144,40],[5,50],[8,92],[142
 function buildCW(){
   const W=CW0,H=CH0,g2=v=>Array.from({length:H},()=>Array(W).fill(v)),im=g2(WALL),rid=g2(0),kd=g2(0);
   const fl=(x,y,k)=>{if(x>1&&y>1&&x<W-2&&y<H-2){im[y][x]=0;rid[y][x]=1;kd[y][x]=k||1}};
+  const wl=(x,y)=>{im[y][x]=WALL;rid[y][x]=0;kd[y][x]=0};
   const ell=(a0,b0,rx,ry,k,kk)=>{for(let y=Math.floor(b0-ry*1.3)-1;y<=b0+ry*1.3+1;y++)for(let x=Math.floor(a0-rx*1.3)-1;x<=a0+rx*1.3+1;x++){
     const a=Math.atan2((y+.5-b0)/ry,(x+.5-a0)/rx),q=1+.07*Math.sin(3*a+k)+.05*Math.sin(5*a+2*k)+.03*Math.sin(9*a+k);
     if(Math.hypot((x+.5-a0)/rx,(y+.5-b0)/ry)/q<1)fl(x,y,kk)}};
@@ -240,6 +284,22 @@ function buildCW(){
   for(let y=79;y<=95;y++)for(let x=66;x<=84;x++)if(Math.hypot(x+.5-75.5,y+.5-87.5)<6.8)fl(x,y,3);
   ell(75,16,10,5,7,3);
   tun([[138,66],[168,66]],2);ell(190,66,30,32,2.2,8);ell(197,43,13,7,3.3,9);   /* núi khoáng thạch + đỉnh núi */
+
+  /* --- CỔ CHAI: lối duy nhất lên hang cổ chỉ còn hành lang 5 ô (x 73-77), hàng tinh thể chắn ở hàng 30-31 --- */
+  for(let y=NK0;y<=NK1;y++){
+    for(let x=BAR_X0-1;x>1&&im[y][x]===0;x--)wl(x,y);
+    for(let x=BAR_X1+1;x<W-2&&im[y][x]===0;x++)wl(x,y)}
+  const reachAltar=()=>{   /* BFS từ chỗ xuất hiện tới chân tảng đá, coi hai hàng tinh thể là tường */
+    const seen=new Uint8Array(W*H),q=[89*W+75];seen[q[0]]=1;
+    for(let i=0;i<q.length;i++){const c=q[i],x=c%W,y=(c/W)|0;
+      for(const[a,b]of[[1,0],[-1,0],[0,1],[0,-1]]){const X=x+a,Y=y+b;
+        if(X<0||Y<0||X>=W||Y>=H||seen[Y*W+X]||im[Y][X]!==0)continue;
+        if(BAR_Y.includes(Y)&&X>=BAR_X0&&X<=BAR_X1)continue;
+        seen[Y*W+X]=1;q.push(Y*W+X)}}
+    return !!seen[15*W+75]};
+  if(reachAltar()){   /* dự phòng: nếu vẫn còn đường vòng thì bịt kín cả các hàng cổ chai */
+    for(let y=NK0;y<=NK1;y++)for(let x=2;x<W-2;x++)if((x<BAR_X0||x>BAR_X1)&&im[y][x]===0)wl(x,y)}
+
   const OBJ=[],used=[];
   const fine=(x,y)=>{for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++)if((im[y+j]||[])[x+i]!==0)return false;return true};
   const put=(k,x,y,h,w,o)=>{const ob=Object.assign({k,x,y,ax:x*T+4,ay:(y+1)*T,h,w,alive:1,rt:0},o||{});OBJ.push(ob);if(!(o&&o.nb)){im[y][x]=WALL;rid[y][x]=0}return ob};
@@ -262,8 +322,8 @@ function buildCW(){
     if(h<14)put('cl',x,y,16,12,{col:0,ore:['coal','iron','gold'][hs(x,y)%3]});else put('st',x,y,16,8)}
   [[68,17],[82,17],[70,12],[80,12],[71,23],[79,23]].forEach(([x,y])=>{if(im[y]&&im[y][x]===0)put('pillar',x,y,33,12)});
   put('altar',75,13,40,40);[74,76].forEach(x=>{if(im[13][x]===0){im[13][x]=WALL;rid[13][x]=0}});
-  /* hàng tinh thể chắn đường lên hang cổ (2 hàng x 5 ô) */
-  [34,35].forEach(y=>{for(let x=73;x<=77;x++)if(im[y][x]===0)put('bar',x,y,28,12,{col:(x+y)&1,ex:1,open:0})});
+  /* hàng tinh thể chắn đường lên hang cổ (2 hàng x 5 ô, nằm trong cổ chai) */
+  BAR_Y.forEach(y=>{for(let x=BAR_X0;x<=BAR_X1;x++)if(im[y][x]===0)put('bar',x,y,28,12,{col:(x+y)&1,ex:1,open:0})});
   try{if(localStorage.getItem('deadisland:cbar:'+seed)==='1')OBJ.forEach(o=>{if(o.k==='bar'){o.open=1;o.ex=0;im[o.y][o.x]=0;rid[o.y][o.x]=1}})}catch(_){}
   /* lều + pháp sư đá trên đỉnh núi */
   for(let d=-1;d<=1;d++){im[41][196+d]=WALL;rid[41][196+d]=0}
@@ -434,8 +494,12 @@ function tick(dt){
   const SP0=allPl().find(p=>p.pl===sel&&p.fl===6),nr=!!(SP0&&!G.open&&nearCircle(SP0));
   if(nr&&!hintG)cap('Một cổng đá cổ bị đống đá lớn chặn kín, dưới chân có trận pháp mờ nhạt đang phát sáng. Có lẽ cần cuốc để đập đá.');
   hintG=nr?1:0;
-  if(G.open&&!trans)ins.forEach(p=>{if(p.pl&&p.fl===6){const tx=Math.floor(p.x/T),ty=Math.floor(p.y/T);if(tx>=84&&tx<=86&&ty<=48)window.worldTransfer(p.pl,'crystal')}});
+  /* bước vào đúng lối cổng (x 84-86, y 46-48) mới được chuyển giới */
+  if(G.open&&!trans)ins.forEach(p=>{if(p.pl&&p.fl===6){const tx=Math.floor(p.x/T),ty=Math.floor(p.y/T);if(tx>=84&&tx<=86&&ty>=GY0&&ty<=GB-1)goWorld(p.pl,'crystal')}});
   if(!D)return;
+  {const PW=allPl().find(p=>p.pl===sel&&p.fl===WC),nb=!!(PW&&D.OBJ.some(o=>o.k==='bar'&&!o.open&&Math.hypot(PW.x-o.ax,PW.y-o.ay)<44));
+    if(nb&&!hintB)cap('Hàng tinh thể chắn kín lối lên hang cổ. Chỉ ánh trăng tinh thể (Nhẫn Trăng, phím T) mới rút chúng lại.');
+    hintB=nb?1:0}
   Object.keys(MN).forEach(k=>{
     const s=MN[k],P=allPl().find(p=>p.pl===+k&&p.fl===WC);
     if(!P||Math.hypot(P.x-s.o.ax,P.y-(s.o.ay+(s.k==='altar'?8:-4)))>40){delete MN[k];return}
@@ -465,6 +529,7 @@ function hasRing(n){
     EQC={f:frame,n,v}}
   return EQC.v}
 
+/* icon kỹ năng T: mặt trăng lưỡi liềm (theo hình mẫu) */
 const MIC=document.createElement('canvas');MIC.width=MIC.height=16;
 (()=>{const g=MIC.getContext('2d');g.fillStyle='#e4e0ff';g.fillRect(0,0,16,16);
   for(let y=0;y<16;y++)for(let x=0;x<16;x++){
@@ -487,9 +552,11 @@ function hudCr(){
   hCr.hidden=!(state==='island'&&any);if(s===crSig)return;crSig=s;
   hCr.innerHTML='🔷 '+c.b+' · 🔮 '+c.p+(c.coal?' · ⚫ '+c.coal:'')+(c.iron?' · 🟠 '+c.iron:'')+(c.gold?' · 🟡 '+c.gold:'')}
 setInterval(()=>{
-  const ok=state==='island'&&hasRing(sel);hT.hidden=!ok;
-  if(ok){const c=TC[sel]||0;hTi.style.filter=c>0?'brightness(.4) saturate(.3)':'none';hTc.textContent=c>0?Math.ceil(c)+'s':'';hT.title='Ánh trăng [T]: tinh thể đâm lên 25-36 sát thương, hồi 1s'}
-  if(state==='island')hudCr()},150);
+  try{
+    const ok=state==='island'&&hasRing(sel);hT.hidden=!ok;
+    if(ok){const c=TC[sel]||0;hTi.style.filter=c>0?'brightness(.4) saturate(.3)':'none';hTc.textContent=c>0?Math.ceil(c)+'s':'';hT.title='Ánh trăng [T]: tinh thể đâm lên 25-36 sát thương, hồi 1s'}
+    if(state==='island')hudCr()
+  }catch(e){oops('HUD',e)}},150);
 
 /* ---------- hình vẽ: lều, pháp sư, vòng phép, quặng, nhẫn ---------- */
 function oreRock(o,sk){
@@ -685,20 +752,20 @@ function drawT(){
       cx.globalAlpha=.15*e;R(p[3],x-12,y-26*e,24,26*e);cx.globalAlpha=1;
       spike(x-4,y,Math.round(16*e),6,p);spike(x+4,y,Math.round(13*e),5,p);spike(x,y,Math.round(24*e),8,p)}});
   cx.globalAlpha=1}
-const _glT=glow;glow=function(){_glT();if(!inside)drawT()};
-const _diT=drawIn;drawIn=function(){_diT();drawT()};
+const _glT=glow;glow=function(){_glT();if(!inside){try{drawT()}catch(e){oops('drawT',e);cx.globalAlpha=1}}};
+const _diT=drawIn;drawIn=function(){_diT();try{drawT()}catch(e){oops('drawT',e);cx.globalAlpha=1}};
 
 /* ---------- Chuyển giới ---------- */
-const WORLDS=window.WORLDS;
 WORLDS.crystal={name:'Crystal World',enter(q){
+  if(!D||!FL[WC]){cap('Crystal World chưa dựng được, hãy mở Console (F12) xem lỗi [sader].');return}
   if(!ins.some(p=>p.pl&&p.fl===6&&p!==q))GH=null;
   putIn(q,WC,75.5+(slot(q)-2)*1.2,89.5);q.vis=1;
-  if(q.pl===sel)cap('Crystal World: những cụm tinh thể xanh, tím phát sáng quanh hồ ngọc. Bấm E gần tinh thể để đào (cần cuốc). Phía đông có núi khoáng thạch và Pháp sư Đá, phía bắc có hang cổ.')}};
+  if(q.pl===sel)cap('Crystal World: những cụm tinh thể xanh, tím phát sáng quanh hồ ngọc. Bấm E gần tinh thể để đào (cần cuốc). Phía đông có núi khoáng thạch và Pháp sư Đá, phía bắc có hang cổ (đang bị tinh thể chắn lối).')}};
 WORLDS.crystalBack={name:'Hang động',enter(q){
   if(!ins.some(p=>p.pl&&p.fl===6))newGhost();
   putIn(q,6,85.5+(slot(q)-2)*.9,52.5);q.vis=1;
   if(q.pl===sel)cap('Bạn trở lại hang cấm, đứng trên trận pháp trước cổng đá. Oan hồn vẫn đang rình rập đâu đó...')}};
-const askBack=n=>window.abyssAsk('Vòng trận pháp dưới chân bắt đầu xoay. Bạn có muốn quay lại hang cấm không?',[['Quay lại',()=>window.worldTransfer(n,'crystalBack')],['Ở lại',()=>{}]]);
+const askBack=n=>ask('Vòng trận pháp dưới chân bắt đầu xoay. Bạn có muốn quay lại hang cấm không?',[['Quay lại',()=>goWorld(n,'crystalBack')],['Ở lại',()=>{}]]);
 
 /* ---------- Phím E ---------- */
 addEventListener('keydown',e=>{
@@ -706,10 +773,12 @@ addEventListener('keydown',e=>{
   if(state!=='island'||TK||trans)return;
   const iv=$('inv');if(iv&&!iv.hidden)return;
   const P=allPl().find(p=>p.pl===sel);if(!P)return;
-  if(P.fl===6){const cr=nearCrate(P);if(cr){e.stopImmediatePropagation();takePick(P.pl,cr);return}}
-  if(P.fl===6&&!G.open&&nearCircle(P)){e.stopImmediatePropagation();gateE(P);return}
-  if(P.fl===WC&&nearWiz(P)&&!RIT){e.stopImmediatePropagation();wOpen(P);return}
-  if(P.fl===WC&&D){const tg=target(P);if(!tg)return;e.stopImmediatePropagation();if(tg.t==='back')askBack(P.pl);else startMine(P,tg)}},true);
+  try{
+    if(P.fl===6){const cr=nearCrate(P);if(cr){e.stopImmediatePropagation();takePick(P.pl,cr);return}}
+    if(P.fl===6&&!G.open&&nearCircle(P)){e.stopImmediatePropagation();gateE(P);return}
+    if(P.fl===WC&&nearWiz(P)&&!RIT){e.stopImmediatePropagation();wOpen(P);return}
+    if(P.fl===WC&&D){const tg=target(P);if(!tg)return;e.stopImmediatePropagation();if(tg.t==='back')askBack(P.pl);else startMine(P,tg)}
+  }catch(err){oops('phím E',err)}},true);
 
 /* ---------- Khung nhìn, camera, khóa di chuyển khi đào ---------- */
 const snapC=()=>{const P=ins.find(p=>p.pl===sel);if(!P||!D)return;camX=clamp(P.x-CW/IS/2,0,D.W*T-CW/IS);camY=clamp(P.y-CH/IS/2,0,D.H*T-CH/IS)};
@@ -722,21 +791,30 @@ const _ctrl=ctrl;ctrl=function(){
   if(MN[sel]||(G.mine&&G.mine.n===sel)||(RIT&&RIT.n===sel)){const P=allPl().find(p=>p.pl===sel);if(P){P.moving=0;P.path=[];P.tx=P.x;P.ty=P.y}return}
   _ctrl()};
 const _di=drawIn;drawIn=function(){
-  if(curF===WC&&D){drawBack();_di();drawFront();return}
+  if(curF===WC&&D){
+    try{drawBack()}catch(e){oops('drawBack',e);cx.globalAlpha=1}
+    _di();
+    try{drawFront()}catch(e){oops('drawFront',e);cx.globalAlpha=1}
+    return}
   _di()};
 
 /* ---------- Vòng đời game ---------- */
 const _step=step;step=function(){
   _step();
   if(state!=='island')return;
-  try{tick(Math.min(.25,DM||.016))}catch(e){console.error('sader tick',e)}};
-const _gen=gen;gen=function(sd){_gen(sd);buildGate();buildCrates();buildCW();loadGate()};
+  try{tick(Math.min(.25,DM||.016))}catch(e){oops('tick',e)}};
+const build=()=>{try{buildGate();buildCrates();buildCW();loadGate()}catch(e){oops('dựng map',e)}};
+const _gen=gen;gen=function(sd){_gen(sd);build()};
 const _mk=mkPeople;mkPeople=function(){_mk();
   MN={};GOT={};PT=[];CS={};QS={};RIT=null;MC=[];SP=[];TC={};saveCS();
   try{localStorage.removeItem(KEY+seed);localStorage.removeItem(SKEY);localStorage.removeItem(BKEY+seed)}catch(_){}
-  buildGate();
-  if(D)D.OBJ.forEach(o=>{
-    if(o.k==='cl'){o.alive=1;D.im[o.y][o.x]=WALL;D.rid[o.y][o.x]=0}
-    if(o.k==='bar'){o.open=0;o.ex=1;D.im[o.y][o.x]=WALL;D.rid[o.y][o.x]=0}})};
-buildGate();buildCrates();buildCW();loadGate();
+  try{
+    buildGate();
+    if(D)D.OBJ.forEach(o=>{
+      if(o.k==='cl'){o.alive=1;D.im[o.y][o.x]=WALL;D.rid[o.y][o.x]=0}
+      if(o.k==='bar'){o.open=0;o.ex=1;D.im[o.y][o.x]=WALL;D.rid[o.y][o.x]=0}})
+  }catch(e){oops('ván mới',e)}};
+build();
+window.SADER={version:2,ok:true,world:()=>D};
+console.log('[sader] đã nạp OK (Crystal World '+CW0+'x'+CH0+')');
 })();
