@@ -195,9 +195,9 @@ function label(x,y,t,col){
 /* ---------- Kích hoạt chứng buồn ngủ: hết bữa tối ngày 1 (bát đĩa được dọn đi) ---------- */
 const _end=endMeal;
 endMeal=function(D){
-  const lunch1=!!D&&D.d===1&&D.k===1;
+  const lunch1=!!D&&D.d===1&&D.k===1;   // k: 0 = sáng, 1 = trưa, 2 = tối
   _end(D);
-  if(dinner1)startDrowsy()};
+  if(lunch1)startDrowsy()};
 function startDrowsy(){
   const L=allPl().filter(p=>ACC[p.pl]&&!SL[p.pl]);
   if(!L.length)return;
