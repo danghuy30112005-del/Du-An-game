@@ -1228,7 +1228,7 @@ function outfit(p){
   else if(k==='elder'){Object.assign(o,{cane:1,hair:'#eceef6',cape:wm?null:drk(o.robe,.3),capeTrim:'#e8dcc0',hs:wm?'bun':'short'});if(!wm){o.beard=1;o.beardc='#eceef6'}else o.hat='leaf'}
   return o}
 F.generic=function(R,s,p){
-  if(p.role==='Chủ đảo'||p.role==='Thợ săn')return false;   /* dùng hình gốc trong deadisland.js */
+  if(p.role==='Chủ đảo'||p.role==='Thợ săn'||p.cls==='g')return false;   /* dùng hình gốc trong deadisland.js */
   const o=outfit(p);
   if(p.k==='child'){kid(R,s,{skin:p.skin,hair:p.hair,robe:mixc(p.c,'#7a6ad8',.12),boot:'#3a2a40',cap:strH(p.c+p.hair)%3===0?mixc(p.c,'#2f63c0',.5):null,bow:p.hair&&strH(p.c)%3===1,wand:strH(p.skin)%7===0});return true}
   fig(R,s,o);return true};

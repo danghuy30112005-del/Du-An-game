@@ -305,17 +305,13 @@ function doSwing(e){
     wx=(e.clientX-r.left)/r.width*CW/k+camX,wy=(e.clientY-r.top)/r.height*CH/k+camY,
     ang=Math.atan2(wy-(P.y-7),wx-P.x);
   SWC[n]=SWCD;SWG.push({n,ang,t:0,d:10});
-  if(FN&&!FN.open&&!P.fl&&!inside){
-    const d=Math.hypot(FN.gcx-P.x,FN.gcy-P.y);
-    if(d<=46){
-      const ga=Math.atan2(FN.gcy-(P.y-7),FN.gcx-P.x),df=Math.abs(Math.atan2(Math.sin(ang-ga),Math.cos(ang-ga)));
-      if(df<1.3)openGate();else cap('Hãy vung dao về phía cổng để chém khóa.')}}}
+}
 function openGate(){
   FN.open=true;FN.gate.forEach(([x,y])=>{m[y][x]=PATH});
   try{localStorage.setItem(GKEY+seed,'1')}catch(_){}
   burst(FN.gcx,FN.gcy,0,36,1);RG.push({x:FN.gcx,y:FN.gcy,fl:0,t:0,d:18});LKA={t:0};
   shake=Math.max(shake,8);
-  cap('Chém! Ổ khóa vỡ tan, cổng hàng rào đã mở.')}
+  cap(' Ổ khóa vỡ tan, cổng hàng rào đã mở.')}
 /* chuột phải: vung vũ khí, không làm nhân vật chạy tới chỗ bấm */
 document.addEventListener('pointerdown',e=>{
   if(e.button!==2||e.target!==cv)return;
@@ -375,7 +371,7 @@ function gateFx(){
     R('#d4a63a',x-3,y-2,6,5);R('#8a6a1f',x-3,y+2,6,1);R('#222',x,y,1,2);
     if((frame>>4)%4===0)R('#fff',x-2,y-1,1,1);
     if(FN.near){const w=curWeapon(sel);
-      gbub(x,y-10,w?['Đã bị khóa','Cần thứ gì đó sắc nhọn để mở','(Chuột phải để chém)']:['Đã bị khóa','Cần thứ gì đó sắc nhọn để mở'])}}
+      gbub(x,y-10,w?['Đã bị khóa','Cần chìa khóa để mở','']:['Đã bị khóa','Cần thứ gì đó sắc nhọn để mở'])}}
   else if(LKA){
     const t=LKA.t;cx.globalAlpha=Math.max(0,1-t/40);
     R('#d4a63a',x-4-Math.round(t*.2),y-1+Math.round(t*t*.04),3,4);

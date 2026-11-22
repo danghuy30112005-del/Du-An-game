@@ -559,13 +559,14 @@ function step(){
   }else{
     people.slice().forEach(upd);ins.slice().forEach(upd);if(state==='island')ctrl();if(frame%30===0)social();
     if(state==='land'&&people.every(p=>p.ph)&&OW&&OW.os!=='out'){
-      state='island';gm=0;snap.day=snap.week=snapshot();save();showHud();cap('Chủ đảo đã tới! Lại gần người có mũi tên ▼ rồi bấm E để nói chuyện.')}
+      state='island';snap.day=snap.week=snapshot();save();showHud();cap('Chủ đảo chạy tới hỏi thăm các bạn.')}
     if(state==='island'){
-      ghostTick();signTick();
+      ghostTick();signTick();autoTalk();
       if(!trans){doors();if(inside)roomCheck()}const d0=day();gm+=dt;dineTick();
       if(day()!==d0){snap.day=snapshot();if((day()-1)%7===0)snap.week=snap.day;save();cap('Ngày '+day()+' bắt đầu.')}
       if(Math.floor(gm)!==lastMin){lastMin=Math.floor(gm);clockUI()}
       if(frame%300===0)save();
+      
       if(frame%6===0)tkUI();
       if(!inside&&nightK()>.5&&frame%14===0){const fx=camX+rnd(CW),fy=camY+rnd(CH);if(walkT(Math.floor(fx/T),Math.floor(fy/T)))parts.push({x:fx,y:fy,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.3,g:0,l:120+rnd(90),c:'#e8ff8a',s:1})}
       if(frame%12===0)puff(bx+25,by-12,1,['#8a8f98','#b9bec6'],-.01,-.3,50)}}
@@ -968,6 +969,10 @@ function initRes(){
 /* ===== Chủ đảo: nhà 2 tầng, vườn bên cạnh, đi ra đón, hội thoại bằng phím E ===== */
 const nearOwner=()=>{const P=people.find(p=>p.pl===sel);return OW&&(OW.os==='meet'||OW.os==='tend')&&OW.vis&&!OW.hide&&P&&Math.hypot(P.x-OW.x,P.y-OW.y)<28?P:null};
 function tkUI(){$('tk').hidden=!(state==='island'&&!inside&&!TK&&!trans&&nearOwner())}
+function autoTalk(){
+  if(TK||trans||inside||!OW||OW.os!=='meet'||OW.hide)return;
+  const P=people.find(p=>p.pl&&p.vis&&!ACC[p.pl]&&Math.hypot(p.x-OW.x,p.y-OW.y)<40);
+  if(P)openTalk(P)}
 function mkOwner(){return{k:'man',pl:0,role:'Chủ đảo',cls:'o',owner:1,c:'#5b2a86',skin:'#f1c27d',hair:'#cfd3d6',x:HDX*T+4,y:HDY*T+4,tx:HDX*T+4,ty:HDY*T+4,sp:1,path:[],ph:1,wait:0,moving:0,vis:0,delay:50,act:'idle',t:0,cd:1e9,goal:null,say:'',os:'out',re:0,life:0}}
 function homeOwner(){/* dùng khi tải save / quay về mốc ngày */
   OW=mkOwner();OW.delay=0;OW.vis=1;
@@ -1070,8 +1075,8 @@ function startTend(){OW.os='tend';OW.hide=0;OW.path=[];OW.tx=OW.x;OW.ty=OW.y;OW.
 
 const CAVE_T='Cái hang ở phía nam, sau đầm lầy ấy ư? Đừng bén mảng tới đó! bạn sẽ hối hận khi đụng độ thứ bên trong. Từng có người vào đó và không ai trở ra. Nếu lỡ vào, hãy chạy về phía lối ra ngay chỗ các bạn bước vào, nó chạy chậm hơn các bạn một chút.';
 const NODES=[
-  {t:'Tàu các bạn bị đắm sao?',o:[{t:'Đúng, ở đây có thuyền để về đất liền không?',go:1}]},
-  {t:'Một tháng nữa sẽ có thuyền tiếp tế tới dinh thự, lúc đó chúng tôi sẽ nhờ họ đưa các bạn về đất liền. Trong thời gian này các bạn có thể ở lại dinh thự làm khách và phụ giúp các công việc trong dinh thự được chứ?',o:[{t:'Đồng ý, cảm ơn gia chủ',go:2,acc:1},{t:'Không đồng ý',go:3},{t:'Hỏi về cái hang',go:5}]},
+  {t:'Có chuyện gì vậy? Tàu các bạn bị đắm sao?',o:[{t:'Đúng, ở đây có thuyền để về đất liền không?',go:1}]},
+  {t:'Một tháng nữa sẽ có thuyền tiếp tế tới dinh thự, lúc đó chúng tôi sẽ nhờ họ đưa các bạn về đất liền. Trong thời gian này các bạn ở lại dinh thự làm việc giúp tôi được chứ?',o:[{t:'Đồng ý, cảm ơn gia chủ',go:2,acc:1},{t:'Hỏi về cái hang (không bắt buộc)',go:5}]},
   {t:'Tốt quá! Dinh thự ở ngay phía trước, mời các bạn vào. Tôi ra chăm vườn cạnh nhà một lát, cần gì cứ lại hỏi tôi nhé.',o:[{t:'Kết thúc',end:1}]},
   {t:'Vậy sao... Khi nào đổi ý, hãy quay lại nói chuyện với tôi nhé.',o:[{t:'Kết thúc',end:1}]},
   {t:'Cứ tự nhiên như ở nhà nhé. Các bạn cần hỏi gì không?',o:[{t:'Hỏi về cái hang',go:5},{t:'Không có gì',end:1}]},
@@ -1083,7 +1088,10 @@ function renderTalk(){
   const n=NODES[TK.node],o=$('dO');$('dlg').hidden=false;$('dN').textContent='Chủ đảo (nói với P'+TK.P.pl+')';$('dT').textContent=n.t;o.innerHTML='';
   n.o.forEach((a,i)=>{const b=document.createElement('button');b.className='btn';b.textContent=(i+1)+'. '+a.t;b.onclick=()=>pickOpt(a);o.append(b)});
   o.firstChild.focus()}
-function pickOpt(a){if(a.acc)ACC[TK.P.pl]=1;if(a.end)return closeTalk();
+function pickOpt(a){if(a.acc)ACC[TK.P.pl]=1;
+  if(a.end){
+    if(!ACC[TK.P.pl]){TK.node=1;renderTalk();return}   /* chưa đồng ý: quay lại câu hỏi bắt buộc */
+    return closeTalk()}
   if(a.go==='back')TK.node=TK.from;else{TK.from=TK.node;TK.node=a.go}
   renderTalk()}
 function closeTalk(){
@@ -1214,7 +1222,7 @@ function chNext(){
   if(!cfg[ci].look)return;
   if(ci<nPl-1){ci++;showChr(1);return}
   $('chr').hidden=true;$('title').hidden=true;
-  state='sail';cap('Thuyền lao thẳng về phía một hòn đảo hoang...')}
+  gm=240;state='sail';cap('Thuyền lao thẳng về phía một hòn đảo hoang...')}
 
 $('start').onclick=()=>{$('menu').hidden=true;$('lv').hidden=false};
 $('goBtn').onclick=()=>{$('goBox').hidden=true;reset()};
@@ -1232,7 +1240,7 @@ $('rsX').onclick=()=>{confirmKey='';$('rs').hidden=true};
 addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
-  if(TK){const kk=e.key.toLowerCase();if(kk==='escape')closeTalk();else if(/^[1-9]$/.test(kk)){const b=$('dO').children[+kk-1];if(b)b.click()}return}
+  if(TK){const kk=e.key.toLowerCase();if(kk==='escape'){if(ACC[TK.P.pl])closeTalk()}else if(/^[1-9]$/.test(kk)){const b=$('dO').children[+kk-1];if(b)b.click()}return}
   if(e.key.toLowerCase()==='e'&&state==='island'&&!inside){const P=nearOwner();if(P)openTalk(P);return}
   const k=e.key.toLowerCase();if(k==='h'&&state==='island'){togHud();return}
   if(state==='island'){
@@ -1729,3 +1737,7 @@ function renderMeal(){
     r.innerHTML='<span class="sw" style="background:'+(P?P.c:'#fff')+'"></span><b>P'+n+'</b>';
     [['Có',1,'btn'],['Không',0,'btn alt']].forEach(([t,y,c])=>{const x=document.createElement('button');x.className=c;x.textContent=t;x.onclick=()=>mealAns(n,y);r.append(x)});
     o.append(r)})}
+
+
+
+    

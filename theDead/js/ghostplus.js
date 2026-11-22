@@ -239,3 +239,211 @@ ghostDraw=function(){
     drawFx();
   }finally{GH=main}};
 })();
+
+/* ===== vines.js: DÂY LEO CUỐN MIỆNG HANG ĐỘNG =====
+   Nạp CUỐI CÙNG (sau sader.js). Không cần sửa file cũ.
+   - Miệng hang (CVX,CVY) bị dây leo che kín.
+   - Lại gần: dây ngóc lên cảnh báo. Vào vùng GRAB: dây quất ra, quấn, kéo xuống đầm lầy, chết.
+   - Sau này diệt dây leo bằng: window.caveVines.destroy()  (khôi phục: caveVines.restore()) */
+(()=>{
+if(typeof CVX==='undefined'||typeof allPl!=='function'||typeof glow!=='function'||typeof sprite!=='function'||typeof enterCave!=='function'){
+  console.warn('vines.js: hãy nạp CUỐI CÙNG (sau deadisland.js)');return}
+
+/* ---------- Thông số ---------- */
+const MX=CVX*T+4,MY=CVY*T,CY=CVY*T+4;      /* tâm miệng hang, đỉnh miệng hang */
+const WARN=62,GRAB=30;                       /* bán kính cảnh báo / bị bắt (px) */
+const T_LASH=.45,T_PULL=.9,T_SINK=1.7,T_DIE=2.9;   /* mốc thời gian chuỗi kéo (giây) */
+const KEY='deadisland:vinesgone';
+const C={d:'#07241d',m:'#1d6a2a',l:'#3f9a2e',y:'#b8c22e'};
+
+let ALIVE=true,DYING=null,GR=[],SC=[],PT=[],IM={},PF={},NEAR=null,wCD=0;
+const loadFlag=()=>{try{ALIVE=localStorage.getItem(KEY)!==String(seed)}catch(_){ALIVE=true}};
+loadFlag();
+
+const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),w,h)};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const warned={};const oops=(n,e)=>{if(!warned[n]){warned[n]=1;console.error('[vines] lỗi trong '+n+':',e)}};
+function label(x,y,t,col){
+  cx.save();cx.textAlign='center';cx.font='bold 6px monospace';
+  const w=Math.ceil(cx.measureText(t).width)+6,bx=Math.round(x-w/2),by=Math.round(y);
+  cx.fillStyle='rgba(0,0,0,.8)';cx.fillRect(bx,by,w,9);cx.fillStyle=col||'#8aff4a';cx.fillRect(bx,by+9,w,1);
+  cx.fillStyle='#fff';cx.fillText(t,Math.round(x),by+7);cx.restore()}
+
+/* ---------- Công cụ vẽ dây ---------- */
+function curve(x0,y0,qx,qy,x1,y1,n,wig,ph,t){
+  const o=[],dx=x1-x0,dy=y1-y0,l=Math.hypot(dx,dy)||1;
+  for(let i=0;i<=n;i++){
+    const u=i/n,q=1-u;let x=q*q*x0+2*q*u*qx+u*u*x1,y=q*q*y0+2*q*u*qy+u*u*y1;
+    const s=Math.sin(u*9+ph+t*.07)*wig*Math.sin(Math.PI*u);
+    x+=-dy/l*s;y+=dx/l*s;o.push([x,y])}
+  return o}
+function vine(p,w,al){
+  const n=p.length;if(n<2)return;
+  cx.globalAlpha=al;
+  for(let i=0;i<n;i++){const ww=Math.max(1,Math.round(w*(1-i/(n-1)*.5)));R(C.d,p[i][0]-ww/2-1,p[i][1]-ww/2-1,ww+2,ww+2)}
+  for(let i=0;i<n;i++){const ww=Math.max(1,Math.round(w*(1-i/(n-1)*.5)));R(C.m,p[i][0]-ww/2,p[i][1]-ww/2,ww,ww)}
+  for(let i=0;i<n;i++){const ww=Math.max(1,Math.round(w*(1-i/(n-1)*.5)));if(ww>=2)R(((i>>1)&1)?C.y:C.l,p[i][0]-ww/2,p[i][1]-ww/2,1+(ww>2?1:0),1)}
+  for(let i=2;i<n;i+=5){const x=p[i][0],y=p[i][1];R(C.y,x+(i&1?2:-3),y-2,2,1);R(C.l,x+(i&1?2:-3),y-1,1,1)}
+  cx.globalAlpha=1}
+
+/* ---------- Vũng bùn ---------- */
+function pool(x,y,r,t,al){
+  if(r<1)return;
+  const ry=Math.max(2,Math.round(r*.45));
+  cx.globalAlpha=al;
+  for(let j=-ry;j<=ry;j++){const w=Math.round(r*Math.sqrt(Math.max(0,1-(j*j)/(ry*ry+.01))));R('#10190c',x-w-1,y+j,w*2+2,1);R('#26311a',x-w,y+j,w*2,1)}
+  for(let j=-ry+1;j<=ry-1;j++){const w=Math.round((r-2)*Math.sqrt(Math.max(0,1-(j*j)/(ry*ry+.01))));if(w>0)R(((j+t>>3)&1)?'#3b4a28':'#334020',x-w,y+j,w*2,1)}
+  const q=(t*.03)%1;cx.globalAlpha=al*(1-q);
+  for(let a=0;a<6.28;a+=.4)R('#6a7a46',x+Math.cos(a)*r*q,y+Math.sin(a)*ry*q,1,1);
+  cx.globalAlpha=1}
+function bubbles(x,y,t,al){
+  for(let i=0;i<3;i++){const q=(t*.03+i/3)%1;cx.globalAlpha=al*(1-q);R('#6a7a46',x+(i-1)*4+Math.sin(q*6+i)*1.5,y-q*9,2,2);R('#9aaa66',x+(i-1)*4+Math.sin(q*6+i)*1.5,y-q*9,1,1)}
+  cx.globalAlpha=1}
+
+/* ---------- Giết ngay (bỏ qua hệ thống tim / hào quang) ---------- */
+function instantKill(n){
+  const V=allPl().find(p=>p.pl===n);if(!V)return;
+  BL.push([V.x,V.y]);flash=24;LS={t:0,fin:0};
+  people=people.filter(p=>p.pl!==n);ins=ins.filter(p=>p.pl!==n);
+  const L=allPl();
+  if(!L.length){gameOver();return}
+  cap('P'+n+' bị dây leo kéo xuống đầm lầy và chết.');
+  if(sel===n)setSel(L[0].pl);else infoUI()}
+
+function leaves(x,y,n){for(let i=0;i<n;i++)PT.push({x:x+rnd(15)-7,y:y+rnd(11)-5,vx:(Math.random()-.5)*1.2,vy:-(.1+Math.random()*.8),l:40+rnd(40),c:[C.l,C.y,C.m][rnd(3)]})}
+function mud(x,y,n){for(let i=0;i<n;i++)PT.push({x:x+rnd(9)-4,y,vx:(Math.random()-.5)*1.6,vy:-(.5+Math.random()*1.6),l:25+rnd(20),c:['#26311a','#47552f','#6a7a46'][rnd(3)]})}
+
+/* ---------- Bắt người chơi ---------- */
+function startGrab(P){
+  if(GR.some(g=>g.n===P.pl))return;
+  const dx=MX-P.x,dy=CY-P.y,d=Math.hypot(dx,dy)||1,mv=Math.min(14,Math.max(0,d-14));
+  let tx=P.x+dx/d*mv,ty=P.y+dy/d*mv;
+  if(Math.floor(tx/T)===CVX&&Math.floor(ty/T)===CVY)ty=(CVY-1)*T+4;      /* không kéo vào ô cửa hang */
+  GR.push({n:P.pl,t:0,sx:P.x,sy:P.y,tx,ty,ax:MX+clamp(P.x-MX,-14,14),ay:MY+4,ax2:MX+clamp(-(P.x-MX),-14,14),ay2:MY+5,ph:Math.random()*6});
+  P.path=[];P.tx=P.x;P.ty=P.y;
+  shake=Math.max(shake,6);leaves(P.x,P.y-8,10);
+  cap('Dây leo bất ngờ quất ra, quấn chặt lấy P'+P.pl+'!')}
+
+/* chặn bước vào cửa hang khi dây leo còn sống */
+const _ec=enterCave;
+enterCave=function(q){
+  if(ALIVE&&!DYING){if(q.fl)return _ec(q);startGrab(q);return}
+  return _ec(q)};
+
+/* khóa điều khiển nhân vật đang bị kéo */
+const _ctrl=ctrl;
+ctrl=function(){
+  const P=GR.length&&allPl().find(p=>p.pl===sel&&GR.some(g=>g.n===p.pl));
+  if(P){P.moving=0;P.path=[];P.tx=P.x;P.ty=P.y;return}
+  _ctrl()};
+
+/* ---------- Cập nhật mỗi khung hình ---------- */
+function tick(dt){
+  if(state!=='island')return;
+  if(wCD>0)wCD-=dt;
+  SC.forEach(s=>s.t+=dt);SC=SC.filter(s=>s.t<9);
+  PT.forEach(q=>{q.x+=q.vx;q.y+=q.vy;q.vy+=.04;q.l--});PT=PT.filter(q=>q.l>0);
+  if(DYING){DYING.t+=dt;if(frame%3===0)leaves(MX,MY+4,2);
+    if(DYING.t>=2.2){DYING=null;ALIVE=false;try{localStorage.setItem(KEY,String(seed))}catch(_){}
+      cap('Dây leo khô héo, rụng xuống. Miệng hang đã lộ ra...')}}
+  /* theo dõi người chơi ngoài trời */
+  NEAR=null;let nd=1e9;
+  allPl().forEach(p=>{
+    if(p.fl){PF[p.pl]=1;return}
+    if(p.hide)return;
+    const d=Math.hypot(p.x-MX,p.y-CY);
+    if(PF[p.pl]){if(d<WARN+8)IM[p.pl]=1;PF[p.pl]=0}           /* vừa ra khỏi hang: tạm miễn nhiễm */
+    if(IM[p.pl]&&d>WARN+6)IM[p.pl]=0;
+    if(!ALIVE||DYING)return;
+    if(d<WARN*1.25&&d<nd&&!GR.some(g=>g.n===p.pl)){nd=d;NEAR={x:p.x,y:p.y,d}}
+    if(d<WARN&&wCD<=0&&p.pl===sel&&!IM[p.pl]){wCD=7;cap('Dây leo quấn kín miệng hang, chúng đang động đậy khi bạn lại gần... Đừng tiến thêm!')}
+    if(!IM[p.pl]&&d<GRAB)startGrab(p)});
+  /* chuỗi bị kéo */
+  GR.forEach(g=>{
+    const P=allPl().find(p=>p.pl===g.n);
+    if(!P||P.fl||!ALIVE&&!DYING){if(P)P.hide=0;g.dead=1;return}
+    if(DYING){P.hide=0;g.dead=1;return}
+    g.t+=dt;const t=g.t;let x,y;
+    if(t<T_PULL){x=g.sx+Math.sin(t*40)*.6;y=g.sy}
+    else if(t<T_SINK){const u=(t-T_PULL)/(T_SINK-T_PULL),e=u*u*(3-2*u);x=g.sx+(g.tx-g.sx)*e;y=g.sy+(g.ty-g.sy)*e}
+    else{x=g.tx;y=g.ty;P.hide=1;if(frame%5===0)mud(x,y+1,2)}
+    P.x=x;P.y=y;P.tx=x;P.ty=y;P.path=[];P.moving=0;
+    if(t>=T_DIE){g.dead=1;SC.push({x:g.tx,y:g.ty+1,t:0});mud(g.tx,g.ty+1,24);instantKill(g.n)}});
+  GR=GR.filter(g=>!g.dead)}
+
+/* ---------- Vẽ ---------- */
+function roots(t,al,fall){
+  for(let k=0;k<7;k++){
+    const bx=MX-18+k*6,by=MY+3;
+    let ang=-1.5708+(k-3)*.4+Math.sin(t*.03+k)*.15,len=15+(k%3)*6+Math.sin(t*.05+k*2)*2;
+    if(NEAR){
+      const a2=Math.atan2(NEAR.y-6-by,NEAR.x-bx),k2=clamp(1-(NEAR.d-GRAB)/(WARN-GRAB),0,1),da=Math.atan2(Math.sin(a2-ang),Math.cos(a2-ang));
+      ang+=da*k2*.8;len+=k2*(8+((k+1)%3)*4)}
+    len*=1-fall*.35;
+    const ex=bx+Math.cos(ang)*len,ey=by+Math.sin(ang)*len+fall*fall*6;
+    vine(curve(bx,by,bx+Math.cos(ang+.5)*len*.5,by+Math.sin(ang+.5)*len*.5-3,ex,ey,Math.max(5,len>>1),2,k*1.7,t),3,al)}}
+function curtain(t,al,fall){
+  for(let k=-4;k<=4;k++){
+    const bx=MX+k*4,top=MY-24+(((k*5+9)%4+4)%4)*2,len=30+(((k*7)%5+5)%5)*3-fall*8,pts=[];
+    for(let i=0;i<=11;i++){const u=i/11;pts.push([bx+Math.sin(t*.035+k*1.3+u*5)*(1+u*2.5),top+u*len+fall*u*u*28])}
+    vine(pts,k%2?3:2,al)}
+  [[-4,3,6],[2,-3,10],[7,5,9]].forEach(([a,b,c],i)=>
+    vine(curve(MX-21,MY+a,MX,MY+b+Math.sin(t*.04+i)*1.5,MX+21,MY+c,18,2,i*2.1,t),i===1?4:3,al))}
+function drawGrab(g){
+  const P=allPl().find(p=>p.pl===g.n);if(!P)return;
+  const t=g.t,f=frame,x=Math.round(P.x),y=Math.round(P.y);
+  pool(g.tx,g.ty+1,3+10*clamp((t-.6)/1.1,0,1),f,1);
+  if(t<T_SINK){
+    if(t<T_LASH){
+      const u=clamp(t/.4,0,1),ex=g.ax+(P.x-g.ax)*u,ey=g.ay+(P.y-4-g.ay)*u;
+      vine(curve(g.ax,g.ay,(g.ax+ex)/2,Math.min(g.ay,ey)-12*(1-u),ex,ey,16,2.5,g.ph,f),3,1)}
+    else{
+      vine(curve(g.ax,g.ay,(g.ax+P.x)/2,(g.ay+P.y)/2-6+Math.sin(f*.3)*2,P.x,P.y-5,16,2,g.ph,f),3,1);
+      if(t>.6)vine(curve(g.ax2,g.ay2,(g.ax2+P.x)/2,(g.ay2+P.y)/2-6,P.x,P.y-12,16,2,g.ph+2,f),3,1);
+      const wn=Math.min(4,Math.floor((t-T_LASH)/.1)+1);
+      for(let r=0;r<wn;r++){
+        const pts=[];for(let a=0;a<6.3;a+=.55)pts.push([P.x+Math.cos(a+r*1.2)*5,P.y-3-r*4+Math.sin(a+r*1.2)*1.6]);
+        vine(pts,2,1)}}}
+  else{
+    const sink=Math.min(26,(t-T_SINK)*26),sx=Math.round(P.x+Math.sin(f*1.1)*.8);
+    cx.save();cx.beginPath();cx.rect(sx-20,y-OY-12,40,OY+13);cx.clip();
+    cx.drawImage(sprite(P,0),sx-OX,y-OY+Math.round(sink));cx.restore();
+    const rp=12,wy=y-10+sink;
+    for(let k=-1;k<=1;k++)vine(curve(sx+k*rp,y+1,sx+k*5,y-14,sx,wy,14,2,k*2+g.ph,f),3,1);
+    bubbles(sx,y,f,1)}}
+function drawAll(){
+  if(!ALIVE&&!DYING&&!SC.length&&!PT.length&&!GR.length)return;
+  if(MX<camX-90||MX>camX+CW+90||CY<camY-90||CY>camY+CH+90)return;
+  const t=frame;
+  SC.forEach(s=>{const a=Math.max(0,1-s.t/9)*.9;pool(s.x,s.y,10,t,a);bubbles(s.x,s.y,t,a)});
+  if(ALIVE||DYING){
+    const al=DYING?Math.max(0,1-DYING.t/2.2):1,fall=DYING?DYING.t:0,nk=nightK();
+    cx.save();cx.globalCompositeOperation='lighter';
+    const g=cx.createRadialGradient(MX,MY+4,2,MX,MY+4,34);
+    g.addColorStop(0,'rgba(90,220,90,'+((.1+.14*nk)*al).toFixed(3)+')');g.addColorStop(1,'rgba(90,220,90,0)');
+    cx.fillStyle=g;cx.fillRect(MX-36,MY-32,72,72);cx.restore();
+    roots(t,al,fall);vine.call(null,[],1,al);curtain(t,al,fall)}
+  GR.forEach(drawGrab);
+  PT.forEach(q=>{cx.globalAlpha=clamp(q.l/15,0,1);R(q.c,q.x,q.y,2,2)});cx.globalAlpha=1;
+  if(NEAR&&ALIVE&&!DYING&&!GR.length)label(MX,MY-42,'Dây leo chắn cửa hang','#8aff4a')}
+
+const _glow=glow;
+glow=function(){_glow();if(!inside){try{drawAll()}catch(e){oops('vẽ',e);cx.globalAlpha=1}}};
+const _step=step;
+step=function(){_step();try{tick(Math.min(.25,DM||.016))}catch(e){oops('tick',e)}};
+
+/* ---------- Vòng đời game ---------- */
+const _gen=gen;
+gen=function(sd){_gen(sd);loadFlag();DYING=null;GR=[];SC=[];PT=[];IM={};PF={};NEAR=null};
+const _mk=mkPeople;
+mkPeople=function(){_mk();ALIVE=true;DYING=null;GR=[];SC=[];PT=[];IM={};PF={};NEAR=null;
+  try{localStorage.removeItem(KEY)}catch(_){}};
+const _rs=restore;
+restore=function(s){_rs(s);GR=[];IM={};PF={};NEAR=null};
+
+/* ---------- API cho nhiệm vụ sau ---------- */
+window.caveVines={
+  isAlive:()=>ALIVE&&!DYING,
+  destroy:()=>{if(!ALIVE||DYING)return;DYING={t:0};flash=10;shake=Math.max(shake,8);leaves(MX,MY,30)},
+  restore:()=>{ALIVE=true;DYING=null;try{localStorage.removeItem(KEY)}catch(_){}}};
+})();
