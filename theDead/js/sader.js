@@ -847,97 +847,94 @@ const disc=(g,col,x,y,r,ox,oy)=>{g.fillStyle=col;for(let j=-r;j<=r;j++){const w=
 /* =====================================================================
    1. BIỂN
    ===================================================================== */
-const SEAF=['#8cf2e4','#70e4e4','#56d1e7','#40b8e3','#349adb','#2d7acb','#2a5db2'];
+const SEAF=['#2f5560','#294b5a','#22404f','#1b3445','#162a3b','#11212f','#0c1823'];
 F.sea=function(x,y){
   const h=hs(x,y),px=x*T,py=y*T;let d=Math.min(6,(sd[y]&&sd[y][x])||6);d=Math.round(6-(6-d)*iAlpha);
   cx.fillStyle=SEAF[d];cx.fillRect(px,py,T,T);
   const wv=Math.sin(x*.55+y*.35+frame*.04)+Math.sin(x*.2-y*.5+frame*.027);
-  if(d<=1){cx.fillStyle='rgba(255,255,255,.12)';cx.fillRect(px,py,T,T)}
-  if(wv>1.15-.4*GL){cx.fillStyle=d<3?'rgba(255,255,255,.4)':'rgba(200,240,255,.3)';cx.fillRect(px+1+((h>>3)&3),py+2+((h>>5)&3),4,1)}
-  else if(wv<-1.3){cx.fillStyle='rgba(20,20,110,.14)';cx.fillRect(px,py+3,T,2)}
-  if((x*7+y*3+(frame>>3))%23===0){cx.fillStyle='rgba(255,255,255,.7)';cx.fillRect(px+((h>>3)&5),py+((h>>5)&5),2,1)}
-  if(d>=3&&(x*5+y*9+(frame>>4)+(h&3))%37===0){cx.fillStyle='rgba(222,206,255,.75)';cx.fillRect(px+((h>>4)&5),py+((h>>7)&5),1,1)}
-  if(d>=5&&(x*3+y*7+(frame>>5))%53===0){cx.fillStyle='rgba(120,255,235,.5)';cx.fillRect(px+((h>>3)&5),py+((h>>6)&5),2,1)}
+  if(d<=1){cx.fillStyle='rgba(120,160,150,.10)';cx.fillRect(px,py,T,T)}
+  if(wv>1.15-.4*GL){cx.fillStyle=d<3?'rgba(170,200,200,.22)':'rgba(90,130,150,.2)';cx.fillRect(px+1+((h>>3)&3),py+2+((h>>5)&3),4,1)}
+  else if(wv<-1.3){cx.fillStyle='rgba(0,0,10,.28)';cx.fillRect(px,py+3,T,2)}
+  if((x*7+y*3+(frame>>3))%29===0){cx.fillStyle='rgba(190,210,220,.4)';cx.fillRect(px+((h>>3)&5),py+((h>>5)&5),2,1)}
+  if(d>=3&&(x*5+y*9+(frame>>4)+(h&3))%41===0){cx.fillStyle='rgba(150,80,200,.55)';cx.fillRect(px+((h>>4)&5),py+((h>>7)&5),1,1)}
+  if(d>=5&&(x*3+y*7+(frame>>5))%61===0){cx.fillStyle='rgba(90,220,170,.35)';cx.fillRect(px+((h>>3)&5),py+((h>>6)&5),2,1)}
   [[0,-1,0,0,T,1],[0,1,0,T-1,T,1],[-1,0,0,0,1,T],[1,0,T-1,0,1,T]].forEach(([a,b,rx,ry,w,hh])=>{
     const r=m[y+b];if(r&&r[x+a]!==undefined&&r[x+a]!==SEA){
-      cx.globalAlpha=iAlpha*(.55+.3*Math.sin(frame*.07+x*.7+y*.5));cx.fillStyle='#ffffff';cx.fillRect(px+rx,py+ry,w,hh);cx.globalAlpha=1}});
+      cx.globalAlpha=iAlpha*(.35+.25*Math.sin(frame*.07+x*.7+y*.5));cx.fillStyle='#b8c8c8';cx.fillRect(px+rx,py+ry,w,hh);cx.globalAlpha=1}});
   return true};
 
 /* =====================================================================
    2. ĐẤT
    ===================================================================== */
-const FLC=['#ff9ac2','#fff2a8','#ffffff','#c9a6ff','#8fe8ff','#ffb38a'];
-const nbSea=(x,y)=>[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>(m[y+b]||[])[x+a]===SEA);
+const FLC=['#8a1c2e','#6a2c8c','#b8a060','#3a8a7a','#a03a50','#5a3a7a'];
 function grassT(x,y,t,h,Q){
   const bright=t===PLAT||t===FLOW,n=Math.sin(x*.19+1)+Math.sin(y*.26)+Math.sin((x+y)*.12);
-  const P=bright?(n>.9?['#8cea6c','#96f074']:n<-1?['#5ec757','#66cf5d']:['#78de64','#6fd65d','#81e46c'])
-                :(n>1.1?['#80de5e','#8ae466']:n<-1.2?['#3f9f45','#47a94c']:['#5cc050','#53b94a','#66ca57']);
+  const P=bright?(n>.9?['#4a5a36','#52623b']:n<-1?['#2c3a2c','#314030']:['#3e4e32','#384830','#445436'])
+                :(n>1.1?['#445030','#4b5834']:n<-1.2?['#1e2a22','#232f26']:['#2f3d2b','#2a3827','#344430']);
   Q(P[h%P.length],0,0,T,T);
-  if(((x+y)&1)===0)Q('rgba(255,255,255,.04)',0,0,T,T);
-  if(h%5===0)Q('#2f8a3e',(h>>3)&6,(h>>6)&5,1,2);
-  if(h%9===0)Q('#a6f07e',(h>>4)&7,(h>>8)&7,1,1);
-  if(h%7===3){const sw=((frame>>4)+x)&1,bx=(h>>6)&5;Q('#43a84a',bx,4,1,3);Q('#8de86c',bx+sw,3,1,1)}
-  if(h%13===5){const sw=((frame>>5)+x+y)&1,bx=(h>>4)&5;Q('#3a9a42',bx,3,1,4);Q('#74dd60',bx+1+sw,2,1,2)}
-  /* hoa 4 cánh nhỏ */
+  if(((x+y)&1)===0)Q('rgba(0,0,0,.07)',0,0,T,T);
+  if(h%5===0)Q('#161f18',(h>>3)&6,(h>>6)&5,1,2);
+  if(h%9===0)Q('#5a6a3c',(h>>4)&7,(h>>8)&7,1,1);
+  if(h%7===3){const sw=((frame>>4)+x)&1,bx=(h>>6)&5;Q('#1e2c1e',bx,4,1,3);Q('#6a7a44',bx+sw,3,1,1)}
+  if(h%11===5)Q('#3a2f3a',(h>>3)&5,(h>>6)&5,2,1);
   const nf=t===FLOW?3:t===PLAT?2:1;
   for(let i=0;i<nf;i++){const q=hs(x*3+i*17,y*5+i*29);
-    if(q%(t===FLOW?3:t===PLAT?7:23)===0){const fx=1+((q>>4)%5),fy=1+((q>>8)%5),c=FLC[(q>>12)%FLC.length];
-      Q(c,fx,fy+1,3,1);Q(c,fx+1,fy,1,3);Q('#ffe27a',fx+1,fy+1,1,1)}}
-  /* hạt phép lấp lánh + nấm phát sáng */
-  if(h%43===0&&((frame>>3)+(h>>5))%10<3){cx.globalAlpha*=.85;Q('#fffbd0',(h>>3)&6,(h>>7)&6,1,1);cx.globalAlpha/=.85}
-  if(h%197===0){Q('#f2eaff',3,5,1,2);Q('#7ad8ff',2,4,3,1);Q('#ffffff',3,4,1,1);if(nightK()>.3){cx.save();cx.globalCompositeOperation='lighter';cx.globalAlpha=.25*nightK();cx.fillStyle='#7ad8ff';cx.fillRect(x*T-1,y*T+1,10,8);cx.restore()}}}
+    if(q%(t===FLOW?4:t===PLAT?9:31)===0){const fx=1+((q>>4)%5),fy=1+((q>>8)%5),c=FLC[(q>>12)%FLC.length];
+      Q('#1a2218',fx+1,fy+2,1,2);Q(c,fx,fy+1,3,1);Q(c,fx+1,fy,1,2);Q('#d8c070',fx+1,fy+1,1,1)}}
+  if(h%43===0&&((frame>>3)+(h>>5))%12<3){cx.globalAlpha*=.8;Q('#b47aff',(h>>3)&6,(h>>7)&6,1,1);cx.globalAlpha/=.8}
+  if(h%173===0){Q('#d8d0b8',3,5,1,2);Q('#6a2c8c',2,4,3,1);Q('#b47aff',3,4,1,1);
+    if(nightK()>.2){cx.save();cx.globalCompositeOperation='lighter';cx.globalAlpha=.28*Math.max(.4,nightK());cx.fillStyle='#8a3cc8';cx.fillRect(x*T-1,y*T+1,10,8);cx.restore()}}}
 F.land=function(x,y,t){
   const h=hs(x,y),px=x*T,py=y*T,Q=(c,a,b,w,hh)=>{cx.fillStyle=c;cx.fillRect(px+a,py+b,w,hh)};
   if(t===SAND||t===ROCK){
-    Q(h%3?'#f8ebc4':'#f0dfae',0,0,T,T);
-    if(nbSea(x,y))Q('rgba(222,186,128,.32)',0,0,T,T);
-    if(h%4===0)Q('#e4ca90',(h>>4)&7,(h>>7)&7,1,1);
-    if(h%7===0)Q('#fffaf0',(h>>5)&7,(h>>9)&7,1,1);
-    if(t===SAND&&h%67===0){Q('#ffb7cf',3,4,2,1);Q('#fff0f5',3,3,1,1)}
-    if(t===SAND&&h%113===0){Q('#7ad8ff',2,3,1,1);Q('#c8f2ff',2,2,1,1)}
-    if(((frame>>3)+h)%30===0&&h%3===0)Q('#ffffff',(h>>3)&6,(h>>6)&6,1,1);
+    Q(h%3?'#6f6a60':'#655f56',0,0,T,T);
+    if(nbSea(x,y))Q('rgba(10,25,30,.35)',0,0,T,T);
+    if(h%4===0)Q('#4c473f',(h>>4)&7,(h>>7)&7,1,1);
+    if(h%7===0)Q('#8c8678',(h>>5)&7,(h>>9)&7,1,1);
+    if(t===SAND&&h%71===0){Q('#d8d0b8',3,4,2,1);Q('#a89c80',3,3,1,1)}
+    if(t===SAND&&h%131===0){Q('#6a2c8c',2,3,1,1);Q('#b47aff',2,2,1,1)}
     return true}
   if(t===MTN){const d=hg[y][x];
-    Q(d<.16?'#f6faff':d<.26?'#b4badf':'#8890bf',0,0,T,T);
-    if(x>=46)Q('rgba(40,20,100,.2)',4,0,4,T);
-    if(h%3===0)Q(d<.16?'#d3dcf2':'#6b72a6',(h>>3)&7,(h>>6)&6,2,1);
-    Q('rgba(255,255,255,.3)',0,0,T,1);
-    if(d>=.26&&h%17===0){Q('#7fe9ff',(h>>3)&5,2,1,3);Q('#d8fbff',(h>>3)&5,2,1,1)}
-    if(!(m[y+1]&&m[y+1][x]===MTN))Q('#4b4b80',0,6,T,2);return true}
+    Q(d<.16?'#b8bcc8':d<.26?'#60607a':'#3a3a52',0,0,T,T);
+    if(x>=46)Q('rgba(0,0,20,.35)',4,0,4,T);
+    if(h%3===0)Q(d<.16?'#8a8ea0':'#2a2a40',(h>>3)&7,(h>>6)&6,2,1);
+    Q('rgba(200,200,230,.15)',0,0,T,1);
+    if(d>=.26&&h%17===0){Q('#8a3cc8',(h>>3)&5,2,1,3);Q('#d0a0ff',(h>>3)&5,2,1,1)}
+    if(!(m[y+1]&&m[y+1][x]===MTN))Q('#14141f',0,6,T,2);return true}
   if(t===COURT||t===DOOR){
-    const a=((x+y)&1)?'#ebe6f7':'#dcd5ee';
-    Q(a,0,0,T,T);Q(((x+y)&1)?'#f6f2ff':'#e9e3f7',0,0,T,1);
-    if(h%5===0)Q('#c3bbdf',(h>>3)&7,(h>>6)&7,2,1);
-    if(x%4===0)Q('#f1d98a',0,0,1,T);if(y%4===0)Q('#f1d98a',0,0,T,1);
-    if(x%4===0&&y%4===0){Q('#ffd86b',0,0,2,2);Q('#fff3b0',0,0,1,1)}
+    Q(((x+y)&1)?'#34303c':'#2c2834',0,0,T,T);Q('rgba(255,255,255,.04)',0,0,T,1);
+    if(h%5===0)Q('#1c1a24',(h>>3)&7,(h>>6)&7,2,1);
+    if(h%13===0)Q('#4a2030',(h>>3)&6,(h>>6)&6,1,2);
+    if(x%4===0)Q('#5a1626',0,0,1,T);if(y%4===0)Q('#5a1626',0,0,T,1);
+    if(x%4===0&&y%4===0){Q('#8a1c2e',0,0,2,2);Q('#d84a5a',0,0,1,1)}
     return true}
   if(t===CLF){
     const up=m[y-1]&&m[y-1][x]===CLF,dn=m[y+1]&&m[y+1][x]===CLF,o=up?0:1+(h&1);
-    Q('#7ed465',0,0,T,T);Q('#a29bd0',0,o,T,T-o-(dn?0:(h>>1)&1));
-    Q('#8b84bd',(h>>3)&7,up?0:2,2,3+((h>>6)&3));Q('#c9c3ee',(h>>5)&3,(h>>7)&3,3+((h>>9)&1),2);
-    Q('#d9d4f6',((h>>11)&3)+3,3+((h>>13)&1),2,1);Q('#6f68a5',(h>>15)&7,6,2,1);
-    if(!up){Q('#bdb7e6',0,o,2,2);Q('#bdb7e6',5+(h&1),o,2,1)}
-    if(!dn)Q('#4d4682',0,6,T,2);
-    if(h%4===0)Q('#58c25e',(h>>2)&7,(h>>4)&5,2,1);
-    if(h%23===0&&!dn){Q('#4fd8f0',(h>>3)&5,1,2,4);Q('#d6fbff',(h>>3)&5,1,1,2);Q('#27a6c6',((h>>3)&5)+1,2,1,3)}
+    Q('#2f3d2b',0,0,T,T);Q('#4a4658',0,o,T,T-o-(dn?0:(h>>1)&1));
+    Q('#38344a',(h>>3)&7,up?0:2,2,3+((h>>6)&3));Q('#6a6682',(h>>5)&3,(h>>7)&3,3+((h>>9)&1),2);
+    Q('#7a7694',((h>>11)&3)+3,3+((h>>13)&1),2,1);Q('#1e1c2c',(h>>15)&7,6,2,1);
+    if(!up){Q('#7a7694',0,o,2,2);Q('#7a7694',5+(h&1),o,2,1)}
+    if(!dn)Q('#12101c',0,6,T,2);
+    if(h%4===0)Q('#3a4a2c',(h>>2)&7,(h>>4)&5,2,1);
+    if(h%23===0&&!dn){Q('#8a3cc8',(h>>3)&5,1,2,4);Q('#e0b8ff',(h>>3)&5,1,1,2);Q('#4a1c78',((h>>3)&5)+1,2,1,3)}
     return true}
   if(t===PATH&&y<96){
-    Q(h%2?'#dcbf8e':'#d1b27c',0,0,T,T);
-    if(h%3===0)Q('#efd9ac',(h>>3)&5,(h>>6)&4,3,2);
-    if(h%5===0)Q('#bf9c66',(h>>4)&7,(h>>8)&7,2,1);
-    if(h%11===0)Q('#fff0c8',(h>>5)&6,(h>>9)&6,1,1);
-    if(!(m[y-1]&&m[y-1][x]===PATH))Q('#bd9a64',0,0,T,1);
-    if(!(m[y+1]&&m[y+1][x]===PATH))Q('#c4a26c',0,T-1,T,1);
+    Q(h%2?'#4a3c30':'#42352a',0,0,T,T);
+    if(h%3===0)Q('#5e4e3e',(h>>3)&5,(h>>6)&4,3,2);
+    if(h%5===0)Q('#2c2218',(h>>4)&7,(h>>8)&7,2,1);
+    if(h%11===0)Q('#7a6a54',(h>>5)&6,(h>>9)&6,1,1);
+    if(h%19===0)Q('#4a1626',(h>>3)&5,(h>>6)&5,2,1);
+    if(!(m[y-1]&&m[y-1][x]===PATH))Q('#2c2218',0,0,T,1);
+    if(!(m[y+1]&&m[y+1][x]===PATH))Q('#352a20',0,T-1,T,1);
     return true}
   if(t===GRASS||t===TREE||t===PLAT||t===FLOW||t===HUT||t===WELL||t===HSE){grassT(x,y,t,h,Q);return true}
   return false};
-
 /* =====================================================================
    3. CÂY PHÉP + ĐÁ (vẽ sẵn vào canvas nhỏ rồi chỉ drawImage)
    ===================================================================== */
-const TP=[['#1b6b3c','#2fa655','#62d676','#b8f79e'],['#175f63','#25979a','#52d4be','#b4f8ea'],
-          ['#b04a74','#e8749f','#ffb2cd','#ffe6f0'],['#94701c','#d8b236','#f7de6e','#fff7c0'],['#3a62b4','#5f90e8','#9fc3ff','#e2ecff']];
-const TV=[0,0,0,0,1,1,1,2,2,3,4,0],TC=new Map();
+const TP=[['#0e2418','#1a3d28','#2e5a3a','#6a8a5a'],['#0c1e26','#16363f','#26566a','#6a9aaa'],
+          ['#3a1230','#5e1f4c','#8a3a72','#c08ab0'],['#2a2410','#4a3e18','#6e5a24','#a89050'],['#161a38','#26306a','#3e4e9a','#8a9ad0']];
+const TV=[0,0,0,1,1,2,2,3,4,0,0,3];
 function treeSpr(v,sw){
   const key=v*3+sw;let c=TC.get(key);if(c)return c;
   c=mkc(20,26);const g=c.getContext('2d'),P=TP[v],Q=(col,a,b,w,hh)=>{g.fillStyle=col;g.fillRect(5+a,15+b,w,hh)},D=(col,a,b,r)=>disc(g,col,a,b,r,5,15);
