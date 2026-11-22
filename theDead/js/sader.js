@@ -403,8 +403,9 @@ addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.repeat||e.key.toLowerCase()!=='e'||e.ctrlKey||e.metaKey||e.altKey)return;
   if(state!=='island'||TK||trans)return;
   const iv=$('inv');if(iv&&!iv.hidden)return;
-  const P=allPl().find(p=>p.pl===sel);if(P.fl===6){const cr=nearCrate(P);if(cr){e.stopImmediatePropagation();takePick(P.pl,cr);return}}
-  if(!P.fl&&!inside&&nearRack(P)){e.stopImmediatePropagation();takePick(P.pl);return}
+  const P=allPl().find(p=>p.pl===sel);if(!P)return;
+if(P.fl===6){const cr=nearCrate(P);if(cr){e.stopImmediatePropagation();takePick(P.pl,cr);return}}
+// XÓA dòng if(!P.fl&&!inside&&nearRack(P))...
   if(P.fl===6&&!G.open&&nearCircle(P)){e.stopImmediatePropagation();gateE(P);return}
   if(P.fl===WC&&D){const tg=target(P);if(!tg)return;e.stopImmediatePropagation();if(tg.t==='back')askBack(P.pl);else startMine(P,tg)}},true);
 

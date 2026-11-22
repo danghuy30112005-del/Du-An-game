@@ -111,7 +111,7 @@ function openGate(){
   cap('Ổ khóa tan thành ánh sáng vàng, cổng lên Vườn Hoa Treo đã mở.')}
 function takeKey(n){
     if(!keyOn(n))return;
-  ensure();
+  ensure();addEventListener('load',ensure);
   if(has(n)){cap('P'+n+' đã mang Chìa khóa Thiên giới rồi.');return}
   if(typeof window.giveItem!=='function'){cap('Cần nạp Playerkit.js để nhận đồ vào túi.');return}
   if(window.giveItem(n,'sentkey'))burst(KA.x,KA.y-14,24)}

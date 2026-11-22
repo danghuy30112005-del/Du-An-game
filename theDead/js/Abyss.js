@@ -211,7 +211,7 @@ function pitWatch(){
 /* ---------- Hoa đầm lầy ---------- */
 function ensureItem(){const I=window.ITEMS;if(I&&!I.wflower)I.wflower={icon:'🌸',name:'Bông hoa của đầm lầy',d:'Bông hoa hồng mọc giữa đầm lầy.'}}
 function pickFlower(n,b){
-  ensureItem();
+  ensureItem();addEventListener('load',ensure);
   if(GOT[n]){cap('P'+n+' đã hái một bông rồi. Mỗi người chỉ hái được 1 bông (bụi hoa vẫn còn đó).');return}
   if(typeof window.giveItem!=='function'){cap('Cần nạp Playerkit.js để nhận đồ vào túi.');return}
   if(window.giveItem(n,'wflower')){
