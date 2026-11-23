@@ -800,6 +800,7 @@ const _sv0=save;save=function(){if(YG.on)return;_sv0()};      /* không lưu khi
 const _dtk=dineTick;dineTick=function(){if(YG.on)return;_dtk()};  /* bữa ăn trên đảo tạm dừng */
 
 function startDream(part){
+  try{save()}catch(_){}          /* lưu vị trí trên đảo trước khi vào giấc mơ */
   YG.pend=1;YG.pt=0;
   part.forEach(P=>{DONE[P.pl]=1});saveD();
   part.forEach(P=>{

@@ -140,6 +140,7 @@ function drowsyFx(dr){
 /* ---------- Vào / ra kí ức ---------- */
 function enterMemory(n,why){
   const P=allPl().find(p=>p.pl===n);if(!P||isM(P.fl)||!isY(P.fl))return;
+    if(!YT.clock().on)try{save()}catch(_){}
   const go=()=>{
     const Q=allPl().find(p=>p.pl===n);if(!Q)return;
     try{
@@ -730,7 +731,23 @@ const _gen=gen;
 gen=function(sd){_gen(sd);M={fx:null,done:{},bed:{},ban:{t0:0,txt:''}};DR={};MREF=null;OMAP=[];OREF=[];DRS=[];DMAP=new Map();SF=null;ins=ins.filter(p=>!p.mem)};
 const _mk=mkPeople;
 mkPeople=function(){_mk();M.done={};M.bed={};M.fx=null;DR={};SF=null;ins=ins.filter(p=>!p.mem)};
+/* Không lưu khi đang ở du thuyền / kí ức */
+const _sv=save;
+save=function(){
+  if(memP()||YT.clock().on||allPl().some(p=>p.fl>=F0))return;
+  _sv()};
 
+/* Bản lưu cũ bị hỏng: đưa người chơi ở tầng du thuyền / kí ức về giường phòng khách */
+const _rs=restore;
+restore=function(s){
+  try{
+    s.people.forEach(o=>{
+      if(o.pl&&o.fl>=F0){
+        const rid=window.guestRooms&&window.guestRooms.of(o.pl),
+          b=rid!==undefined?BEDS.find(q=>q.fl===2&&q.room===rid):null;
+        o.fl=2;o.inn=1;o.x=(b?b.x+.5:59.5)*T;o.y=(b?b.y+.5:25.5)*T}})
+  }catch(e){oops('restore',e)}
+  _rs(s)};
 window.memoryWorld={enter:n=>enterMemory(n||sel,'bed'),wake:n=>wakeMem(n||sel,'Bạn tỉnh dậy.'),drowsy:()=>DR};
 console.log('[memory] đã nạp OK (bản 3: khe tủ 160°, cửa tự động, trần nhà)');
 })();

@@ -1237,7 +1237,7 @@ $('again').onclick=()=>{save();reset()};$('cont').onclick=cont;
 $('rsBtn').onclick=()=>{confirmKey='';rsLabels();$('rs').hidden=!$('rs').hidden};
 document.querySelectorAll('#rs [data-r]').forEach(b=>b.onclick=()=>doReset(b.dataset.r));
 $('rsX').onclick=()=>{confirmKey='';$('rs').hidden=true};
-addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+addEventListener('pagehide',()=>save());document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
   if(TK){const kk=e.key.toLowerCase();if(kk==='escape'){if(ACC[TK.P.pl])closeTalk()}else if(/^[1-9]$/.test(kk)){const b=$('dO').children[+kk-1];if(b)b.click()}return}
