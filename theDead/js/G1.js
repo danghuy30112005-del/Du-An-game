@@ -12,7 +12,7 @@ if(miss.length||!window.yachtDream||typeof window.yachtDream.floors!=='function'
   console.warn('G1.js: hãy nạp CUỐI CÙNG (sau dream.js / yacht.js)'+(miss.length?' thiếu '+miss.join(', '):''));return}
 
 const YT=window.yachtDream;
-const F0=27,FM=31,NF=4,DX0=14,DY0=12,NC=250,CS=CW/NC,EYE0=.55,PL=.8,PASS=100,STU=.42,STD=.22;
+const F0=27,FM=32,NF=5,DX0=14,DY0=12,NC=250,CS=CW/NC,EYE0=.55,PL=.8,PASS=100,STU=.42,STD=.22;
 const NAMES=['Tầng 4: Khu phòng ngủ','Tầng 3: Tầng tiệc','Tầng 2: Tắm nắng và bể bơi','Tầng 1: Tầng thượng'];
 const EMPTY=[10];
 const SXof=i=>i===0?116:92,LANDR=j=>j===0?113:89;
@@ -57,7 +57,7 @@ function ownBed(n){
 function okTile(j,x,y,anyRoom){
   const f=YT.floors()[j];if(!f||!f.im[y]||f.im[y][x]!==0)return false;
   const k=(f.kd[y]||[])[x]|0;
-  if(k!==1&&k!==2&&k!==3&&k!==4&&k!==10)return false;
+  if(k!==1&&k!==2&&k!==3&&k!==4&&k!==10&&k!==11)return false;
   if(j===0&&!anyRoom&&f.RID[y]&&f.RID[y][x])return false;
   return true}
 function freeNear(j,tx,ty){
@@ -98,7 +98,7 @@ function wander(p){
   const j=p.fl-FM;
   if(Math.random()<.04){                                   /* đôi khi NPC đổi tầng: xuất hiện ở chiếu nghỉ cầu thang */
     const d=Math.random()<.5?1:-1,k=j+d;
-    if(k>=0&&k<NF){const left=Math.random()<.5,s=freeNear(k,DX0+(left?2:SXof(k)+1),DY0+(d>0?6:25));
+    if(k>=0&&k<4){const left=Math.random()<.5,s=freeNear(k,DX0+(left?2:SXof(k)+1),DY0+(d>0?6:25));
       if(s){p.fl=FM+k;p.x=p.tx=s[0]*T+4;p.y=p.ty=s[1]*T+4;p.path=[];return}}}
   const cx0=Math.floor(p.x/T),cy0=Math.floor(p.y/T);
   for(let t=0;t<30;t++){
@@ -193,8 +193,8 @@ if(typeof _aa==='function')window.abyssAsk=function(t,o){
 function stInfo(x,y,i){
   const SX=SXof(i),lx=Math.floor(x/T)-DX0,py=y/T-DY0;
   if(!((lx>=1&&lx<=3)||(lx>=SX&&lx<=SX+2)))return null;
-  if(i<NF-1&&py>=8&&py<11)return{d:1,u:clamp((11-py)/3,0,1)};
-  if(i>0&&py>=21&&py<24)return{d:-1,u:clamp((py-21)/3,0,1)};
+  if(upOf(i)>=0&&py>=8&&py<11)return{d:1,u:clamp((11-py)/3,0,1)};
+  if(dnOf(i)>=0&&py>=21&&py<24)return{d:-1,u:clamp((py-21)/3,0,1)};
   return null}
 function stairBlock(P,nx,ny){
   const i=P.fl-FM,o=stInfo(P.x,P.y,i),n=stInfo(nx,ny,i);
@@ -203,8 +203,9 @@ function stairBlock(P,nx,ny){
   if(o&&!n){const py=ny/T-DY0;return o.d>0?(py>=8&&py<11):(py>=21&&py<24)}   /* không bước ngang ra khỏi lan can */
   return false}
 function stairSwitch(P,d){
-  const i=P.fl-FM,j=i+d,cxl=P.x/T,left=Math.floor(cxl)-DX0<=3;
-  let nx=cxl+(left?0:SXof(j)-SXof(i)),ny=DY0+(d>0?7.45:24.55);
+  const i=P.fl-FM,j=d>0?upOf(i):dnOf(i),cxl=P.x/T,left=Math.floor(cxl)-DX0<=3;
+  const hatch=(i===4||(i===0&&d<0));
+  let nx=cxl+(left?0:SXof(j)-SXof(i)),ny=DY0+((d>0)!==hatch?7.45:24.55);
   if(!okTile(j,Math.floor(nx),Math.floor(ny),true)){const t=freeNear(j,Math.floor(nx),Math.floor(ny));if(t){nx=t[0]+.5;ny=t[1]+.5}}
   putIn(P,FM+j,nx,ny);P.sz=0;P.sk=0;P.mb=0;
   if(P.pl===sel){syncView(true);M.ban={t0:performance.now(),txt:NAMES[j]};cap('Bạn '+(d>0?'đi lên ':'đi xuống ')+NAMES[j]+'.')}}
@@ -351,6 +352,7 @@ addEventListener('keydown',e=>{
 /* ================= RAYCASTING ================= */
 /* [chiều cao, màu thường, màu phụ, tỉ lệ] — màu chỉ dùng cho đồ chưa có hàm vẽ riêng */
 const OBJS={bed:[.34,'#d9d3c6'],desk:[.34,'#a87a4c'],wardrobe:[1,'#7a5434'],tbl:[.5,'#f6f1e6'],chair:[.5,'#c8a878'],stand:[.42,'#6a4630'],banq:[.4,'#f6f1e6'],
+  crate:[.5,'#a8743f'],barrel:[.55,'#6a4a2a'],shelf:[1,'#5a4a3a'],paper:[.45,'#e8e2d0'],fcab:[.8,'#7a8590'],fridge:[1,'#d6dde2'],tank:[1,'#6a7480'],
   plant:[.62,'#a8683c'],toilet:[.36,'#e6e8f2'],sink:[.44,'#cfd6e2'],shower:[.94,'#aee0ee'],sofa:[.46,'#98a2bc'],
   lounger:[.3,'#f6f2ea'],pole:[.88,'#9aa0aa'],palm:[.78,'#6a4a2a'],egg:[.72,'#8a7a62'],mast:[.94,'#e8eaf2'],
   bar:[.62,'#2aa89a'],stool:[.36,'#9a7040'],step:[.3,'#a8743f']};
@@ -491,7 +493,7 @@ function paint(g,o,kind,x,fy,lh,a,s0,def){
     if(o.up){C('#8a5a34',0,o.hh);C('#d8b878',Math.max(0,o.hh-.02),o.hh)}
     else{C('#5a2a3c',0,o.hh);C('#d8b04a',0,.012)}
     break;
-  default:C(def[1],0,def[0])}
+  default:if(!(window.BSM&&BSM.paint(kind,C,o,a)))C(def[1],0,def[0])}
   return d}
 
 /* ---------- Trần nhà: ceiling casting (xà gỗ + đèn âm trần), vẽ bằng ImageData rồi phóng to ---------- */
@@ -545,6 +547,9 @@ function drawFloor(g,i,Yf,px,py,dX,dY,plX,plY,hor,EYE){
       else if(k===7){r=31;gc=178;b=196}
       else if(k===8){r=232;gc=226;b=216}
       else if(k===9){r=236;gc=238;b=246}
+      else if(k===11||k===12){const e=fx<.06||fy<.06,p=(tx+ty)&1;r=e?52:p?92:84;gc=e?56:p?98:90;b=e?64:p?108:100;
+        if(!e&&((fx>.78&&fy>.78)||(fx<.2&&fy<.2))){r+=30;gc+=30;b+=34}
+        if(((tx*7+ty*13)&15)===0){r*=.62;gc*=.62;b*=.66}}
       else{
         const pale=k===2||k===10,idx=(fy<.5?(tx+ty):(tx+ty+1))&1;
         if(pale){r=idx?201:211;gc=idx?156:168;b=idx?104:118}else{r=idx?185:196;gc=idx?125:135;b=idx?54:63}
@@ -580,9 +585,9 @@ function render(P){
     const ptx=Math.floor(px),pty=Math.floor(py);
 
     /* trần (tầng 4, 3, 2) / bầu trời (tầng thượng) */
-    const roofOn=i<NF-1;
+    const roofOn=i!==3;
     if(roofOn){
-      drawCeil(g,px,py,dX,dY,plX,plY,hor,EYE)}
+      drawCeil(g,px,py,dX,dY,plX,plY,hor,EYE);if(i===4&&window.BSM)BSM.ceil(g,hor)}
     else{
       const gr=g.createLinearGradient(0,0,0,hor);gr.addColorStop(0,'#2a2060');gr.addColorStop(.6,'#7a4a72');gr.addColorStop(1,'#ff9a62');
       g.fillStyle=gr;g.fillRect(0,0,CW,hor);
@@ -624,7 +629,7 @@ function render(P){
           continue}
         if(k===0){if(!endD)endD=d;break}
         if(k===9){if(!endD)endD=d;hits.push({d,t:'r',fr,side});continue}
-        if(k===8){hits.push({d,t:'w',fr,side,win:i===0&&WIN.has(my*IW+mx),mx,my});break}
+        if(k===8||k===12){hits.push({d,t:'w',fr,side,win:i===0&&k===8&&WIN.has(my*IW+mx),mx,my});break}
         const kind=OM.get(my*IW+mx),o=OR.get(my*IW+mx),def=OBJS[kind]||[.6,'#8a6a4a'];
         hits.push({d,t:'o',fr,side,def,kind,o,a:o?clamp(side===1?(wx-o.x)/o.w:(wx-o.y)/o.h,0,1):fr});
         if(def[0]>=.95)break}
@@ -677,6 +682,7 @@ function render(P){
           h.occ=r===1;h.full=r===1&&def[0]>=.95;h.top=top;
           if(r===1){g.fillStyle='rgba(255,255,255,.12)';g.fillRect(x,top,CS,Math.max(1,lh*.015))}}
         else{
+          if(i===4&&window.BSM){BSM.wall(g,h,x,fy,lh,s,Yf,CS);continue}
           const top=fy-lh;h.occ=true;h.full=true;h.top=top;
           g.fillStyle=shade('#e8e2d8',s);g.fillRect(x,top,CS,lh);
           g.fillStyle=shade('#b9a888',s);g.fillRect(x,top,CS,lh*.06);
@@ -702,15 +708,15 @@ function render(P){
     if(!ARU){ARU=arrow(true,255,210,63);ARD=arrow(false,124,255,240)}
     [1,SXof(i)].forEach(lx=>{
       const x=(DX0+lx+1.5)*T;
-      if(i<NF-1)B.push({x,y:(DY0+9.5)*T,img:ARU,wT:1.3,hT:2.6,pad:0,a:.45+.2*Math.sin(t*.08),add:1});
-      if(i>0)B.push({x,y:(DY0+22.5)*T,img:ARD,wT:1.3,hT:2.6,pad:0,a:.45+.2*Math.sin(t*.08),add:1})});
+      if(upOf(i)>=0)B.push({x,y:(DY0+9.5)*T,img:ARU,wT:1.3,hT:2.6,pad:0,a:.45+.2*Math.sin(t*.08),add:1});
+      if(dnOf(i)>=0)B.push({x,y:(DY0+22.5)*T,img:ARD,wT:1.3,hT:2.6,pad:0,a:.45+.2*Math.sin(t*.08),add:1})});
     Yf.O.forEach(o=>{
       const cxp=o.px+o.w*4,cyp=o.py+o.h*4;
       if(Math.abs(cxp/T-px)>30||Math.abs(cyp/T-py)>30)return;
       if(o.k==='pole')B.push({x:o.px+4,y:o.py+4,img:BB.par,wT:6,hT:1.5,pad:-1.7,a:1});
       else if(o.k==='palm')B.push({x:cxp,y:cyp,img:BB.palm,wT:6.8,hT:3.4,pad:-.66,a:1});
       else if(o.k==='pool')[46,58].forEach(a=>B.push({x:o.px+a,y:o.py+2,img:BB.lad,wT:1.6,hT:2.4,pad:0,a:1}))});
-    if(i>=1&&YT.karst)YT.kp().forEach(([kx,by,v,s2])=>{
+    if(i>=1&&i<4&&YT.karst)YT.kp().forEach(([kx,by,v,s2])=>{
       const c=YT.karst(v),w=c.width*s2,hh=c.height*s2;
       B.push({x:kx+w/2,y:by,img:c,wT:w*3/8,hT:hh*3/8,pad:0,a:2.2})});
     if(i===1)for(let lx=14;lx<=84;lx+=2)[2,29].forEach(ly=>{
@@ -741,6 +747,7 @@ function render(P){
         const sx=clamp(Math.floor((xs-x0)/sw*iw),0,iw-1),swd=Math.max(1,Math.ceil(CS/sw*iw));
         g.drawImage(b.img,sx,0,Math.min(swd,iw-sx),Math.max(1,ih*clamp(vis/sh,0,1)),xs,top,CS,vis)}
       g.globalCompositeOperation='source-over';g.globalAlpha=1});
+      if(i===4&&window.BSM)BSM.post(g,P,Yf);
 
     /* hậu kỳ kí ức + HUD */
     const vg=g.createRadialGradient(CW/2,CH/2,CH*.3,CW/2,CH/2,CW*.66);vg.addColorStop(0,'rgba(40,20,70,0)');vg.addColorStop(1,'rgba(30,10,50,.55)');
@@ -836,7 +843,7 @@ const miss=need.filter(n=>{try{return new Function('return typeof '+n)()==='unde
 if(miss.length||!window.yachtDream){console.warn('resume.js: hãy nạp CUỐI CÙNG (sau G1.js). Thiếu: '+miss.join(', '));return}
 
 const YT=window.yachtDream,F0=27,FM=31,NF=4,DK='deadisland:dreamresume';
-const inDream=p=>p.fl>=F0&&p.fl<F0+2*NF+0&&p.fl<=FM+NF-1;
+const inDream=p=>p.fl>=F0&&p.fl<=FM+NF-1;
 
 /* ---------- Lưu ---------- */
 save=function(){
@@ -926,7 +933,7 @@ const wrapA=a=>Math.atan2(Math.sin(a),Math.cos(a));
 const rf=(a,b)=>a+Math.random()*(b-a);
 const stay=j=>j===C.home?rf(C.homeStay[0],C.homeStay[1]):rf(C.awayStay[0],C.awayStay[1]);
 const SXof=i=>i===0?116:92;
-const isM=f=>f>=FM&&f<FM+NF;
+const isM=f=>f>=FM&&f<=FM+4; 
 const warned={};const oops=(n,e)=>{if(!warned[n]){warned[n]=1;console.error('[ghost-mem] lỗi trong '+n+':',e)}};
 const memPlayers=()=>ins.filter(p=>p.pl&&isM(p.fl));
 const npcs=()=>ins.filter(p=>p.mem&&!p.dead);

@@ -371,11 +371,13 @@ const miss=need.filter(n=>{try{return new Function('return typeof '+n)()==='unde
 if(miss.length){console.warn('yacht.js: thiếu '+miss.join(', ')+' (hãy nạp CUỐI CÙNG, sau dream.js)');return}
 
 const WORLDS=window.WORLDS||(window.WORLDS={});
-const F0=27,NF=4,WALL=62,GW=160,GHH=56,DX0=14,DY0=12,LH=32,VW=400,ZOOM=185,DKEY='deadisland:yachtdream';
-const LENS=[138,98,98,98];                       /* chiều dài boong mỗi tầng (tầng ngủ dài nhất) */
-const NAMES=['Tầng 4: Khu phòng ngủ','Tầng 3: Tầng tiệc','Tầng 2: Tắm nắng và bể bơi','Tầng 1: Tầng thượng'];
+// cũ:  const F0=27,NF=4,WALL=62,...
+const F0=27,NF=5,FM=F0+NF,WALL=62,GW=160,GHH=56,DX0=14,DY0=12,LH=32,VW=400,ZOOM=185,DKEY='deadisland:yachtdream';
+const LENS=[138,98,98,98,98];
+const NAMES=['Tầng 4: Khu phòng ngủ','Tầng 3: Tầng tiệc','Tầng 2: Tắm nắng và bể bơi','Tầng 1: Tầng thượng','Tầng 5: Tầng hầm'];
 const NPCN=14,START_G=660;                       /* 14 NPC; 660 phút = 17:00 (gm=0 là 6:00 sáng) */
 const isY=f=>f>=F0&&f<F0+NF;
+const upOf=i=>i<3?i+1:(i===4?0:-1), dnOf=i=>i===0?4:(i>0&&i<4?i-1:-1);
 const AX=lx=>DX0+lx,AY=ly=>DY0+ly;
 const SXof=i=>i===0?116:92,MIDof=i=>i===0?60:49,LANDR=j=>j===0?113:89;
 const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),w,h)};
@@ -417,6 +419,7 @@ function buildFloor(i){
   CL=LENS[i];const SR=SXof(i);
   const g=v=>Array.from({length:GHH},()=>Array(GW).fill(v)),gI=v=>Array.from({length:IH},()=>Array(IW).fill(v));
   const kd=g(0),RID=g(0),im=gI(WALL),rid=gI(0),O=[],DEC=[],FR=[],S=[],LT=[];
+  let Z=null
   for(let ly=0;ly<LH;ly++)for(let lx=0;lx<CL;lx++)if(onDeck(lx,ly)){const x=AX(lx),y=AY(ly);kd[y][x]=1;im[y][x]=0;rid[y][x]=1}
   for(let y=1;y<GHH-1;y++)for(let x=1;x<GW-1;x++)if(!kd[y][x]&&[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].some(([a,b])=>kd[y+b][x+a]===1))kd[y][x]=9;
   const setK=(lx,ly,k,blocked)=>{if(!onDeck(lx,ly))return;const x=AX(lx),y=AY(ly);kd[y][x]=k;if(blocked){im[y][x]=WALL;rid[y][x]=0}else{im[y][x]=0;rid[y][x]=1}};
@@ -511,15 +514,16 @@ function buildFloor(i){
     tset(12,13);tset(80,13);palm(20,14);palm(74,14);
     LT.push(()=>{[[20,2],[30,2],[60,2],[70,2],[20,29],[44,29],[70,29]].forEach(([a,b])=>spot('look',a,b))});
   }
+    if(i===4&&window.BSM)Z=window.BSM.build({g,AX,AY,CL,onDeck,setK,obj,kd,DEC,FR});
   /* cầu thang 2 đầu: ▲ lên (hàng trên), ▼ xuống (hàng dưới) */
   const st=(lx,ly,d)=>{for(let j=0;j<3;j++)for(let k=0;k<3;k++)setK(lx+k,ly+j,d==='u'?5:6,0);
     DEC.push(()=>{const x=(AX(lx)+1.5)*T,y=(AY(ly)+1.5)*T,c=d==='u'?'#ffd23f':'#7cfff0';
       for(let r=0;r<4;r++){const w=d==='u'?r*2+1:7-r*2;R('#2a2438',x-w/2-1,y-4+r*2-1,w+2,3);R(c,x-w/2,y-4+r*2,w,2)}})};
-  [1,SR].forEach(lx=>{if(i<NF-1)st(lx,8,'u');if(i>0)st(lx,21,'d')});
+  [1,SR].forEach(lx=>{if(upOf(i)>=0)st(lx,8,'u');if(dnOf(i)>=0)st(lx,21,'d')});
   LT.push(()=>{for(let ly=3;ly<LH-2;ly+=5)for(let lx=4;lx<CL-8;lx+=6){const x=AX(lx),y=AY(ly);if(RID[y][x])continue;const k=kd[y][x];if(k===1||k===2||k===3)spot('walk',lx,ly)}});
   LT.forEach(f=>f());
   O.sort((a,b)=>a.ay-b.ay);
-  return{kd,im,rid,RID,O,DEC,FR,S}}
+  return{kd,im,rid,RID,O,DEC,FR,S,zone:Z}}
 
 function buildAll(){
   Y=[];SPOTS=[];RS=[];
@@ -628,6 +632,7 @@ mast(o){const x=o.px+12,y=o.py+14;R('rgba(0,0,0,.25)',x-12,y+8,24,3);disc('#c8cc
   R('#9aa0b0',x-1,y-40,2,34);disc('#f4f6fb',x,y-12,7);disc('#ffffff',x-2,y-14,3);R('#aaaabb',x-9,y-30,18,1);
   if((frame>>4)&1)R('#ff3b3b',x-1,y-42,2,2)}
 };
+Object.assign(DRAW,window.BSM?window.BSM.draw:{});
 
 /* ================= VẼ NỀN ================= */
 const KS=[];
@@ -647,6 +652,7 @@ const KP=[];
 
 function tileY(f,x,y){
   const k=f.kd[y][x],h=hs(x,y),px=x*T,py=y*T,Q=(c,a,b,w,hh)=>R(c,px+a,py+b,w,hh),K=(dx,dy)=>(f.kd[y+dy]||[])[x+dx]|0;
+    if(window.BSM&&BSM.tile(f,x,y,k,h,px,py,Q,K))return;
   if(!k){if(hs(x*3,y*5+(frame>>4))%11===0){cx.globalAlpha=.5;Q('#ffd6aa',(h>>3)&3,(h>>5)&5,3,1);cx.globalAlpha=1}
     if(((x+y+(frame>>5))&3)===0){cx.globalAlpha=.1;Q('#ffffff',0,3,T,1);cx.globalAlpha=1}return}
   if(k===1||k===2||k===7||k===10){
@@ -671,8 +677,9 @@ function drawBack(i){
   const f=Y[i],vw=CW/IS,vh=CH/IS,x0=Math.max(0,Math.floor(camX/T)-1),y0=Math.max(0,Math.floor(camY/T)-1),x1=Math.min(GW-1,x0+Math.ceil(vw/T)+3),y1=Math.min(GHH-1,y0+Math.ceil(vh/T)+3);
   const g=cx.createLinearGradient(camX,0,camX+vw,0);g.addColorStop(0,'#3a2a5e');g.addColorStop(.5,'#7a4a72');g.addColorStop(1,'#d8704a');
   cx.fillStyle=g;cx.fillRect(camX-2,camY-2,vw+4,vh+4);
-  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(!f.kd[y][x])tileY(f,x,y);
-  KP.forEach(([x,by,v,s])=>{const c=karst(v),w=c.width*s,h=c.height*s;if(x+w<camX||x>camX+vw||by<camY||by-h>camY+vh)return;cx.drawImage(c,Math.round(x),Math.round(by-h),Math.round(w),Math.round(h))});
+  if(i===4){cx.fillStyle='#04060b';cx.fillRect(camX-2,camY-2,vw+4,vh+4)}
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(i!==4&&!f.kd[y][x])tileY(f,x,y);
+  if(i!==4)KP.forEach(([x,by,v,s])=>{const c=karst(v),w=c.width*s,h=c.height*s;if(x+w<camX||x>camX+vw||by<camY||by-h>camY+vh)return;cx.drawImage(c,Math.round(x),Math.round(by-h),Math.round(w),Math.round(h))});
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(f.kd[y][x]){
     const rr=i===0?f.RID[y][x]:0;
     if(rr&&rr!==VR)roofT(x,y);else tileY(f,x,y)}
@@ -692,7 +699,7 @@ function drawFront(i){
     if(o.room)return;
     if(o.th&&L.some(q=>q.y<o.ay-1&&q.y>o.ay-o.th-4&&Math.abs(q.x-o.ax)<o.w*4+6))DRAW[o.k](o);
     if(o.k==='pole'&&o.ax>camX-30&&o.ax<camX+vw+30)canopy(o)});
-  if(!VR){
+  if(!VR&&i===4){f.FR.forEach(fn=>fn())}else if(!VR){
     f.FR.forEach(fn=>fn());
     cx.save();cx.globalCompositeOperation='lighter';
     for(let k=0;k<30;k++){const x=camX+(((hs(k,1)%1000)/1000*vw)+frame*(.08+(k%3)*.05))%vw,y=camY+(((hs(k,2)%1000)/1000*vh)+Math.sin(frame*.02+k)*8+frame*.03*(k%2?1:-1)+vh*4)%vh;
@@ -716,8 +723,8 @@ function drawFront(i){
         if(w)label(w.px+8,w.py-10,'E: Trốn vào tủ','#7cff9a');
         else if(nearOwnBed(P)){const s=ownBedSpot(P);label(s.sx,s.sy-22,'E: Ngủ (vào thế giới kí ức)','#9ae8ff')}}}
     if(!VR){const SX=SXof(i);
-      [[1,8,'u'],[SX,8,'u'],[1,21,'d'],[SX,21,'d']].forEach(([lx,ly,d])=>{if(d==='u'&&i>=NF-1||d==='d'&&i<=0)return;
-        const x=(AX(lx)+1.5)*T,y=(AY(ly)+1.5)*T;if(Math.hypot(P.x-x,P.y-y)<30){const j=i+(d==='u'?1:-1);label(x,y-26,(d==='u'?'Lên ':'Xuống ')+NAMES[j].split(':')[0],d==='u'?'#ffd23f':'#7cfff0')}})}}}
+      [[1,8,'u'],[SX,8,'u'],[1,21,'d'],[SX,21,'d']].forEach(([lx,ly,d])=>{if(d==='u'&&upOf(i)<0||d==='d'&&dnOf(i)<0)return;
+        const x=(AX(lx)+1.5)*T,y=(AY(ly)+1.5)*T;if(Math.hypot(P.x-x,P.y-y)<30){const j=d==='u'?upOf(i):dnOf(i);label(x,y-26,(d==='u'?'Lên ':'Xuống ')+NAMES[j].split(':')[0],d==='u'?'#ffd23f':'#7cfff0')}})}}}
 
 /* hậu kỳ: sắc hoàng hôn, tối dần về đêm, khe nhìn khi trốn tủ, biển tên tầng */
 const _dr=draw;
@@ -726,6 +733,7 @@ draw=function(){
   if(state!=='island'||!inside||!isY(curF))return;
   try{
     cx.save();cx.setTransform(1,0,0,1,0,0);
+        if(curF===F0+4&&window.BSM){BSM.post2D(cx,BN);cx.restore();return}
     cx.globalCompositeOperation='soft-light';cx.globalAlpha=.55;
     const g=cx.createLinearGradient(0,0,0,CH);g.addColorStop(0,'#ff9a5a');g.addColorStop(1,'#c05aa0');cx.fillStyle=g;cx.fillRect(0,0,CW,CH);
     cx.globalCompositeOperation='lighter';cx.globalAlpha=.06;cx.fillStyle='#ffb070';cx.fillRect(0,0,CW,CH);
@@ -938,15 +946,17 @@ WORLDS.yacht={name:'Du thuyền Danova (giấc mơ)',enter(q){
     cap('Bạn mở mắt: mình đang ở trong phòng ngủ riêng trên du thuyền Danova, giữa vịnh Hạ Long lúc hoàng hôn... Bấm E gần tủ đồ để trốn. Muốn tỉnh dậy thì ra giường của mình và bấm E.')}}};
 
 function stairCheck(P,i){
+  
   if(P.yb>0){P.yb--;return}
   if(trans||P.cl)return;
   const SX=SXof(i),lx=Math.floor(P.x/T)-DX0,ly=Math.floor(P.y/T)-DY0,Lf=lx>=1&&lx<=3,Rt=lx>=SX&&lx<=SX+2;
   if(!Lf&&!Rt)return;
-  let d=0;if(ly>=8&&ly<=10&&i<NF-1)d=1;else if(ly>=21&&ly<=23&&i>0)d=-1;
+  let d=0;if(ly>=8&&ly<=10&&upOf(i)>=0)d=1;else if(ly>=21&&ly<=23&&dnOf(i)>=0)d=-1;
   if(!d)return;
-  const j=i+d,s=safeLocal(j,Lf?6:LANDR(j),15);P.yb=60;
+  const j=d>0?upOf(i):dnOf(i),s=safeLocal(j,Lf?6:LANDR(j),15);P.yb=60;
   warp(P,()=>{putIn(P,F0+j,AX(s[0])+.5+(slot(P)-2)*.25,AY(s[1])+.5);P.yb=40;
-    if(P.pl===sel){syncView(true);BN={t:0,txt:NAMES[j]};cap('Bạn '+(d>0?'đi lên ':'đi xuống ')+NAMES[j]+'.')}})}
+    if(P.pl===sel){syncView(true);BN={t:0,txt:NAMES[j]};cap('Bạn '+(d>0?'đi lên ':'đi xuống ')+NAMES[j]+'.')}})
+    }
 
 function tick(dt){
   function kickOut(p,rr){
@@ -970,7 +980,7 @@ function tick(dt){
     if(p.fl===F0){const rr=roomOf(p);if(rr&&rr!==p.room+1)kickOut(p,rr)}
     if(p.sn&&p.act==='idle'){const s=p.sn;p.x=p.tx=s.wx*T+4;p.y=p.ty=s.wy*T+4;p.sn=null;p.path=[]}
     if(p.seat&&p.act==='idle')p.seat=0});
-    if(YG.on&&!YG.ending&&YG.g>=1440&&!allPl().some(p=>p.fl>=FM&&p.fl<FM+NF))endDream();ins.find(p=>p.pl===sel);
+    if(YG.on&&!YG.ending&&YG.g>=1440&&!allPl().some(p=>p.fl>=FM&&p.fl<FM+NF))endDream();  const Ps=ins.find(p=>p.pl===sel);
   if(inside&&Ps&&isY(Ps.fl)){
     const tgt=(Ps.fl===F0&&roomOf(Ps))?CW/ZOOM:CW/VW;
     IS+=(tgt-IS)*.12;if(Math.abs(tgt-IS)<.003)IS=tgt}}
@@ -1003,7 +1013,7 @@ const miss=need.filter(n=>{try{return new Function('return typeof '+n)()==='unde
 if(miss.length||!window.yachtDream||typeof window.yachtDream.floors!=='function'){
   console.warn('bridge.js: hãy nạp SAU G1.js'+(miss.length?' (thiếu '+miss.join(', ')+')':''));return}
 
-const YT=window.yachtDream,F0=27,FM=31,NF=4,DX0=14,DY0=12,WALL=62,BF=3;   /* BF = chỉ số tầng thượng */
+const YT=window.yachtDream,F0=27,FM=32,NF=4,DX0=14,DY0=12,WALL=62,BF=3;   /* BF = chỉ số tầng thượng */
 const AXf=lx=>DX0+lx,AYf=ly=>DY0+ly;
 const isY=f=>f>=F0&&f<F0+NF,isM=f=>f>=FM&&f<FM+NF;
 const R=(c,a,b,w,h)=>{cx.fillStyle=c;cx.fillRect(Math.round(a),Math.round(b),w,h)};
