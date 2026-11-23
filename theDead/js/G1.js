@@ -917,6 +917,7 @@ const C={
   home:0,              /* tầng 4 = chỉ số 0 */
   homeSpawn:1,         /* 100% xuất hiện ở tầng nhà */
   stayHome:true,       /* TẠM THỜI: oan hồn không bao giờ đổi tầng */
+  homeStay:[20,40], 
   awayStay:[12,25],    /* giây ở tầng khác rồi quay về */
 };
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
