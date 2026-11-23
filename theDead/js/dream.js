@@ -951,14 +951,7 @@ function tick(dt){
     p.wait=ri(20,60)}
   if(!YG.on&&!YG.ending&&allPl().some(p=>isY(p.fl))){
     YG.on=1;YG.pend=0;YG.g=START_G;gm=START_G;lastMin=-1}
-  if(YG.on){const h=(6+YG.g/60)%24;YG.g+=dt*((h>=6&&h<23)?2:1);gm=YG.g}
-  if(YG.pend&&(YG.pt+=dt)>5)YG.pend=0;
-  if(!YG.on&&!YG.pend){
-  }
-      if(!YG.on&&!YG.ending&&allPl().some(p=>isY(p.fl))){
-    YG.on=1;YG.pend=0;YG.g=START_G;gm=START_G;lastMin=-1;
-  }
-  if(YG.on){const h=(6+YG.g/60)%24;YG.g+=dt*((h>=6&&h<23)?2:1);gm=YG.g}   /* 6h-23h: x2, ban đêm: bình thường */
+  if(YG.on){const h=(6+YG.g/60)%24;YG.g+=dt*((h>=6&&h<23)?2:1);gm=YG.g}   /* 6h-23h: x2, đêm: x1 */
   if(YG.pend&&(YG.pt+=dt)>5)YG.pend=0;
   if(!YG.on&&!YG.pend){
     const part=allPl().filter(p=>ACC[p.pl]);
@@ -971,7 +964,7 @@ function tick(dt){
     if(p.fl===F0){const rr=roomOf(p);if(rr&&rr!==p.room+1)kickOut(p,rr)}
     if(p.sn&&p.act==='idle'){const s=p.sn;p.x=p.tx=s.wx*T+4;p.y=p.ty=s.wy*T+4;p.sn=null;p.path=[]}
     if(p.seat&&p.act==='idle')p.seat=0});
-  const Ps=ins.find(p=>p.pl===sel);
+    if(YG.on&&!YG.ending&&YG.g>=1440&&!allPl().some(p=>p.fl>=FM&&p.fl<FM+NF))endDream();ins.find(p=>p.pl===sel);
   if(inside&&Ps&&isY(Ps.fl)){
     const tgt=(Ps.fl===F0&&roomOf(Ps))?CW/ZOOM:CW/VW;
     IS+=(tgt-IS)*.12;if(Math.abs(tgt-IS)<.003)IS=tgt}}
