@@ -75,9 +75,9 @@ function spawnMem(n){
   ins=ins.filter(p=>!p.mem);
   const R=YT.rooms(),occ=R.map((_,k)=>k).filter(k=>!EMPTY.includes(k)),own=n?occ[(n-1)%occ.length]:-1,
     ref=ins.filter(p=>p.yt),KS=['man','woman','man','woman','elder','child'];let q=0;
-  const mk=(j,tx,ty)=>{
+  const mk=(j,tx,ty,room)=>{
     const src=ref.length?ref[q++%ref.length]:null;
-    ins.push({k:src?src.k:KS[rnd(KS.length)],pl:0,cls:'y',mem:1,evt:1,
+    ins.push({k:src?src.k:KS[rnd(KS.length)],pl:0,cls:'y',mem:1,mroom:room||0,evt:1,
       c:src?src.c:SHIRT[rnd(SHIRT.length)],skin:src?src.skin:SKIN[rnd(SKIN.length)],hair:src?src.hair:HAIR[rnd(HAIR.length)],
       x:tx*T+4,y:ty*T+4,tx:tx*T+4,ty:ty*T+4,sp:.4+Math.random()*.1,path:[],ph:1,wait:ri(20,200),moving:0,vis:1,delay:0,hide:0,fl:FM+j,
       n:{hu:20,fa:10,sl:5},act:'idle',t:0,cd:1e9,goal:null,say:'',tool:null})};
@@ -96,7 +96,7 @@ function wander(p){
   const cx0=Math.floor(p.x/T),cy0=Math.floor(p.y/T);
   for(let t=0;t<30;t++){
     const x=cx0+ri(-24,24),y=cy0+ri(-14,14);
-    if(!okTile(j,x,y,true))continue;
+    if(j===0){const rr=((YT.floors()[0].RID[y]||[])[x])|0;if(rr&&rr!==(p.mroom|0))continue}
     const a=bfs(p.fl,cx0,cy0,x,y);
     if(a&&a.length&&a.length<80){p.path=a;p.tx=p.x;p.ty=p.y;return}}}
 
@@ -259,6 +259,13 @@ function tick(dt){
       if(DR[n]){DR[n].t+=dt;if(DR[n].t>=PASS&&!M.fx)enterMemory(n,'pass')}
     }else delete DR[n]});
   if(anyM){
+  const f0=YT.floors()[0];
+  if(f0)ins.forEach(p=>{
+    if(!p.mem||p.fl!==FM)return;
+    const rr=((f0.RID[Math.floor(p.y/T)]||[])[Math.floor(p.x/T)])|0;
+    if(rr&&rr!==(p.mroom|0)){
+      const rm=YT.rooms()[rr-1];if(!rm)return;
+      p.x=p.tx=(DX0+rm.w+8)*T;p.y=p.ty=(DY0+rm.wallY+(rm.n?1.5:-.5))*T;p.path=[]}});
     if(!ins.some(p=>p.mem))spawnMem();
     if(frame%20===0)ins.forEach(p=>{
       if(!p.mem||p.path.length||Math.hypot(p.tx-p.x,p.ty-p.y)>.7||Math.random()>.3)return;

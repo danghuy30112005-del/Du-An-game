@@ -929,6 +929,12 @@ function stairCheck(P,i){
     if(P.pl===sel){syncView(true);BN={t:0,txt:NAMES[j]};cap('Bạn '+(d>0?'đi lên ':'đi xuống ')+NAMES[j]+'.')}})}
 
 function tick(dt){
+  function kickOut(p,rr){
+    const rm=ROOMS[rr-1];if(!rm)return;
+    rel(p);p.goal=null;p.ys=null;p.sn=null;p.seat=0;p.act='idle';p.path=[];
+    p.x=p.tx=(AX(rm.w)+8)*T;
+    p.y=p.ty=(DY0+rm.wallY+(rm.n?1.5:-.5))*T;
+    p.wait=ri(20,60)}
   if(!YG.on&&!YG.ending&&allPl().some(p=>isY(p.fl))){
     YG.on=1;YG.pend=0;YG.g=START_G;gm=START_G;lastMin=-1}
   if(YG.on){const h=(6+YG.g/60)%24;YG.g+=dt*((h>=6&&h<23)?2:1);gm=YG.g}
@@ -948,6 +954,7 @@ function tick(dt){
   allPl().forEach(P=>{const i=P.fl-F0;if(i>=0&&i<NF)stairCheck(P,i)});
   ins.forEach(p=>{
     if(!p.yt)return;
+    if(p.fl===F0){const rr=roomOf(p);if(rr&&rr!==p.room+1)kickOut(p,rr)}
     if(p.sn&&p.act==='idle'){const s=p.sn;p.x=p.tx=s.wx*T+4;p.y=p.ty=s.wy*T+4;p.sn=null;p.path=[]}
     if(p.seat&&p.act==='idle')p.seat=0});
   const Ps=ins.find(p=>p.pl===sel);
