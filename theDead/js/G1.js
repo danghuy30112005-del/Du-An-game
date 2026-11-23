@@ -158,7 +158,7 @@ function enterMemory(n,why){
       const rm=R.find(r=>bed.wy>=DY0+r.y0-1&&bed.wy<=DY0+r.y1+1&&bed.wx>=DY0&&bed.wx>=DX0+r.x0&&bed.wx<=DX0+r.x1);
       Q.yaw=rm?Math.atan2(DY0+rm.wallY+.5-(bed.wy+.5),DX0+rm.w+7.5-(bed.wx+.5)):0;
       Q.mcl=null;Q.act='idle';Q.mb=60;Q.vis=1;Q.sz=0;Q.sk=0;Q.wakeT=performance.now()/1000;
-      delete DR[n];M.done[n]=Math.floor((YT.clock().g-960)/1440);
+      delete DR[n];M.done[n]=Math.floor((YT.clock().g-900)/1440);
       spawnMem(n);
       if(n===sel){syncView(true);M.ban={t0:performance.now(),txt:NAMES[0]};
         cap(why==='pass'?'Bạn ngất đi vì quá buồn ngủ... rồi mở mắt: đây là KÍ ỨC về du thuyền. W/S/A/D đi, chuột hoặc ←/→ xoay, E tương tác.'
@@ -241,7 +241,7 @@ function doorBlock(P,nx,ny){
   return false}
 
 function tick(dt){
-  const c=YT.clock(),h=hour(),night=!!c.on&&(h>=22||h<6),nid=Math.floor((c.g-960)/1440);
+  const c=YT.clock(),h=hour(),night=!!c.on&&(h>=21||h<6),nid=Math.floor((c.g-900)/1440);
   doorTick(dt);
   if(M.fx){
     const f=M.fx;f.t+=dt;
@@ -901,8 +901,9 @@ const YT=window.yachtDream,F0=27,FM=31,NF=4,DX0=14,DY0=12,LENS=[138,98,98,98];
 const isY=f=>f>=F0&&f<F0+NF;
 /* ---------- Thông số (px / giây; người chơi đi 66, đi chậm Shift 36) ---------- */
 const C={
-  firstOnly:true,      /* true: chỉ đêm đầu tiên có oan hồn; false: mọi đêm */
-  spawnDelay:8,        /* giây sau khi có người vào kí ức thì oan hồn xuất hiện */
+  firstOnly:false,      /* true: chỉ đêm đầu tiên có oan hồn; false: mọi đêm */
+  spawnDelay:8,        /* giây kể từ lúc trời tối thì oan hồn xuất hiện */
+  sleepWithin:5,       /* NPC đi ngủ trong vòng bấy nhiêu giây kể từ lúc trời tối */       /* giây sau khi có người vào kí ức thì oan hồn xuất hiện */
   patrol:30,           /* tốc độ đi tuần */
   chase:74,            /* tốc độ đuổi (hơn người chơi 66 một chút) */
   sight:150,           /* tầm nhìn */
@@ -929,10 +930,10 @@ const isM=f=>f>=FM&&f<FM+NF;
 const warned={};const oops=(n,e)=>{if(!warned[n]){warned[n]=1;console.error('[ghost-mem] lỗi trong '+n+':',e)}};
 const memPlayers=()=>ins.filter(p=>p.pl&&isM(p.fl));
 const npcs=()=>ins.filter(p=>p.mem&&!p.dead);
-const nidNow=()=>Math.floor((YT.clock().g-960)/1440);
-const nightOK=()=>{if(!YT.clock().on)return false;const h=hour();return h>=22||h<6};
+const nidNow=()=>Math.floor((YT.clock().g-900)/1440);
+const nightOK=()=>{if(!YT.clock().on)return false;const h=hour();return h>=21||h<6};
 const keyOf=p=>[p.mroom,p.k,p.c,p.skin,p.hair].join('|');
-
+let NT=0;
 let G=null,K={nid:-9,quota:0,kills:0,dead:[],wk:0},CORP=[],BP=[],PM={},S={t:0},SU=null,ROOMS=[],DOORS=[],DKEY=new Map(),SP={},LOW=[],BT=new Set();
 const LOWK=new Set(['bed','tbl','chair','stand','banq','plant','toilet','sink','sofa','lounger','stool','pool','bar','jac']);
 
@@ -1116,6 +1117,10 @@ function npcTick(p,dt){
     g.fr-=dt;if(g.fr<=0||(!p.path.length&&Math.hypot(p.tx-p.x,p.ty-p.y)<=.7)){g.fr=.9;flee(p)}
     return}
   if(g.flee){g.flee=0;p.sp=g.sp0;g.st=g.walk?'walk':(p.fl===FM?'home':'down');g.tgt=null}
+  if(nightOK()&&!g.walk){
+  if(g.sd===undefined)g.sd=rf(0,C.sleepWithin);
+  if(g.st!=='sleep'&&NT>=g.sd){if(!sleepAt(p))g.sd=1e9;return}
+}else if(!nightOK())g.sd=undefined;
   switch(g.st ){   
     case 'roam':case 'walk':{
     if(!g.wlim)g.wlim=rf(60,100);
@@ -1243,7 +1248,7 @@ if(Math.random()>C.homeSpawn){const o=[];for(let q=0;q<NF;q++)if(q!==C.home)o.pu
   return false}
 
 function ghostTick(dt){
-  if(!G){S.t+=dt;if(S.t>=C.spawnDelay)spawn();return}
+  if(!G){if(NT>=C.spawnDelay)spawn();return}
   G.t+=dt;
   G.vt-=dt;let det=null;if(G.vt<=0){G.vt=.15;det=detect()}
   /* người chơi chui vào tủ ngay trước mắt oan hồn */
@@ -1348,7 +1353,6 @@ function discoverOne(p,c,j,key){
   shout(p,'AAAAAAA!!',6);
   ins.forEach(q=>{
     if(q===p||q.dead||q.dying||q.gk||!(q.mem||q.yt)||q.fl!==p.fl)return;
-    if(Math.hypot(q.x-p.x,q.y-p.y)>320)return;
     if(q.mem&&q.g2&&q.g2.flee)return;
     shout(q,SCR[rnd(SCR.length)],rf(3,6));gatherTo(q,c,j)});
   gatherTo(p,c,j);
@@ -1371,18 +1375,26 @@ function discover(inY){
 const FEAR=['Có kẻ giết người trên tàu!','Ai... ai làm chuyện này?','Tôi sợ quá...','Khóa cửa phòng lại đi!','Là oan hồn đó...','Đêm qua tôi nghe tiếng hét!','Đừng đi một mình nữa!','Gọi thuyền trưởng đi!','Máu... khắp nơi...','Nó vẫn còn trên tàu này!'];
 let MOR=-9;
 function sayFear(p){if(!p.bub)shout(p,FEAR[rnd(FEAR.length)],rf(3,5))}
+
+/* đánh thức 1 NPC dream đang ngủ / bận */
+function wakeY(p){
+  if(p.act==='sleep')endAct(p);
+  rel(p);if(p.ys&&p.ys.o===p)p.ys.o=null;
+  p.sn=null;p.seat=0;p.path=[];p.goal=null;p.mor=1}
+
+/* cho NPC đi tới ô (x,y) rồi đứng nhìn */
+function goToY(p,x,y){
+  const s={k:'look',fl:p.fl,wx:x,wy:y,o:p};p.ys=s;
+  p.goal={fl:p.fl,x,y,kind:'ys',s}}
+
 function morningTick(dt){
   const c=YT.clock();if(!c.on||state!=='island')return;
   const h=hour();
+
+  /* ---- 6:00: khởi động buổi sáng ---- */
   if(h>=6.05&&h<9&&MOR!==K.nid){
     MOR=K.nid;
-    const used=new Set(),wake=p=>{
-      if(p.act==='sleep')endAct(p);
-      rel(p);if(p.ys&&p.ys.o===p)p.ys.o=null;
-      p.sn=null;p.seat=0;p.path=[];p.goal=null;p.mor=1;used.add(p)};
-    const goTo=(p,x,y)=>{
-      const s={k:'look',fl:p.fl,wx:x,wy:y,o:p};p.ys=s;
-      p.goal={fl:p.fl,x,y,kind:'ys',s}};
+    const used=new Set();
     /* 1 NPC đi thẳng tới cửa phòng có xác (người phát hiện) */
     const cs=CORP.filter(q=>!q.fy&&q.fl-FM>=0);
     if(cs.length){
@@ -1390,15 +1402,34 @@ function morningTick(dt){
         L=ins.filter(p=>p.yt&&!p.dead&&p.fl===F0+cj);
       if(L.length){
         const f=L[rnd(L.length)],pt=gatherPt(cp,cj);
-        wake(f);f.chk={c:cp,cj,x:pt[0],y:pt[1],t:0};goTo(f,pt[0],pt[1])}}
-    /* 2-3 NPC khác bước ra khỏi phòng ngủ ra hành lang */
-    const L2=ins.filter(p=>p.yt&&!p.dead&&p.fl===F0&&!used.has(p));
-    for(let n=ri(2,3);n>0&&L2.length;n--){
-      const p=L2.splice(rnd(L2.length),1)[0],rm=ROOMS[p.room|0];if(!rm)continue;
-      const tx=DX0+rm.w+7+rnd(2),ty=Math.floor(DY0+rm.wallY+(rm.n?1.5:-.5));
-      wake(p);goTo(p,tx,ty)}
-    if(allPl().some(p=>isY(p.fl)))cap('Trời sáng. Vài người bước ra khỏi phòng ngủ, hành lang vẫn còn mùi tanh...')}
-  /* người tìm xác tới cửa phòng thì hét lên, gây xôn xao */
+        wakeY(f);used.add(f);
+        f.chk={c:cp,cj,x:pt[0],y:pt[1],t:0};
+        goToY(f,pt[0],pt[1])}}
+    /* tất cả NPC còn lại ở tầng 4 lần lượt thức dậy (lệch 0-30 giây) */
+    ins.filter(p=>p.yt&&!p.dead&&p.fl===F0&&!used.has(p)).forEach(p=>{p.mw={t:rf(0,30),st:0}});
+    if(allPl().some(p=>isY(p.fl)))cap('Trời sáng. Mọi người lần lượt thức dậy và bước ra khỏi phòng ngủ...')}
+
+  /* ---- hàng đợi thức dậy: dậy -> ra hành lang -> tản ra ---- */
+  ins.forEach(p=>{
+    const w=p.mw;if(!w)return;
+    if(p.dead||p.dying){p.mw=null;return}
+    w.t-=dt;if(w.t>0)return;
+    if(w.st===0){                         /* bước 1: dậy, ra cửa phòng */
+      wakeY(p);
+      const rm=ROOMS[p.room|0];
+      if(rm)goToY(p,DX0+rm.w+7+rnd(2),Math.floor(DY0+rm.wallY+(rm.n?1.5:-.5)));
+      w.st=1;w.t=rf(8,14);return}
+    /* bước 2: tản ra */
+    p.mw=null;p.mor=0;
+    if(p.act!=='idle')endAct(p);
+    p.goal=null;p.path=[];
+    const cs2=CORP.filter(q=>q.fl-FM>=0);
+    if(cs2.length&&Math.random()<.6){     /* 60% đi xôn xao quanh xác */
+      const cp=cs2[rnd(cs2.length)],j=cp.fl-FM;
+      if(p.fl===F0+j){gatherTo(p,cp,j);p.wait=ri(10,30);return}}
+    p.wait=ri(5,40)});                    /* còn lại: làm việc riêng (ythink tự chọn) */
+  
+  /* ---- người tìm xác tới cửa phòng thì hét lên, gây xôn xao ---- */
   ins.forEach(p=>{
     const k=p.chk;if(!k)return;
     if(p.dead||!CORP.includes(k.c)||k.c.fy){p.chk=null;return}
@@ -1470,7 +1501,8 @@ function tick(dt){
     if(frame%20===0)syncDead();
   const A=memPlayers();
   BP.forEach(q=>{if(q.rest)return;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.vz-=2.8*dt;if(q.z<=0){q.z=0;q.rest=1}});
-  if(!A.length){G=null;S.t=0;PM={};return}
+  if(!A.length){G=null;NT=0;PM={};return}
+if(nightOK())NT+=dt;else NT=0;
   updateDoors();
   if(ins.some(p=>p.mem&&!p.g2)&&!ins.some(p=>p.mem&&p.g2))BT.clear();
   ins.forEach(p=>{if(p.mem&&!p.g2&&!p.dead)npcInit(p)});

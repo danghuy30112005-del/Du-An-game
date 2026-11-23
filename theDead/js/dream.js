@@ -183,6 +183,8 @@ const KEY='deadisland:drowsy',ACCEL=25,WAKE0=6,WAKE1=12;
 let SL={},DR={},dark=0;
 const MV=new Set(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright']);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+/* ngày 1, chưa vào giấc mơ: đã nằm xuống thì không tự dậy được */
+const locked=n=>day()===1&&!(window.yachtDream&&window.yachtDream.done()[n]);
 
 function load(){try{const o=JSON.parse(localStorage.getItem(KEY));if(o&&o.seed===seed){DR=o.dr||{};return}}catch(_){}DR={}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({seed,dr:DR}))}catch(_){}}
@@ -237,6 +239,10 @@ addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   if(SL[sel]){
     if(k==='e'||MV.has(k)){
+      if(locked(sel)){
+        if(k==='e')e.stopImmediatePropagation();
+        if(!e.repeat)cap('Bạn quá mệt, không thể ngồi dậy được... cơ thể bạn chìm dần vào giấc ngủ.');
+        return}
       if(k==='e')e.stopImmediatePropagation();
       if(!e.repeat)wake(sel,'P'+sel+' thức dậy.')}
     return}
