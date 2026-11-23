@@ -422,6 +422,8 @@ function buildFloor(i){
   const para=(lx,ly)=>obj('pole',lx,ly,1,1);
   const tset=(lx,ly)=>{obj('tbl',lx,ly,2,2);[[lx-1,ly],[lx+2,ly+1],[lx,ly-1],[lx+1,ly+2]].forEach(([a,b])=>{if(!onDeck(a,b))return;obj('chair',a,b,1,1,{nb:1});LT.push(()=>spot('eat',a,b,{seat:1}))})};
   const sofa=(lx,ly,d)=>{obj('sofa',lx,ly,6,2,{d});LT.push(()=>[1,4].forEach(k=>spot('sit',lx+k,d==='n'?ly+2:ly-1,{sx:AX(lx+k)*T+4,sy:d==='n'?AY(ly)*T+13:AY(ly)*T+11,seat:1})))};
+  const banq=(lx,ly,w)=>{obj('banq',lx,ly,w,2);
+  for(let k=0;k<w;k++)[ly-1,ly+2].forEach(yy=>{obj('chair',lx+k,yy,1,1,{nb:1});LT.push(()=>spot('eat',lx+k,yy,{seat:1}))})};
   const lounger=(lx,ly,north)=>{obj('lounger',lx,ly,5,2);LT.push(()=>spot('sunbath',lx+2,north?ly+2:ly-1,{sx:AX(lx)*T+26,sy:AY(ly)*T+11}))};
 
   if(i===0){            /* ===== TẦNG 4: PHÒNG NGỦ ===== */
@@ -468,7 +470,7 @@ function buildFloor(i){
     obj('bar',38,10,21,12,{nb:1,cxp,cyp,ay:cyp+46,ax:cxp});
     for(let k=0;k<12;k++){const a=k*Math.PI/6+.26,sx=Math.round(48+Math.cos(a)*12.2-.5),sy=Math.round(16+Math.sin(a)*7.2-.5);obj('stool',sx,sy,1,1,{nb:1});LT.push(()=>spot('drink',sx,sy,{seat:1}))}
     sofa(12,3,'n');sofa(12,27,'s');sofa(70,3,'n');sofa(70,27,'s');
-    tset(11,8);tset(11,21);tset(83,8);tset(83,21);tset(28,10);tset(28,20);tset(66,10);tset(66,20);
+    tset(11,8);tset(11,21);tset(83,8);tset(83,21);banq(16,7,14);banq(16,23,14);banq(66,7,14);banq(66,23,14);
     palm(6,2);palm(6,28);palm(88,3);palm(88,27);
     LT.push(()=>{[[22,14],[24,16],[26,14],[23,18],[25,18],[71,14],[73,16],[75,14],[72,18],[74,18]].forEach(([a,b])=>spot('dance',a,b));spot('look',8,15);spot('look',90,15)});
     const bulbs=[];for(let lx=14;lx<=84;lx+=2){bulbs.push([lx,2],[lx,29])}
@@ -569,6 +571,17 @@ sink(o){const x=o.px,y=o.py;R('#cfd6e2',x+1,y+1,6,6);R('#ffffff',x+2,y+2,4,4);R(
 shower(o){const x=o.px,y=o.py;R('#aee0ee',x,y,16,16);R('#e4f6fb',x+1,y+1,14,14);R('#8aa4b4',x,y,16,1);R('#8aa4b4',x,y+15,16,1);R('#8aa4b4',x,y,1,16);R('#8aa4b4',x+15,y,1,16);
   disc('#7a8a96',x+8,y+8,2);R('#9aa0aa',x+11,y+1,3,3);
   cx.globalAlpha=.7;for(let k=0;k<3;k++)R('#7fd0f0',x+11+(k%2),y+4+((frame>>1)+k*3)%9,1,2);cx.globalAlpha=1},
+  banq(o){const x=o.px,y=o.py,w=o.w*8,h=16;
+  R('rgba(0,0,0,.28)',x+1,y+h-1,w,3);
+  R('#6a4a30',x,y+1,w,h-1);R('#f8f4ea',x,y,w,h-2);R('#e0d8c4',x,y+h-4,w,2);
+  for(let i=0;i<w;i+=4)R('#ebe3d0',x+i,y+h-2,2,2);
+  R('#c9a04c',x,y+7,w,2);R('#8a2a3a',x,y+7,w,1);
+  for(let k=0;k<o.w;k++){
+    const m=x+k*8+4;
+    [y+2,y+h-6].forEach(py=>{R('#ffffff',m-3,py,6,4);R('#cfd3d8',m-3,py+3,6,1);if(k%2===0)R(['#c0392b','#d4a63a','#5aa845'][k%3],m-1,py+1,2,2);else R('rgba(200,230,255,.9)',m+2,py+1,1,2)});
+    if(k%3===1){R('#fff8e0',m,y+6,1,3);R(((frame>>3)+k)%2?'#ffb02e':'#ffe08a',m,y+4,1,2);cx.save();cx.globalCompositeOperation='lighter';cx.globalAlpha=.18;R('#ffd27a',m-4,y+1,9,12);cx.restore()}
+    else if(k%5===3){R('#2f8f46',m-1,y+5,3,3);R(['#ff6a8a','#ffd23f','#ffffff'][k%3],m-1,y+4,3,2)}
+    else if(k%4===2){R('#d8dce2',m-3,y+6,6,3);R(['#b5651d','#c0392b','#5aa845','#d4a63a'][k%4],m-2,y+5,4,2)}}},
 sofa(o){const x=o.px,y=o.py,w=o.w*8,n=o.d==='n';R('rgba(0,0,0,.25)',x,y+15,w,2);
   R('#5a6280',x,n?y:y+10,w,6);R('#98a2bc',x+3,n?y+5:y+1,w-6,10);R('#6a7490',x,n?y+3:y,3,13);R('#6a7490',x+w-3,n?y+3:y,3,13);
   R('#7a84a0',x+(w>>1),n?y+5:y+1,1,10);R('#2aa8a0',x+6,n?y+6:y+7,5,4);R('#f0b060',x+w-11,n?y+6:y+7,5,4)},
@@ -968,7 +981,6 @@ const resetY=()=>{YG.on=0;YG.g=0;YG.pend=0;YG.pt=0;YG.ending=0;DT=0;ins.forEach(
 const _gen=gen;gen=function(sd){_gen(sd);loadD();resetY();buildAll()};
 const _mk=mkPeople;mkPeople=function(){_mk();DONE={};resetY();saveD()};
 
-window.yachtDream={go:n=>window.worldTransfer?window.worldTransfer(n||sel,'yacht'):false,wake:endDream,clock:()=>YG,done:()=>DONE,floors:()=>Y,rooms:()=>ROOMS,spots:()=>SPOTS};
-loadD();buildAll();
+window.yachtDream={go:n=>window.worldTransfer?window.worldTransfer(n||sel,'yacht'):false,wake:endDream,clock:()=>YG,done:()=>DONE,floors:()=>Y,rooms:()=>ROOMS,spots:()=>SPOTS,karst:v=>karst(v),kp:()=>KP};loadD();buildAll();
 console.log('[yacht] đã nạp OK (bản 3: 14 phòng, 14 NPC, trốn tủ, đồng hồ riêng)');
 })();

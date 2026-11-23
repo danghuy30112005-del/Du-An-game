@@ -69,9 +69,15 @@ const LENS=[138,98,98,98];
 function randTile(j,anyRoom){
   for(let t=0;t<300;t++){const x=DX0+2+rnd(LENS[j]-12),y=DY0+2+rnd(28);if(okTile(j,x,y,anyRoom))return[x,y]}
   return null}
-
-/* ---------- NPC kí ức ---------- */
 function spawnMem(n){
+  const src=ins.filter(p=>p.yt);
+  if(!src.length)return spawnMemRand(n);
+  ins=ins.filter(p=>!p.mem);
+  src.forEach(s=>ins.push({k:s.k,pl:0,cls:'y',mem:1,mroom:(s.room|0)+1,evt:1,c:s.c,skin:s.skin,hair:s.hair,
+    x:s.x,y:s.y,tx:s.x,ty:s.y,sp:s.sp,path:[],ph:1,wait:ri(20,200),moving:0,vis:1,delay:0,hide:0,fl:FM+(s.fl-F0),
+    n:{hu:20,fa:10,sl:5},act:'idle',t:0,cd:1e9,goal:null,say:'',tool:null}))}
+/* ---------- NPC kí ức ---------- */
+function spawnMemRand(n){
   ins=ins.filter(p=>!p.mem);
   const R=YT.rooms(),occ=R.map((_,k)=>k).filter(k=>!EMPTY.includes(k)),own=n?occ[(n-1)%occ.length]:-1,
     ref=ins.filter(p=>p.yt),KS=['man','woman','man','woman','elder','child'];let q=0;
@@ -343,7 +349,7 @@ addEventListener('keydown',e=>{
 
 /* ================= RAYCASTING ================= */
 /* [chiều cao, màu thường, màu phụ, tỉ lệ] — màu chỉ dùng cho đồ chưa có hàm vẽ riêng */
-const OBJS={bed:[.34,'#d9d3c6'],desk:[.34,'#a87a4c'],wardrobe:[1,'#7a5434'],tbl:[.5,'#f6f1e6'],chair:[.5,'#c8a878'],stand:[.42,'#6a4630'],
+const OBJS={bed:[.34,'#d9d3c6'],desk:[.34,'#a87a4c'],wardrobe:[1,'#7a5434'],tbl:[.5,'#f6f1e6'],chair:[.5,'#c8a878'],stand:[.42,'#6a4630'],banq:[.4,'#f6f1e6'],
   plant:[.62,'#a8683c'],toilet:[.36,'#e6e8f2'],sink:[.44,'#cfd6e2'],shower:[.94,'#aee0ee'],sofa:[.46,'#98a2bc'],
   lounger:[.3,'#f6f2ea'],pole:[.88,'#9aa0aa'],palm:[.78,'#6a4a2a'],egg:[.72,'#8a7a62'],mast:[.94,'#e8eaf2'],
   bar:[.62,'#2aa89a'],stool:[.36,'#9a7040'],step:[.3,'#a8743f']};
@@ -397,6 +403,15 @@ function paint(g,o,kind,x,fy,lh,a,s0,def){
     if(Math.abs(a-.38)<.014||Math.abs(a-.62)<.014){C('#cfeaff',.32,.34,.7);C('#cfeaff',.34,.43,.55)}
     if(Math.abs(a-.5)<.06){C('#2f8f46',.32,.38);C(['#ff6a8a','#ffd23f','#ffffff'][hh%3],.38,.46);if(c0<.025)C('#ff9ac2',.46,.5)}
     if(Math.abs(a-.28)<.012||Math.abs(a-.72)<.012){C('#fff8e0',.32,.43);C(fl?'#ffb02e':'#ffe08a',.43,.47)}
+    break}
+  case 'banq':{
+    const W=o?o.w:14,u=a*W,k=Math.floor(u),c1=Math.abs(u-k-.5);
+    C('#f2ecdc',0,.33);C('#fffaf0',.33,.36);C('#c9a04c',.36,.365);
+    if(c1<.3){C('#ffffff',.365,.38);if(k%2===0&&c1<.18)C(['#c0392b','#d4a63a','#5aa845'][k%3],.38,.4)}
+    if(k%2===1&&c1<.1)C('#cfeaff',.365,.44,.6);
+    if(k%3===1&&c1<.06){C('#fff8e0',.365,.46);C(fl?'#ffb02e':'#ffe08a',.46,.5)}
+    else if(k%5===3&&c1<.2){C('#2f8f46',.365,.42);C(['#ff6a8a','#ffd23f','#ffffff'][k%3],.42,.5)}
+    else if(k%4===2&&c1<.35){C('#d8dce2',.365,.375);C(['#b5651d','#c0392b','#5aa845','#d4a63a'][k%4],.375,.43)}
     break}
   case 'desk':C('#6a4630',0,.28);C('#a87a4c',.28,.32);if(a>.55&&a<.9)C('#8a6040',.08,.24);
     if(a>.15&&a<.32){C('#c0392b',.32,.36);C('#f4f4f8',.34,.35)}
@@ -499,7 +514,58 @@ function drawCeil(g,px,py,dX,dY,plX,plY,hor,EYE){
       if(y+1<CH){const j=i+NC*4;d[j]=d[i];d[j+1]=d[i+1];d[j+2]=d[i+2];d[j+3]=255}}}
   CBG.putImageData(CIMG,0,0);
   g.drawImage(CBUF,0,0,NC,H,0,0,CW,H)}
-
+/* ---------- Sàn: ceiling-casting đảo ngược, mỗi ô lấy đúng loại sàn (kd) của yacht ---------- */
+let FBUF=null,FBG=null,FIMG=null,DDEC=null;
+function danovaData(){
+  if(DDEC)return DDEC;
+  const c=document.createElement('canvas');c.width=96;c.height=24;const g=c.getContext('2d');
+  g.fillStyle='rgba(255,216,107,.18)';g.fillRect(0,2,96,16);
+  g.textAlign='center';g.font='bold 10px monospace';g.fillStyle='#8a5a1a';g.fillText('DANOVA',49,13);g.fillStyle='#ffe9a0';g.fillText('DANOVA',48,12);
+  g.font='bold 5px monospace';g.fillStyle='#ffd86b';g.fillText('CRUISE HALONG BAY',48,19);
+  return DDEC=g.getImageData(0,0,96,24).data}
+const PLAT=[[98,52,[200,154,96]],[102,56,[152,105,60]],[112,62,[208,160,102]],[116,66,[168,116,68]],[126,72,[214,164,106]],[130,76,[122,78,42]]];
+function drawFloor(g,i,Yf,px,py,dX,dY,plX,plY,hor,EYE){
+  if(!FBUF){FBUF=document.createElement('canvas');FBUF.width=NC;FBUF.height=CH;FBG=FBUF.getContext('2d');FIMG=FBG.createImageData(NC,CH)}
+  const d=FIMG.data,kd=Yf.kd,y0=Math.max(0,Math.floor(hor)),rx0=dX-plX,ry0=dY-plY,sx=2*plX/NC,sy=2*plY/NC,
+    dec=i===2?danovaData():null,DXo=DX0+48-6,DYo=DY0+27-1.25;
+  for(let y=y0;y<CH;y+=2){
+    const den=y+.5-hor;if(den<.4)continue;
+    const rd=CH*1.1*EYE/den,sh=clamp(1.35-rd*.045,.3,1);
+    let wx=px+rd*rx0,wy=py+rd*ry0;
+    for(let c=0;c<NC;c++,wx+=rd*sx,wy+=rd*sy){
+      const tx=Math.floor(wx),ty=Math.floor(wy),fx=wx-tx,fy=wy-ty,row=kd[ty],k=row?(row[tx]|0):0;
+      let r,gc,b,q=sh;
+      if(!k){const w=Math.sin(wx*.9+wy*.5+frame*.05)+Math.sin(wx*.3-wy*.8+frame*.03),hi=w>1.2;r=hi?150:46;gc=hi?170:74;b=hi?210:134;q=1}
+      else if(k===3){
+        const e=(fy<.125&&((kd[ty-1]||[])[tx]|0)!==3)||(fy>.875&&((kd[ty+1]||[])[tx]|0)!==3)||(fx<.125&&(row[tx-1]|0)!==3)||(fx>.875&&(row[tx+1]|0)!==3);
+        if(e){r=224;gc=184;b=96}else if((tx+ty)&1){r=122;gc=54;b=80}else{r=110;gc=46;b=68}}
+      else if(k===4){if(fx>.875||fy>.875){r=150;gc=180;b=200}else if((tx+ty)&1){r=216;gc=232;b=240}else{r=188;gc=212;b=224}}
+      else if(k===5||k===6){if((fy>.25&&fy<.31)||(fy>.62&&fy<.69)){r=176;gc=168;b=152}else{r=240;gc=235;b=224}}
+      else if(k===7){r=31;gc=178;b=196}
+      else if(k===8){r=232;gc=226;b=216}
+      else if(k===9){r=236;gc=238;b=246}
+      else{
+        const pale=k===2||k===10,idx=(fy<.5?(tx+ty):(tx+ty+1))&1;
+        if(pale){r=idx?201:211;gc=idx?156:168;b=idx?104:118}else{r=idx?185:196;gc=idx?125:135;b=idx?54:63}
+        if((fy>=.375&&fy<.5)||fy>=.875){r*=.78;gc*=.78;b*=.78}
+        if(i===1){                                   /* bục gỗ nhiều lớp quanh quầy bar + ánh ngọc dưới sàn */
+          const ex=wx-(DX0+48),ey=wy-(DY0+16.25);
+          for(const[a,bb,col]of PLAT){const u=ex/(a/8),v=ey/(bb/8);if(u*u+v*v<1){r=col[0];gc=col[1];b=col[2];if(fy>=.875){r*=.85;gc*=.85;b*=.85}break}}
+          const gl=(ex/11.5)*(ex/11.5)+(ey/6.25)*(ey/6.25);if(gl<1){const t=(1-gl)*34;gc+=t;b+=t*.9}}
+        else if(i===2){                              /* viền hồ bơi: gờ trắng + sàn cát */
+          const dd=Math.max(Math.max(DX0+34-wx,0,wx-(DX0+63)),Math.max(DY0+9-wy,0,wy-(DY0+22)));
+          if(dd<.5){r=246;gc=246;b=251}else if(dd<1.25){r=226;gc=184;b=120;if(((tx+ty)&1)===0&&fy<.12){r=190;gc=140;b=80}}}
+        else if(i===3){                              /* viền gỗ jacuzzi */
+          for(const jx of[DX0+28,DX0+70]){const rr=Math.hypot(wx-jx,wy-(DY0+8));
+            if(rr<3.625){r=168;gc=104;b=60}else if(rr<3.875){r=122;gc=74;b=42}}}
+        if(dec){                                     /* chữ DANOVA dưới sàn tầng 2 */
+          const u=Math.floor((wx-DXo)*8),v=Math.floor((wy-DYo)*8);
+          if(u>=0&&u<96&&v>=0&&v<24){const p=(v*96+u)*4,al=dec[p+3]/255;if(al>0){r+=(dec[p]-r)*al;gc+=(dec[p+1]-gc)*al;b+=(dec[p+2]-b)*al}}}
+      }
+      const o=(y*NC+c)*4;d[o]=r*q;d[o+1]=gc*q;d[o+2]=b*q;d[o+3]=255;
+      if(y+1<CH){const o2=o+NC*4;d[o2]=d[o];d[o2+1]=d[o+1];d[o2+2]=d[o+2];d[o2+3]=255}}}
+  FBG.putImageData(FIMG,0,0);
+  g.drawImage(FBUF,0,y0,NC,CH-y0,0,y0,CW,CH-y0)}
 function render(P){
   const g=cx;g.save();
   try{
@@ -526,20 +592,9 @@ function render(P){
         g.fillStyle=rg;g.fillRect(sx-90,sy-90,180,180);g.fillStyle='#fff3c4';
         for(let j=-16;j<=16;j++){const w=Math.round(Math.sqrt(256-j*j));g.fillRect(sx-w,sy+j,w*2,1)}}
       g.fillStyle='#2a2046';
-      KA.forEach(([a,w,h])=>{
-        const d=wrapA(a-yaw);if(Math.abs(d)>1.3)return;
-        const sx=CW/2*(1+Math.tan(d)/PL);
-        g.beginPath();g.moveTo(sx-w,hor);g.lineTo(sx-w*.25,hor-h);g.lineTo(sx+w*.3,hor-h*.85);g.lineTo(sx+w,hor);g.closePath();g.fill()})}
+      }
 
-    /* sàn */
-    const fk=(kd[pty]||[])[ptx]|0,
-      fc0=fk===3?'#4a1e30':fk===7?'#0e8aa0':(fk===2||fk===10)?'#8a6a46':'#8a5a24',fc1=fk===3?'#8a3a58':fk===7?'#1fb2c4':(fk===2||fk===10)?'#d3a876':'#c4873f';
-    const fg=g.createLinearGradient(0,hor,0,CH);fg.addColorStop(0,fc0);fg.addColorStop(1,fc1);
-    g.fillStyle=fg;g.fillRect(0,hor,CW,CH-hor);
-    const dp=px*dX+py*dY;
-    g.fillStyle='rgba(0,0,0,.09)';
-    for(let y=hor+1;y<CH;y+=3){const dist=CH*1.1*EYE/(y-hor);if(Math.floor(dist+dp)&1)g.fillRect(0,y,CW,3)}
-
+    drawFloor(g,i,Yf,px,py,dX,dY,plX,plY,hor,EYE);
     /* bắn tia */
     const cols=new Array(NC);
     for(let c=0;c<NC;c++){
@@ -568,7 +623,7 @@ function render(P){
           continue}
         if(k===0){if(!endD)endD=d;break}
         if(k===9){if(!endD)endD=d;hits.push({d,t:'r',fr,side});continue}
-        if(k===8){hits.push({d,t:'w',fr,side,win:i===0&&WIN.has(my*IW+mx)});break}
+        if(k===8){hits.push({d,t:'w',fr,side,win:i===0&&WIN.has(my*IW+mx),mx,my});break}
         const kind=OM.get(my*IW+mx),o=OR.get(my*IW+mx),def=OBJS[kind]||[.6,'#8a6a4a'];
         hits.push({d,t:'o',fr,side,def,kind,o,a:o?clamp(side===1?(wx-o.x)/o.w:(wx-o.y)/o.h,0,1):fr});
         if(def[0]>=.95)break}
@@ -577,6 +632,7 @@ function render(P){
       const x=c*CS;
       if(endD){const lh=CH*1.1/endD,fy=hor+lh*EYE,hh=Math.max(0,fy-hor);
         g.fillStyle='#2e4a86';g.fillRect(x,hor,CS,hh);g.fillStyle='#7a6aa8';g.fillRect(x,hor,CS,hh*.22)}
+        if(hs(c,frame>>3)%9===0){g.fillStyle='#ffd9a0';g.fillRect(x,hor+2+(hs(c,3)%Math.max(1,hh|0)),CS,1)}
       for(let q=hits.length-1;q>=0;q--){
         const h=hits[q],lh=CH*1.1/h.d,fy=hor+lh*EYE,
           s=clamp(1.3-h.d*.05,.3,1)*(h.side?.8:1)*(h.fr<.03?.9:1);
@@ -624,6 +680,14 @@ function render(P){
           g.fillStyle=shade('#e8e2d8',s);g.fillRect(x,top,CS,lh);
           g.fillStyle=shade('#b9a888',s);g.fillRect(x,top,CS,lh*.06);
           g.fillStyle=shade('#8a5a38',s);g.fillRect(x,fy-lh*.1,CS,lh*.1);
+                    const pn=(h.fr<.05||h.fr>.95||(h.fr>.47&&h.fr<.53));
+          g.fillStyle=shade(pn?'#6a4228':'#a06a40',s);g.fillRect(x,fy-lh*.34,CS,lh*.24);
+          g.fillStyle=shade('#d8b060',s);g.fillRect(x,fy-lh*.36,CS,Math.max(1,lh*.025));g.fillRect(x,top+lh*.06,CS,Math.max(1,lh*.02));
+          if(((h.fr*6)|0)%2===0){g.fillStyle='rgba(150,120,90,.10)';g.fillRect(x,top+lh*.08,CS,lh*.5)}
+          if(((h.mx*3+h.my*5)&3)===0&&h.fr>.44&&h.fr<.56){
+            g.fillStyle=shade('#6a4a1a',s);g.fillRect(x,fy-lh*.66,CS,lh*.08);
+            g.fillStyle=shade('#fff0b0',Math.max(s,.8));g.fillRect(x,fy-lh*.76,CS,lh*.1);
+            g.globalAlpha=.25;g.fillStyle='#ffd98a';g.fillRect(x-CS*3,fy-lh*.9,CS*7,lh*.4);g.globalAlpha=1}
           if(h.win){
             g.fillStyle=shade('#ff9a62',Math.max(s,.75));g.fillRect(x,top+lh*.28,CS,lh*.4);
             g.fillStyle=shade('#ffe0b0',Math.max(s,.75));g.fillRect(x,top+lh*.28,CS,lh*.1);
@@ -645,6 +709,9 @@ function render(P){
       if(o.k==='pole')B.push({x:o.px+4,y:o.py+4,img:BB.par,wT:6,hT:1.5,pad:-1.7,a:1});
       else if(o.k==='palm')B.push({x:cxp,y:cyp,img:BB.palm,wT:6.8,hT:3.4,pad:-.66,a:1});
       else if(o.k==='pool')[46,58].forEach(a=>B.push({x:o.px+a,y:o.py+2,img:BB.lad,wT:1.6,hT:2.4,pad:0,a:1}))});
+    if(i>=1&&YT.karst)YT.kp().forEach(([kx,by,v,s2])=>{
+      const c=YT.karst(v),w=c.width*s2,hh=c.height*s2;
+      B.push({x:kx+w/2,y:by,img:c,wT:w*3/8,hT:hh*3/8,pad:0,a:2.2})});
     if(i===1)for(let lx=14;lx<=84;lx+=2)[2,29].forEach(ly=>{
       const bx=(DX0+lx)*T+4,by=(DY0+ly)*T+4;
       if(Math.abs(bx/T-px)>26||Math.abs(by/T-py)>26)return;
