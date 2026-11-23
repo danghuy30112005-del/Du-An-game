@@ -1077,7 +1077,7 @@ function splat(v,n){
   if(BP.length>220)BP.splice(0,BP.length-220)}
 function npcDie(p,kt){
   ins=ins.filter(q=>q!==p);p.dead=1;K.kills++;K.dead.push(keyOf(p));
-  CORP.push({fl:p.fl,x:p.x,y:p.y,kt,bed:p.act==='sleep',t0:YT.clock().g,sn:{},al:{},p:{k:p.k,c:p.c,skin:p.skin,hair:p.hair}});
+  CORP.push({fl:p.fl,x:p.x,y:p.y,kt,bed:p.act==='sleep',sess:SESS,t0:YT.clock().g,sess:SESS,sn:{},al:{},p:{k:p.k,c:p.c,skin:p.skin,hair:p.hair}});
   splat(p,24);
   const P=ins.find(q=>q.pl===sel&&isM(q.fl));
   if(P)cap(P.fl===p.fl&&Math.hypot(P.x-p.x,P.y-p.y)<220?'Oan hồn '+(kt==='rip'?'xé xác':'chém chết')+' một người ngay trước mắt bạn!':'Một tiếng thét thất thanh vang lên rồi im bặt... có ai đó vừa bị giết.')}
@@ -1451,8 +1451,8 @@ function corpseTick(dt){
       if(L.length)shout(L[rnd(L.length)],'Xong rồi... xác đã được đem đi.',4);
       const P=allPl().find(p=>p.pl===sel);
       if(P&&(isY(P.fl)||isM(P.fl)))cap('Mọi người đã dọn xác đi, nhưng ai cũng im lặng và nhìn nhau đầy nghi ngờ...')}});
-  CORP=CORP.filter(c=>g>=c.t0&&g-c.t0<DAYM&&!(c.ct!==undefined&&c.ct<=0));
-  BP=BP.filter(q=>q.t0===undefined||(g>=q.t0&&g-q.t0<DAYM));
+  CORP=CORP.filter(c=>c.sess===SESS&&g>=c.t0&&g-c.t0<DAYM&&!(c.ct!==undefined&&c.ct<=0));
+  BP=BP.filter(q=>q.sess===undefined||(q.sess===SESS&&g-q.t0<DAYM));
   ins.forEach(p=>{if(p.bub&&(p.bub.t-=dt)<=0){p.bub=null;if(p.yt)p.shout=null}});
   const A=allPl();
   A.forEach(P=>{                                                     /* tới gần xác thì đánh dấu đã thấy */
@@ -1490,11 +1490,19 @@ function arrowDraw(){
   g.restore()}
 
 /* ================= VÒNG LẶP ================= */
-function resetNight(){K={nid:nidNow(),quota:ri(C.quota[0],C.quota[1]),kills:0,dead:[],wk:0};CORP=[];BP=[];BT=new Set()}
-function tick(dt){
+function resetNight(){
+  K={nid:nidNow(),quota:ri(C.quota[0],C.quota[1]),kills:0,dead:K.dead||[],wk:0}; // giữ NPC đã chết
+  CORP=[];BP=[];BT=new Set();MOR=-9;}function tick(dt){
   if(!setup())return;
+let SESS=0,LASTG=0;
+const nidNow=()=>SESS;
+function sessTick(){
+  const c=YT.clock();
+  if(c.on&&c.g<LASTG-200)SESS++;   // đồng hồ bị reset = đêm mới
+  LASTG=c.g}
   if(K.nid!==nidNow())resetNight();
   corpseTick(dt);
+
   if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));
   if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));
   morningTick(dt);
@@ -1553,7 +1561,7 @@ function bills(P,B){
     const calm=G.st==='patrol'||G.st==='search'||G.st==='spawn';
     B.push({x:G.x,y:G.y,img:GLW,wT:8,hT:8,pad:.25,a:(.3+.12*Math.sin(frame*.12))*G.alpha*(calm?.7:1.4),add:1,nf:1});
 B.push({x:G.x,y:G.y,img:GC,wT:GWc/GU,hT:GHc/GU,pad:4/GHc-.1+Math.sin(frame*.08)*.03,a:G.alpha*(calm?.85:1),nf:1})}}
-window.GMEM={bills,near:(x,y,r)=>!!G&&G.fl===FM&&Math.hypot(G.x-x,G.y-y)<r,ghost:()=>G,cfg:C,
+window.GMEM={bills,near:(x,y,r)=>!!G&&G.fl===FM&&Math.hypot(G.x-x,G.y-y)<r,ghost:()=>G,cfg:C,sess:()=>SESS,
   spawnNow:()=>{C.firstOnly=false;return spawn()},kills:()=>K};
 
 /* ================= HIỆU ỨNG MÀN HÌNH ================= */
