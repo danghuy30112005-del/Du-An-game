@@ -12,8 +12,9 @@ if(miss.length||!window.yachtDream||typeof window.yachtDream.floors!=='function'
   console.warn('G1.js: hãy nạp CUỐI CÙNG (sau dream.js / yacht.js)'+(miss.length?' thiếu '+miss.join(', '):''));return}
 
 const YT=window.yachtDream;
+const upOf=i=>i<3?i+1:(i===4?0:-1), dnOf=i=>i===0?4:(i>0&&i<4?i-1:-1);
 const F0=27,FM=32,NF=5,DX0=14,DY0=12,NC=250,CS=CW/NC,EYE0=.55,PL=.8,PASS=100,STU=.42,STD=.22;
-const NAMES=['Tầng 4: Khu phòng ngủ','Tầng 3: Tầng tiệc','Tầng 2: Tắm nắng và bể bơi','Tầng 1: Tầng thượng'];
+const NAMES=['Tầng 4: Khu phòng ngủ','Tầng 3: Tầng tiệc','Tầng 2: Tắm nắng và bể bơi','Tầng 1: Tầng thượng','Tầng 5: Tầng hầm'];
 const EMPTY=[10];
 const SXof=i=>i===0?116:92,LANDR=j=>j===0?113:89;
 const isY=f=>f>=F0&&f<F0+NF,isM=f=>f>=FM&&f<FM+NF;
@@ -65,7 +66,7 @@ function freeNear(j,tx,ty){
     if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;
     if(okTile(j,tx+dx,ty+dy,false))return[tx+dx,ty+dy]}
   return null}
-const LENS=[138,98,98,98];
+const LENS=[138,98,98,98,98];
 function randTile(j,anyRoom){
   for(let t=0;t<300;t++){const x=DX0+2+rnd(LENS[j]-12),y=DY0+2+rnd(28);if(okTile(j,x,y,anyRoom))return[x,y]}
   return null}
@@ -355,7 +356,9 @@ const OBJS={bed:[.34,'#d9d3c6'],desk:[.34,'#a87a4c'],wardrobe:[1,'#7a5434'],tbl:
   crate:[.5,'#a8743f'],barrel:[.55,'#6a4a2a'],shelf:[1,'#5a4a3a'],paper:[.45,'#e8e2d0'],fcab:[.8,'#7a8590'],fridge:[1,'#d6dde2'],tank:[1,'#6a7480'],
   plant:[.62,'#a8683c'],toilet:[.36,'#e6e8f2'],sink:[.44,'#cfd6e2'],shower:[.94,'#aee0ee'],sofa:[.46,'#98a2bc'],
   lounger:[.3,'#f6f2ea'],pole:[.88,'#9aa0aa'],palm:[.78,'#6a4a2a'],egg:[.72,'#8a7a62'],mast:[.94,'#e8eaf2'],
-  bar:[.62,'#2aa89a'],stool:[.36,'#9a7040'],step:[.3,'#a8743f']};
+  bar:[.62,'#2aa89a'],stool:[.36,'#9a7040'],step:[.3,'#a8743f'],
+  freezer:[.5,'#e8f1f6'],foodbox:[.42,'#9ac4e0'],newsbox:[.45,'#b8864f'],bookcase:[1,'#5a3a1e'],};
+  
 const HC=new Map();
 function rgb(h){let v=HC.get(h);if(!v){v=[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];HC.set(h,v)}return v}
 function shade(h,s){const v=rgb(h);return 'rgb('+(v[0]*s|0)+','+(v[1]*s|0)+','+(v[2]*s|0)+')'}
@@ -842,7 +845,7 @@ const need=['save','restore','allPl','snapP','putIn','syncView','FL','IW','T'];
 const miss=need.filter(n=>{try{return new Function('return typeof '+n)()==='undefined'}catch(_){return true}});
 if(miss.length||!window.yachtDream){console.warn('resume.js: hãy nạp CUỐI CÙNG (sau G1.js). Thiếu: '+miss.join(', '));return}
 
-const YT=window.yachtDream,F0=27,FM=31,NF=4,DK='deadisland:dreamresume';
+const YT=window.yachtDream,F0=27,FM=32,NF=5,DK='deadisland:dreamresume';
 const inDream=p=>p.fl>=F0&&p.fl<=FM+NF-1;
 
 /* ---------- Lưu ---------- */
@@ -904,7 +907,8 @@ const miss=need.filter(n=>{try{return new Function('return typeof '+n)()==='unde
 if(miss.length||!window.memoryWorld||!window.yachtDream||typeof window.yachtDream.floors!=='function'){
   console.warn('G2.js: hãy nạp SAU G1.js'+(miss.length?' (thiếu '+miss.join(', ')+')':''));return}
 
-const YT=window.yachtDream,F0=27,FM=31,NF=4,DX0=14,DY0=12,LENS=[138,98,98,98];
+const YT=window.yachtDream,F0=27,FM=32,NF=5,DX0=14,DY0=12,LENS=[138,98,98,98,98];
+
 const isY=f=>f>=F0&&f<F0+NF;
 /* ---------- Thông số (px / giây; người chơi đi 66, đi chậm Shift 36) ---------- */
 const C={
@@ -933,7 +937,7 @@ const wrapA=a=>Math.atan2(Math.sin(a),Math.cos(a));
 const rf=(a,b)=>a+Math.random()*(b-a);
 const stay=j=>j===C.home?rf(C.homeStay[0],C.homeStay[1]):rf(C.awayStay[0],C.awayStay[1]);
 const SXof=i=>i===0?116:92;
-const isM=f=>f>=FM&&f<=FM+4; 
+const isM=f=>f>=FM&&f<FM+NF;     
 const warned={};const oops=(n,e)=>{if(!warned[n]){warned[n]=1;console.error('[ghost-mem] lỗi trong '+n+':',e)}};
 const memPlayers=()=>ins.filter(p=>p.pl&&isM(p.fl));
 const npcs=()=>ins.filter(p=>p.mem&&!p.dead);

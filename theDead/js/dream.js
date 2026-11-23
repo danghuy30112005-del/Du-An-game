@@ -734,6 +734,7 @@ draw=function(){
   try{
     cx.save();cx.setTransform(1,0,0,1,0,0);
         if(curF===F0+4&&window.BSM){BSM.post2D(cx,BN);cx.restore();return}
+        if(window.yachtDream&&window.yachtDream.rebuild)window.yachtDream.rebuild();
     cx.globalCompositeOperation='soft-light';cx.globalAlpha=.55;
     const g=cx.createLinearGradient(0,0,0,CH);g.addColorStop(0,'#ff9a5a');g.addColorStop(1,'#c05aa0');cx.fillStyle=g;cx.fillRect(0,0,CW,CH);
     cx.globalCompositeOperation='lighter';cx.globalAlpha=.06;cx.fillStyle='#ffb070';cx.fillRect(0,0,CW,CH);
@@ -990,7 +991,7 @@ const resetY=()=>{YG.on=0;YG.g=0;YG.pend=0;YG.pt=0;YG.ending=0;DT=0;ins.forEach(
 const _gen=gen;gen=function(sd){_gen(sd);loadD();resetY();buildAll()};
 const _mk=mkPeople;mkPeople=function(){_mk();DONE={};resetY();saveD()};
 
-window.yachtDream={go:n=>window.worldTransfer?window.worldTransfer(n||sel,'yacht'):false,wake:endDream,clock:()=>YG,done:()=>DONE,floors:()=>Y,rooms:()=>ROOMS,spots:()=>SPOTS,karst:v=>karst(v),kp:()=>KP};loadD();buildAll();
+window.yachtDream={go:n=>window.worldTransfer?window.worldTransfer(n||sel,'yacht'):false,wake:endDream,clock:()=>YG,done:()=>DONE,floors:()=>Y,rooms:()=>ROOMS,spots:()=>SPOTS,karst:v=>karst(v),kp:()=>KP,rebuild:()=>buildAll()};loadD();buildAll();
 console.log('[yacht] đã nạp OK (bản 3: 14 phòng, 14 NPC, trốn tủ, đồng hồ riêng)');
 })();
 

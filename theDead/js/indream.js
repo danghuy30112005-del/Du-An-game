@@ -208,12 +208,18 @@ function build(A){
   O('sofa',24,10,6,2,{d:'s'});O('stand',31,9,1,1);
 
   /* ---- KHO B: tài liệu, giấy báo ---- */
+  O('bookcase',43,1,5,1);  
+  [[35,6],[35,7],[35,8],[35,9],[56,6],[56,7],[56,8]].forEach(([x,y])=>O('fcab',x,y,1,1));
+  [[43,5],[47,5],[43,8],[47,8],[37,8],[38,8],[41,8],[42,8],[49,8],[50,8],[53,8],[54,8]]
+    .forEach(([x,y],k)=>O('newsbox',x,y,1,1,{v:k})); 
   [1,4,7].forEach(y=>[36,40,48,52].forEach(x=>O('shelf',x,y,3,1)));
   [2,3,4,5].forEach(y=>{O('fcab',35,y,1,1);O('fcab',56,y,1,1)});
   O('paper',36,10,3,2);O('paper',40,10,2,2);O('paper',48,10,3,2);O('paper',52,10,3,2);
   O('tbl',55,9,2,2);O('chair',54,9,1,1,{nb:1});
 
   /* ---- KHO C: kho lạnh ---- */
+  [[39,22],[54,22],[39,27],[54,27]].forEach(([x,y])=>O('freezer',x,y,3,2));   // tủ đông chứa thực phẩm
+  [[45,23],[50,23],[45,28],[49,28]].forEach(([x,y],k)=>O('foodbox',x,y,1,1,{v:k}));  // thùng thực phẩm đông lạnh
   [21,23,25,27].forEach(y=>{O('fridge',36,y,2,2);O('fridge',58,y,2,2)});
   [38,40,42,44,50,52,54,56].forEach(x=>O('fridge',x,20,2,2));
   for(let x=36;x<=58;x+=2)O('fridge',x,29,2,2);
@@ -270,6 +276,25 @@ function tile(f,x,y,k,h,px,py,Q,K){
   return false}
 
 const draw={
+freezer(o){const x=o.px,y=o.py,w=o.w*8,h=o.h*8,v=hs(o.x,o.y);
+  R('rgba(0,0,0,.3)',x+1,y+h-1,w,3);R('#7d8a94',x,y,w,h);R('#e8eef2',x+1,y+1,w-2,h-2);
+  R('#4f6f82',x+2,y+2,w-4,h-4);R('#cfeaf6',x+2,y+2,w-4,1);R('#cfeaf6',x+2,y+2,1,h-4);
+  for(let i=0;i<w-8;i+=5)for(let j=0;j<h-8;j+=5){
+    R(['#c0392b','#4a90e0','#58c25e','#e8a030','#e8c0c0','#9ad0e8'][hs(o.x+i,o.y+j+v)%6],x+3+i,y+3+j,4,4);R('#fff',x+3+i,y+3+j,4,1)}
+  R(((frame>>5)+v)%7?'#4aff7a':'#ff4a4a',x+1,y+h-3,1,1);
+  cx.globalAlpha=.4+.3*Math.sin(frame*.08+v);R('#fff',x+3+(v%(w-6)),y+3,1,1);cx.globalAlpha=1},
+foodbox(o){const x=o.px,y=o.py,k=o.v|0;
+  R('rgba(0,0,0,.3)',x+1,y+7,8,2);R('#2a4a62',x,y,8,8);R(k%2?'#c0dcee':'#9ac4e0',x+1,y+1,6,6);R('#e8f6ff',x+1,y+1,6,1);
+  R(['#c0392b','#e8a030','#58c25e','#4a90e0'][k%4],x+2,y+3,4,2);R('#fff',x+3,y+3,1,1)},
+newsbox(o){const x=o.px,y=o.py;
+  R('rgba(0,0,0,.3)',x+1,y+7,8,2);R('#5a3a1e',x,y,8,8);R('#b8864f',x+1,y+1,6,6);R('#e6e0cc',x+1,y+1,6,3);
+  R('#cfc8b0',x+1,y+3,6,1);R('#555',x+2,y+2,4,1);R('#9a8a6a',x+1,y+5,6,1);R('#d8d0b8',x+2+((o.v|0)%2),y,3,2)},
+bookcase(o){const x=o.px,y=o.py,w=o.w*8;
+  R('rgba(0,0,0,.3)',x+1,y+7,w,2);R('#3a2410',x,y,w,8);R('#6b4423',x+1,y+1,w-2,6);
+  for(let i=0;i<w-2;i+=2){
+    R(['#8e1f2a','#2a5a8a','#c9a04c','#3f7a4a','#6a3a7a','#d8d0b8'][hs(o.x+i,o.y)%6],x+1+i,y+1,2,3);
+    R(['#6a3a7a','#c9a04c','#2a5a8a','#8e1f2a'][hs(o.x+i,3)%4],x+1+i,y+4,2,3)}
+  R('#8a5a2e',x,y,w,1)},
 crate(o){const x=o.px,y=o.py,w=o.w*8,h=o.h*8;R('rgba(0,0,0,.3)',x+1,y+h-1,w,2);
   for(let j=0;j<o.h;j++)for(let i=0;i<o.w;i++){
     const bx=x+i*8,by=y+j*8,v=hs(o.x+i,o.y+j)%3;
@@ -303,8 +328,27 @@ tank(o){const r=o.w*4,x=o.px+r,y=o.py+r;
 
 /* ================= GÓC NHÌN THỨ NHẤT ================= */
 function paint(kind,C,o,a){
+    
   const hh=o?hs(o.x|0,o.y|0)%100:0,c0=Math.abs(a-.5),cyl=c=>mix(c,'#000000',Math.pow(c0*2,2)*.5);
   switch(kind){
+  case 'freezer':{const W=o?o.w:3,u=Math.floor(a*W*2),f=(a*W*2)%1;
+    C('#6f7c86',0,.4);C('#e8f1f6',.03,.38);C('#2f4a5a',.38,.5);C('#cfeaf6',.38,.4);
+    if(f>.12&&f<.88)C(['#c0392b','#4a90e0','#58c25e','#e8a030','#e8c0c0','#9ad0e8'][(hh+u)%6],.4,.47);
+    if(f>.3&&f<.7)C('#ffffff',.47,.5);
+    if(c0<.03)C('#4aff7a',.2,.24);return true}
+  case 'foodbox':
+    C('#2a4a62',0,.42);C(['#9ac4e0','#c0dcee'][hh%2],.03,.4);C('#e8f6ff',.36,.4);
+    if(c0<.3)C(['#c0392b','#e8a030','#58c25e','#4a90e0'][hh%4],.15,.3);return true;
+  case 'newsbox':
+    C('#5a3a1e',0,.42);C('#b8864f',.03,.4);C('#e6e0cc',.34,.45);
+    if(((a*10)|0)%3===0)C('#555',.38,.40);return true;
+  case 'bookcase':{
+    C('#3a2410',0,1);if(a<.03||a>.97){C('#6b4423',0,1);return true}
+    const pal=['#8e1f2a','#2a5a8a','#c9a04c','#3f7a4a','#6a3a7a','#d8d0b8'],u=a*(o?o.w:5)*7,fu=u%1;
+    for(let L=0;L<4;L++){const y0=.04+L*.24;C('#6b4423',y0,y0+.02);
+      const q=hs(Math.floor(u)+hh,L*11+5)%7;
+      if(q<6){C(pal[q],y0+.02,y0+.02+.13+((q+L)%3)*.03);if(fu>.15&&fu<.85)C('#e8e0c8',y0+.07,y0+.09)}}
+    C('#8a5a2e',.97,1);return true}
   case 'crate':{const f=(a*3)%1;
     C('#3e2812',0,.5);C(['#a8743f','#9a6a38','#b4824a'][hh%3],.02,.48);C('#6b4423',.15,.17);C('#6b4423',.31,.33);
     if(f<.07||f>.93)C('#4a2e14',0,.5);
