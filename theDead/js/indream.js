@@ -229,6 +229,17 @@ function build(A){
   [66,71,76].forEach(x=>O('tank',x,2,3,3));
   [[64,8],[65,8],[64,9]].forEach(([x,y])=>O('barrel',x,y,1,1));
   O('crate',64,23,3,2);O('crate',68,23,2,2);O('crate',64,26,2,2);O('crate',67,26,3,2);O('crate',74,24,2,2);
+  /* ---- THÙNG THÊM: kho A ---- */
+  O('crate',17,3,2,2);O('crate',20,8,2,2);O('crate',28,8,2,2);O('crate',13,10,2,2);
+  /* ---- THÙNG THÊM: sảnh trái trên + dưới ---- */
+  O('crate',8,2,2,2);O('crate',8,7,2,2);
+  O('crate',10,22,3,2);O('crate',14,24,2,2);O('crate',18,22,3,2);O('crate',22,26,3,2);
+  O('crate',26,22,2,2);O('crate',30,28,3,2);O('crate',14,28,2,2);
+  /* ---- THÙNG THÊM: sảnh phải ---- */
+  O('crate',59,2,2,2);O('crate',59,5,2,2);O('crate',59,9,2,2);
+  O('crate',82,2,3,2);O('crate',86,2,2,2);O('crate',82,5,2,2);
+  O('crate',62,21,2,2);O('crate',80,22,3,2);O('crate',84,22,2,2);O('crate',80,27,3,2);O('crate',84,28,2,2);
+  [[61,29],[62,29],[80,25],[81,25],[88,26]].forEach(([x,y])=>O('barrel',x,y,1,1));
   [[72,27],[73,27],[72,28]].forEach(([x,y])=>O('barrel',x,y,1,1));
   O('crate',3,26,3,3);O('crate',7,28,2,2);O('crate',5,4,2,2);[[2,21],[3,21],[2,22]].forEach(([x,y])=>O('barrel',x,y,1,1));
 
@@ -440,5 +451,6 @@ function post2D(g,BN){
   g.restore()}
 
 window.BSM={build,draw,tile,paint,wall,ceil,post,post2D};
+if(window.yachtDream&&window.yachtDream.rebuild)window.yachtDream.rebuild();  /* dựng lại tầng hầm 1 lần, giờ BSM đã có */
 console.log('[basement] đã nạp OK');
 })();

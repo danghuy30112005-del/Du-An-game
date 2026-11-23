@@ -687,7 +687,8 @@ function drawBack(i){
   const ex=200;f.O.forEach(o=>{
     if(o.room&&o.room!==VR)return;
     if(o.ax<camX-ex||o.ax>camX+vw+ex||o.ay<camY-ex||o.ay>camY+vh+ex+80)return;
-    if(o.k==='pole')ell('rgba(0,0,0,.14)',o.px+9,o.py+3,12,5);DRAW[o.k]&&DRAW[o.k](o)})}
+    if(o.k==='pole')ell('rgba(0,0,0,.14)',o.px+9,o.py+3,12,5);
+    const fn=DRAW[o.k]||(window.BSM&&window.BSM.draw[o.k]);fn&&fn(o)})}
 
 function canopy(o){
   const x=o.px+4,y=o.py-16;cx.globalAlpha=.6;disc('#f4ecd8',x,y,13);
@@ -734,7 +735,7 @@ draw=function(){
   try{
     cx.save();cx.setTransform(1,0,0,1,0,0);
         if(curF===F0+4&&window.BSM){BSM.post2D(cx,BN);cx.restore();return}
-        if(window.yachtDream&&window.yachtDream.rebuild)window.yachtDream.rebuild();
+
     cx.globalCompositeOperation='soft-light';cx.globalAlpha=.55;
     const g=cx.createLinearGradient(0,0,0,CH);g.addColorStop(0,'#ff9a5a');g.addColorStop(1,'#c05aa0');cx.fillStyle=g;cx.fillRect(0,0,CW,CH);
     cx.globalCompositeOperation='lighter';cx.globalAlpha=.06;cx.fillStyle='#ffb070';cx.fillRect(0,0,CW,CH);
