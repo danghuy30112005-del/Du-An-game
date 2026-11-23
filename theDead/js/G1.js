@@ -1177,9 +1177,19 @@ function detect(){
 function notice(det){
   const e=det.e;G.tgt=e;G.tp=det.isP;G.st='laugh';G.t=0;G.path=[];G.goal=null;G.lx=e.x;G.ly=e.y;G.lost=0;
   if(det.isP&&e.pl===sel){cap('Oan hồn đã thấy bạn! Chạy đi, hoặc trốn vào tủ đồ (E)!');flash=Math.max(flash,10)}}
+/* chọn 1 NPC (ưu tiên đang ngủ) trong phòng oan hồn đang kiểm tra */
+function pickRoomVictim(){
+  if(!G.room||K.kills>=K.quota)return null;
+  const L=npcs().filter(p=>p.fl===G.fl&&valid(p)&&roomAt(p.x,p.y,p.fl)===G.room);
+  if(!L.length)return null;
+  const S=L.filter(p=>p.act==='sleep');
+  const A=S.length?S:L;
+  return A[rnd(A.length)]}
 function startSearch(){
+  const wasPlayer=!!G.tp;                       // <-- thêm: đang đuổi người chơi?
   G.st='search';G.t=0;G.ph=0;G.path=[];G.goal=null;G.tgt=null;G.found=null;G.lk=0;
   G.room=roomAt(G.lx,G.ly,G.fl)||roomNearDoor(G.lx,G.ly,G.fl);
+  G.fn=wasPlayer&&!!G.room&&K.kills<K.quota;    // <-- thêm: được phép giết NPC thay thế
   G.dur=G.room?rf(C.check[0],C.check[1]):rf(2,3.5);
   let sx=G.lx,sy=G.ly;if(G.room){const pt=roomPoint(G.room);if(pt){sx=pt[0];sy=pt[1]}}
   pathTo(sx,sy)}
@@ -1282,6 +1292,16 @@ function ghostTick(dt){
       const done=follow(C.chase*.85*dt);G.t+=0;
       if(done||G.t>7){G.ph=1;G.t=0}}
     else{
+      /* không thấy người chơi trong phòng -> giết 1 NPC (nếu còn lượt giết) */
+      if(G.fn&&G.t>=1.2){
+        const v=pickRoomVictim();
+        G.fn=0;
+        if(v){
+          G.tgt=v;G.tp=false;G.st='chase';G.lost=0;G.rep=0;G.path=[];
+          G.lx=v.x;G.ly=v.y;
+          break;
+        }
+      }
       if(G.room){
         G.lk-=dt;
         if(G.lk<=0&&!G.path.length){G.lk=rf(1.2,2.2);const pt=roomPoint(G.room);if(pt)pathTo(pt[0],pt[1])}
@@ -1323,6 +1343,8 @@ function gatherTo(q,c,j){
     const s={k:'look',fl:q.fl,wx:pt[0],wy:pt[1],o:q};q.ys=s;q.goal={fl:q.fl,x:pt[0],y:pt[1],kind:'ys',s}}}
 function discoverOne(p,c,j,key){
   c[key]=1;
+
+  if(c.ct===undefined){c.ct=rf(26,36);c.ft=1.5}      // <-- đếm ngược dọn xác + nhịp nói chuyện
   shout(p,'AAAAAAA!!',6);
   ins.forEach(q=>{
     if(q===p||q.dead||q.dying||q.gk||!(q.mem||q.yt)||q.fl!==p.fl)return;
@@ -1345,9 +1367,60 @@ function discover(inY){
         if(Math.hypot(p.x-c.x,p.y-c.y)>(rc?40:72))continue;
         if(!ray(p.fl,p.x,p.y,c.x,c.y,false))continue;
         discoverOne(p,c,j,key);break}})})}
+/* ================= SÁNG: NPC ra khỏi phòng, tìm xác, xôn xao, dọn xác ================= */
+const FEAR=['Có kẻ giết người trên tàu!','Ai... ai làm chuyện này?','Tôi sợ quá...','Khóa cửa phòng lại đi!','Là oan hồn đó...','Đêm qua tôi nghe tiếng hét!','Đừng đi một mình nữa!','Gọi thuyền trưởng đi!','Máu... khắp nơi...','Nó vẫn còn trên tàu này!'];
+let MOR=-9;
+function sayFear(p){if(!p.bub)shout(p,FEAR[rnd(FEAR.length)],rf(3,5))}
+function morningTick(dt){
+  const c=YT.clock();if(!c.on||state!=='island')return;
+  const h=hour();
+  if(h>=6.05&&h<9&&MOR!==K.nid){
+    MOR=K.nid;
+    const used=new Set(),wake=p=>{
+      if(p.act==='sleep')endAct(p);
+      rel(p);if(p.ys&&p.ys.o===p)p.ys.o=null;
+      p.sn=null;p.seat=0;p.path=[];p.goal=null;p.mor=1;used.add(p)};
+    const goTo=(p,x,y)=>{
+      const s={k:'look',fl:p.fl,wx:x,wy:y,o:p};p.ys=s;
+      p.goal={fl:p.fl,x,y,kind:'ys',s}};
+    /* 1 NPC đi thẳng tới cửa phòng có xác (người phát hiện) */
+    const cs=CORP.filter(q=>!q.fy&&q.fl-FM>=0);
+    if(cs.length){
+      const cp=cs[rnd(cs.length)],cj=cp.fl-FM,
+        L=ins.filter(p=>p.yt&&!p.dead&&p.fl===F0+cj);
+      if(L.length){
+        const f=L[rnd(L.length)],pt=gatherPt(cp,cj);
+        wake(f);f.chk={c:cp,cj,x:pt[0],y:pt[1],t:0};goTo(f,pt[0],pt[1])}}
+    /* 2-3 NPC khác bước ra khỏi phòng ngủ ra hành lang */
+    const L2=ins.filter(p=>p.yt&&!p.dead&&p.fl===F0&&!used.has(p));
+    for(let n=ri(2,3);n>0&&L2.length;n--){
+      const p=L2.splice(rnd(L2.length),1)[0],rm=ROOMS[p.room|0];if(!rm)continue;
+      const tx=DX0+rm.w+7+rnd(2),ty=Math.floor(DY0+rm.wallY+(rm.n?1.5:-.5));
+      wake(p);goTo(p,tx,ty)}
+    if(allPl().some(p=>isY(p.fl)))cap('Trời sáng. Vài người bước ra khỏi phòng ngủ, hành lang vẫn còn mùi tanh...')}
+  /* người tìm xác tới cửa phòng thì hét lên, gây xôn xao */
+  ins.forEach(p=>{
+    const k=p.chk;if(!k)return;
+    if(p.dead||!CORP.includes(k.c)||k.c.fy){p.chk=null;return}
+    k.t+=dt;
+    if(Math.hypot(p.x-(k.x*T+4),p.y-(k.y*T+4))<12||k.t>45){p.chk=null;discoverOne(p,k.c,k.cj,'fy')}})}
 function corpseTick(dt){
   const g=YT.clock().g;
-  CORP=CORP.filter(c=>g>=c.t0&&g-c.t0<DAYM);                       /* xác biến mất sau 1 ngày */
+  /* xôn xao + dọn xác */
+  CORP.forEach(c=>{
+    if(c.ct===undefined)return;
+    c.ct-=dt;c.ft-=dt;
+    if(c.ft<=0){
+      c.ft=rf(1.5,3);
+      const L=ins.filter(p=>(p.mem||p.yt)&&!p.dead&&!p.dying&&(p.mem?p.fl===c.fl:p.fl===F0+(c.fl-FM))&&Math.hypot(p.x-c.x,p.y-c.y)<150);
+      if(L.length)sayFear(L[rnd(L.length)])}
+    if(c.ct<=0){
+      BP=BP.filter(q=>!(q.fl===c.fl&&Math.hypot(q.x-c.x,q.y-c.y)<45));
+      const L=ins.filter(p=>(p.mem||p.yt)&&p.fl===(p.mem?c.fl:F0+(c.fl-FM))&&Math.hypot(p.x-c.x,p.y-c.y)<150);
+      if(L.length)shout(L[rnd(L.length)],'Xong rồi... xác đã được đem đi.',4);
+      const P=allPl().find(p=>p.pl===sel);
+      if(P&&(isY(P.fl)||isM(P.fl)))cap('Mọi người đã dọn xác đi, nhưng ai cũng im lặng và nhìn nhau đầy nghi ngờ...')}});
+  CORP=CORP.filter(c=>g>=c.t0&&g-c.t0<DAYM&&!(c.ct!==undefined&&c.ct<=0));
   BP=BP.filter(q=>q.t0===undefined||(g>=q.t0&&g-q.t0<DAYM));
   ins.forEach(p=>{if(p.bub&&(p.bub.t-=dt)<=0){p.bub=null;if(p.yt)p.shout=null}});
   const A=allPl();
@@ -1392,6 +1465,8 @@ function tick(dt){
   if(K.nid!==nidNow())resetNight();
   corpseTick(dt);
   if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));
+  if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));
+  morningTick(dt);
     if(frame%20===0)syncDead();
   const A=memPlayers();
   BP.forEach(q=>{if(q.rest)return;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.vz-=2.8*dt;if(q.z<=0){q.z=0;q.rest=1}});
@@ -1505,9 +1580,15 @@ function dreamCorpses(){
     cx.fillStyle='#8a0a12';cx.beginPath();cx.ellipse(x,y+2,10,3.5,0,0,6.283);cx.fill();
     if(c.kt==='slash')cx.drawImage(lieImg(c.p,true),x-15,y-16);
     else{const h=halves(c.p);cx.drawImage(h[0],x-18,y-14);cx.drawImage(h[1],x+3,y-9)}});
-  cx.restore()}
+  cx.restore()
+    if(c.ct!==undefined&&c.ct>0){cx.font='9px sans-serif';cx.textAlign='center';cx.fillStyle='#fff';cx.fillText('🧹',x+Math.round(Math.sin(frame*.2)*3),y-10)}}
+  
 const _diG=drawIn;
-drawIn=function(){_diG();try{dreamCorpses()}catch(e){oops('dreamCorpses',e);cx.restore()}};
+drawIn=function(){
+  if(state==='over'&&isM(curF))return;
+  _diG();
+  try{dreamCorpses()}catch(e){oops('dreamCorpses',e);cx.restore()}
+};
 /* ---------- Vòng đời game ---------- */
 function resetAll(){G=null;K={nid:-9,quota:0,kills:0,dead:[],wk:0};CORP=[];BP=[];PM={};S.t=0;SU=null;BT=new Set()}
 const _gen=gen;gen=function(sd){_gen(sd);resetAll()};
