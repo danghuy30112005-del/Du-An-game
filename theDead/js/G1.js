@@ -914,9 +914,9 @@ const C={
   seenEntry:70,        /* thấy người chơi chui vào tủ ở trong bán kính này thì biết đường lôi ra */
   near:26,far:240,     /* viền đỏ: đậm nhất ở near, bắt đầu hiện ở far */
   quota:[1,2],         /* số NPC bị giết mỗi đêm */
-  home:0,              /* chỉ số tầng "nhà" (0 = khu phòng ngủ) */
-  homeSpawn:100.100,       /* xác suất xuất hiện ở tầng nhà */
-  homeStay:[90,160],   /* giây ở tầng nhà trước khi đi tầng khác */
+  home:0,              /* tầng 4 = chỉ số 0 */
+  homeSpawn:1,         /* 100% xuất hiện ở tầng nhà */
+  stayHome:true,       /* TẠM THỜI: oan hồn không bao giờ đổi tầng */
   awayStay:[12,25],    /* giây ở tầng khác rồi quay về */
 };
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -1416,10 +1416,9 @@ function bills(P,B){
   if(!isM(P.fl)||!setup())return;
   const fl=P.fl,px=P.x,py=P.y,nr=(x,y,r)=>Math.abs(x-px)<r&&Math.abs(y-py)<r;
   B.forEach(b=>{
-    if(p.bub&&p.bub.t>0){const im=bubImg(p.bub.txt);B.push({x:p.x,y:p.y,img:im,wT:im.width/12,hT:14/12,pad:-1.9/(14/12),a:1,nf:1})}
-
-    const p=b.src;if(!p)return;
-    const sl=p.act==='sleep',dy=p.dying;
+      const p=b.src;if(!p)return;
+      if(p.bub&&p.bub.t>0){const im=bubImg(p.bub.txt);B.push({x:p.x,y:p.y,img:im,wT:im.width/12,hT:14/12,pad:-1.9/(14/12),a:1,nf:1})}
+      const sl=p.act==='sleep',dy=p.dying;
     
 
     if(dy){
