@@ -94,6 +94,7 @@ function spawnMemRand(n){
       if(okTile(0,x,y,true)){mk(0,x,y);break}}});
   for(let e=0;e<8;e++){const j=rnd(NF),t=randTile(j,false);if(t)mk(j,t[0],t[1])}}
 function wander(p){
+  if(p.g2)return;
   const j=p.fl-FM;
   if(Math.random()<.04){                                   /* đôi khi NPC đổi tầng: xuất hiện ở chiếu nghỉ cầu thang */
     const d=Math.random()<.5?1:-1,k=j+d;
@@ -697,7 +698,7 @@ function render(P){
     const B=[],t=frame,BB=bbi();
     ins.forEach(p=>{
       if(p===P||p.fl!==P.fl||!(p.mem||p.pl)||p.mcl)return;
-      B.push({x:p.x,y:p.y,img:sprite(p,p.moving?1+((frame>>3)&1):0),wT:2,hT:2.5,pad:2/30,a:p.mem?(.82+.1*Math.sin(t*.05+p.x)):1})});
+      B.push({src:p,x:p.x,y:p.y,img:sprite(p,p.moving?1+((frame>>3)&1):0),wT:2,hT:2.5,pad:2/30,a:p.mem?(.82+.1*Math.sin(t*.05+p.x)):1})});
     if(!ARU){ARU=arrow(true,255,210,63);ARD=arrow(false,124,255,240)}
     [1,SXof(i)].forEach(lx=>{
       const x=(DX0+lx+1.5)*T;
@@ -720,6 +721,7 @@ function render(P){
       const wy=DY0+rm.wallY,onC=rm.n?py>wy+1:py<wy;if(!onC)return;
       const emp=EMPTY.includes(rm.r),occ=YT.rooms().map((_,k)=>k).filter(k=>!EMPTY.includes(k)),k=occ.indexOf(rm.r),pn=(k>=0&&k<(nPl||1))?k+1:0;
       B.push({x:(DX0+rm.w+8)*T,y:(wy+(rm.n?1.1:-.1))*T,img:plateImg(emp?'TRỐNG':pn?'P'+pn:String(rm.id),emp?'#3a7a52':pn?'#c9a04c':'#d8d2c4'),wT:2.6,hT:1.1,pad:-2.1,a:1})});
+    try{if(window.GMEM)GMEM.bills(P,B)}catch(e){oops('ghost-bills',e)}
     const inv=1/(plX*dY-dX*plY),items=[];
     B.forEach(b=>{
       const dx=b.x/T-px,dy=b.y/T-py,tx=inv*(dY*dx-dX*dy),ty=inv*(-plY*dx+plX*dy);
@@ -910,11 +912,16 @@ const C={
   check:[6,9],         /* giây kiểm tra trong phòng */
   seenEntry:70,        /* thấy người chơi chui vào tủ ở trong bán kính này thì biết đường lôi ra */
   near:26,far:240,     /* viền đỏ: đậm nhất ở near, bắt đầu hiện ở far */
-  quota:[1,2]          /* số NPC bị giết mỗi đêm */
+  quota:[1,2],         /* số NPC bị giết mỗi đêm */
+  home:0,              /* chỉ số tầng "nhà" (0 = khu phòng ngủ) */
+  homeSpawn:.75,       /* xác suất xuất hiện ở tầng nhà */
+  homeStay:[90,160],   /* giây ở tầng nhà trước khi đi tầng khác */
+  awayStay:[12,25],    /* giây ở tầng khác rồi quay về */
 };
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const wrapA=a=>Math.atan2(Math.sin(a),Math.cos(a));
 const rf=(a,b)=>a+Math.random()*(b-a);
+const stay=j=>j===C.home?rf(C.homeStay[0],C.homeStay[1]):rf(C.awayStay[0],C.awayStay[1]);
 const SXof=i=>i===0?116:92;
 const isM=f=>f>=FM&&f<FM+NF;
 const warned={};const oops=(n,e)=>{if(!warned[n]){warned[n]=1;console.error('[ghost-mem] lỗi trong '+n+':',e)}};
@@ -1149,11 +1156,13 @@ function killTick(dt){
     if(!G.hit&&G.t>=1.3){G.hit=1;splat(v,50);if(G.vp)flash=22}
     if(G.t>=1.75)endKill()}}
 function pickStairDir(){
-  const i=G.fl-FM,pf=memPlayers().map(p=>p.fl-FM),opt=[];
-  if(i<NF-1)opt.push(1);if(i>0)opt.push(-1);
-  if(!opt.length)return 0;
-  if(pf.length&&Math.random()<.6){const t=pf[rnd(pf.length)];if(t>i&&opt.includes(1))return 1;if(t<i&&opt.includes(-1))return -1}
-  return opt[rnd(opt.length)]}
+  const i=G.fl-FM;
+  if(i===C.home){
+    const opt=[];if(i<NF-1)opt.push(1);if(i>0)opt.push(-1);
+    return opt.length?opt[rnd(opt.length)]:0}
+  const back=C.home>i?1:-1,away=-back,n=i+away;
+  if(Math.random()<.3&&n>=0&&n<NF)return away;   /* thỉnh thoảng đi xa thêm 1 tầng */
+  return back}
 function pickDest(){
   const j=G.fl-FM,r=Math.random();
   if(j===0){
@@ -1162,11 +1171,12 @@ function pickDest(){
   return pickTileOn(j)}
 function spawn(){
   const A=memPlayers();if(!A.length||!setup())return false;
-  const j=Math.random()<.4?(A[rnd(A.length)].fl-FM):rnd(NF);
+  let j=C.home;
+if(Math.random()>C.homeSpawn){const o=[];for(let q=0;q<NF;q++)if(q!==C.home)o.push(q);j=o[rnd(o.length)]}
   for(let t=0;t<60;t++){
     const p=pickTileOn(j);if(!p)continue;
     if(A.some(a=>a.fl===FM+j&&Math.hypot(a.x-p[0],a.y-p[1])<160))continue;
-    G={fl:FM+j,x:p[0],y:p[1],dir:1,st:'spawn',t:0,path:[],goal:null,wait:0,tgt:null,tp:false,lx:p[0],ly:p[1],lost:0,rep:0,vt:0,flr:rf(35,70),alpha:0,room:null,found:null,v:null,sc:0,ox:p[0],oy:p[1],ph:0,dur:0,lk:0};
+    G={fl:FM+j,x:p[0],y:p[1],dir:1,st:'spawn',t:0,path:[],goal:null,wait:0,tgt:null,tp:false,lx:p[0],ly:p[1],lost:0,rep:0,vt:0,flr:stay(j),alpha:0,room:null,found:null,v:null,sc:0,ox:p[0],oy:p[1],ph:0,dur:0,lk:0};
     cap('Đâu đó trên du thuyền vang lên tiếng liềm kéo lê trên sàn... Đêm nay có thứ gì đó đang đi tuần.');
     return true}
   return false}
@@ -1186,13 +1196,13 @@ function ghostTick(dt){
     G.flr-=dt;
     if(G.wait>0){G.wait-=dt;break}
     if(!G.goal){
-      if(G.flr<=0){const d=pickStairDir();if(d){const i=G.fl-FM,left=Math.random()<.5;G.goal={stair:d,x:(DX0+(left?2:SXof(i)+1))*T+4,y:(DY0+(d>0?9:22))*T+4}}G.flr=rf(35,70)}
+      if(G.flr<=0){const d=pickStairDir();if(d){const i=G.fl-FM,left=Math.random()<.5;G.goal={stair:d,x:(DX0+(left?2:SXof(i)+1))*T+4,y:(DY0+(d>0?9:22))*T+4}}G.flr=stay(G.fl-FM)}
       if(!G.goal){const p=pickDest();if(p)G.goal={x:p[0],y:p[1]};else{G.wait=.5;break}}
       if(!pathTo(G.goal.x,G.goal.y)){G.goal=null;G.wait=.6;break}
       G.sc=0;G.ox=G.x;G.oy=G.y}
     const done=follow(C.patrol*dt);
     G.sc+=dt;if(G.sc>1.2){if(Math.hypot(G.x-G.ox,G.y-G.oy)<2){G.goal=null;G.path=[];G.wait=.3}G.sc=0;G.ox=G.x;G.oy=G.y}
-    if(G.goal&&(done||Math.hypot(G.x-G.goal.x,G.y-G.goal.y)<7)){if(G.goal.stair)swapFloor(G,G.goal.stair);G.goal=null;G.wait=rf(1,3)}
+    if(G.goal&&(done||Math.hypot(G.x-G.goal.x,G.y-G.goal.y)<7)){if(G.goal.stair){swapFloor(G,G.goal.stair);G.flr=stay(G.fl-FM)}G.goal=null;G.wait=rf(1,3)}
     break}
   case 'laugh':{
     const e=G.tgt;
