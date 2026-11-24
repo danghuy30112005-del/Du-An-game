@@ -425,8 +425,7 @@ const warned={};const oops=(n,e)=>{if(!warned[n]){warned[n]=1;console.error('[hi
 const flo=()=>{const Y=YT.floors();return Y&&Y[BI]};
 const curP=()=>state==='island'?(ins.find(p=>p.pl===sel&&inB(p.fl))||null):null;
 const P4=()=>ins.find(p=>p.pl===sel&&p.fl===FM+BI)||null;
-const inCh=P=>{const lx=Math.floor(P.x/T)-DX0,ly=Math.floor(P.y/T)-DY0;return lx>=54&&lx<=59&&ly>=24&&ly<=30};
-const HC=new Map();
+const inCh=P=>{const lx=Math.floor(P.x/T)-DX0,ly=Math.floor(P.y/T)-DY0;return lx>=36&&lx<=38&&ly>=23&&ly<=28};const HC=new Map();
 const hrgb=h=>{let v=HC.get(h);if(!v){v=[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];HC.set(h,v)}return v};
 const shd=(c,s)=>{const v=hrgb(c);return 'rgb('+(v[0]*s|0)+','+(v[1]*s|0)+','+(v[2]*s|0)+')'};
 const ease=u=>{u=Math.max(0,Math.min(1,u));return u*u*(3-2*u)};
@@ -440,39 +439,36 @@ load();
 /* ---------- xây tủ đông ẩn ---------- */
 function setT(f,lx,ly,k,wall){const x=AX(lx),y=AY(ly);f.kd[y][x]=k;if(wall){f.im[y][x]=WALL;f.rid[y][x]=0}else{f.im[y][x]=0;f.rid[y][x]=1}}
 const key=(lx,ly)=>AY(ly)*IW+AX(lx);
+function mkO(k,lx,ly,w,h){return{k,x:AX(lx),y:AY(ly),w,h,px:AX(lx)*T,py:AY(ly)*T,ay:(AY(ly)+h)*T,ax:(AX(lx)+w/2)*T}}
 function ensure(){
   if(!window.BSM)return false;
   const f=flo();
   if(!f||!f.zone)return false;
   hookBSM();
   if(f.hid)return true;
-  /* dọn đồ nằm đè khu vực tủ + kệ */
+  const hit=(o,x0,y0,x1,y1)=>{const lx=o.x-DX0,ly=o.y-DY0;return lx<=x1&&lx+o.w-1>=x0&&ly<=y1&&ly+o.h-1>=y0};
+  /* dọn 3 tủ lạnh cột trái + tủ lạnh đáy (38,29) để làm khe */
   f.O=f.O.filter(o=>{
-    const lx=o.x-DX0,ly=o.y-DY0;
-    if(lx<=59&&lx+o.w-1>=53&&ly<=30&&ly+o.h-1>=24){
+    if(hit(o,36,23,37,28)||hit(o,38,29,39,30)){
       for(let j=0;j<o.h;j++)for(let i=0;i<o.w;i++){f.im[o.y+j][o.x+i]=0;f.rid[o.y+j][o.x+i]=1}
       return false}
     return true});
   const CT=new Map();
-  for(let ly=24;ly<=30;ly++)for(let lx=54;lx<=59;lx++){
-    const edge=lx===54||ly===24,door=lx===54&&(ly===27||ly===28),slab=lx===57&&ly>=26&&ly<=29;
-    if(door){setT(f,lx,ly,4,false);CT.set(key(lx,ly),'o')}
-    else if(edge)setT(f,lx,ly,12,true);
-    else if(slab){setT(f,lx,ly,12,true);CT.set(key(lx,ly),'b')}
+  for(let ly=23;ly<=28;ly++)for(let lx=36;lx<=37;lx++){
+    if(lx===36&&ly>=24&&ly<=27){setT(f,lx,ly,12,true);CT.set(key(lx,ly),'b')}   /* bàn thép sát tường */
     else{setT(f,lx,ly,4,false);CT.set(key(lx,ly),'i')}}
-  [27,28].forEach(ly=>{setT(f,53,ly,12,true);CT.set(key(53,ly),'s')});   /* 2 kệ chắn cửa */
+  setT(f,38,28,12,true);CT.set(key(38,28),'s');   /* kệ đẩy được chắn lối vào */
+  setT(f,38,29,12,true);CT.set(key(38,29),'w');   /* chỗ kệ sẽ trượt xuống */
+  [[39,29],[39,30],[38,30]].forEach(([lx,ly])=>{const o=mkO('fcab',lx,ly,1,1);f.O.push(o);f.im[o.y][o.x]=WALL;f.rid[o.y][o.x]=0});
+  f.O.sort((a,b)=>a.ay-b.ay);
   f.hid={CT,isOpen:0};
   f.DEC.push(()=>{try{dec2D(f)}catch(e){oops('dec2D',e)}});
   if(S2.open)openC(f,false);
   return true}
 function openC(f,anim){
   const CT=f.hid.CT;f.hid.isOpen=1;
-  [27,28].forEach(ly=>{setT(f,53,ly,4,false);CT.delete(key(53,ly))});
-  [26,29].forEach(ly=>{setT(f,53,ly,12,true);CT.set(key(53,ly),'s')});
-  ins.forEach(p=>{
-    if(!inB(p.fl))return;
-    const lx=Math.floor(p.x/T)-DX0,ly=Math.floor(p.y/T)-DY0;
-    if(lx===53&&(ly===26||ly===29)){p.x=p.tx=(AX(52)+.5)*T;p.y=p.ty=(AY(ly===26?27:28)+.5)*T;p.path=[]}});
+  setT(f,38,28,4,false);CT.set(key(38,28),'o');   /* lối vào mở */
+  CT.set(key(38,29),'s');                          /* kệ nằm ở ô bên dưới */
   if(anim)SA={t:0}}
 
 /* ---------- hook BSM (2D tile + 3D wall) ---------- */
@@ -491,7 +487,7 @@ function hookBSM(){
       const t=f.hid.CT.get(y*IW+x);
       if(t==='s'){
         flr(Q,x,y);
-        if(!(SA&&x===AX(53)&&(y===AY(26)||y===AY(29))))shelfR(Q);
+        if(!(SA&&x===AX(38)&&y===AY(29)))shelfR(Q);
         return true}
       if(t==='b'||t==='i'||t==='o'){
         if(t==='o'&&S2.open){/* lối vào đã mở: sàn thường */}
@@ -531,7 +527,8 @@ function wall3D(g,h,x,fy,lh,s,t,cs,Yf){
   /* bàn thép: thấp, ray không dừng ở đây nên vẽ thêm phông tường phía sau */
   h.full=false;h.top=fy-lh*.3;
   backdrop(g,h,x,fy,lh,cs,Yf);
-  const u=h.side===0?((h.my-AY(26))+fr)/4:.5;
+  const Pv=P4(),ve=!!(Pv&&Pv.x/T>h.mx+1);          /* nhìn từ phía đông thì lật đầu/chân */
+  let u=h.side===0?((h.my-AY(24))+fr)/4:.5;if(ve)u=1-u;
   F('#2f373f',0,.07);F('#6b7884',.07,.27);F('#e3eef4',.265,.3);
   if(h.side===0){
     if(u<.26){                                   /* tóc rủ khỏi mép bàn */
@@ -624,7 +621,7 @@ function hookBills(){
   GMEM.bills=function(P,B){b0(P,B);try{bills(P,B)}catch(e){oops('bills',e)}}}
 function bills(P,B){
   if(P.fl!==FM+BI||!S2.open)return;
-  const x=(AX(57)+.5)*T,y=AY(28)*T;
+  const x=(AX(36)+.5)*T,y=AY(26)*T;
   if(Math.abs(x-P.x)>260||Math.abs(y-P.y)>260)return;
   const t=frame;
   B.push({x,y,img:glowImg(),wT:5,hT:3,pad:-.2,a:.32+.1*Math.sin(t*.07),add:1,nf:1});
@@ -633,7 +630,7 @@ function bills(P,B){
 
 /* ---------- 2D: trang trí (nhìn từ trên xuống) ---------- */
 function woman2D(){
-  const X=AX(57)*T,Y=AY(26)*T,f=frame,vw=CW/IS,vh=CH/IS;
+  const X=AX(36)*T,Y=AY(24)*T,f=frame,vw=CW/IS,vh=CH/IS;
   if(X<camX-40||X>camX+vw+40||Y<camY-40||Y>camY+vh+40)return;
   cx.save();cx.globalCompositeOperation='lighter';
   const g=cx.createRadialGradient(X+4,Y+16,2,X+4,Y+16,34);
@@ -648,12 +645,10 @@ function woman2D(){
   R('#e5ecf6',X,Y+26,8,2);R('#f1e0de',X+2,Y+28,2,3);R('#f1e0de',X+5,Y+28,2,3);
   for(let i=0;i<6;i++){const k=hs(i,17);R(((f>>3)+i)%5?'rgba(255,255,255,.7)':'#bfe6ff',X-1+(k%10),Y+1+((k>>4)%30),1,1)}}
 function dec2D(f){
-  const vw=CW/IS,vh=CH/IS,X=AX(53)*T,Y0=AY(24)*T;
-  if(X>camX+vw+40||X+70<camX-40||Y0>camY+vh+40||Y0+70<camY-40)return;
-  if(!S2.open){                                        /* vệt kéo kệ mờ trên sàn: manh mối nhỏ */
-    [26,29].forEach(ly=>{const py=AY(ly)*T;[1,3,5].forEach((o,i)=>R('rgba(90,115,135,.5)',X+o,py+(i%2),1,7-(i%2)))})}
-  if(SA){const e=ease(SA.t/DUR);
-    [[AY(27)*T-e*T],[AY(28)*T+e*T]].forEach(([py])=>shelfR((c,a,b,w,h)=>R(c,X+a,py+b,w,h)))}
+  const vw=CW/IS,vh=CH/IS,X=AX(36)*T,Y0=AY(22)*T,SX=AX(38)*T,SY=AY(28)*T;
+  if(X>camX+vw+40||X+60<camX-40||Y0>camY+vh+40||Y0+90<camY-40)return;
+  if(!S2.open)[1,3,5].forEach(o=>R('rgba(90,115,135,.5)',SX+o,SY+6,1,2));   /* vệt kéo kệ trên sàn: manh mối nhỏ */
+  if(SA){const e=ease(SA.t/DUR);shelfR((c,a,b,w,h)=>R(c,SX+a,SY+e*T+b,w,h))}
   if(visIn())woman2D()}
 
 /* ---------- tương tác ---------- */
@@ -661,9 +656,9 @@ const TXT=[
   'Trên chiếc bàn thép phủ băng là một cô gái trẻ nằm bất động. Mái tóc đen dài xõa xuống mép bàn, làn da trắng như sứ, hàng mi đóng băng lấp lánh. Cô đẹp đến mức bạn quên mất mình đang đứng cạnh một xác chết.',
   'Chiếc váy trắng nhăn nhúm, hai tay đặt trên bụng nắm một sợi dây chuyền bạc. Dù nằm đây rất lâu, cơ thể cô không hề thối rữa, như thể thời gian chưa từng chạm tới. Bạn thấy rùng mình: chiếc váy này giống hệt chiếc váy rách của oan hồn.',
   'Một mảnh giấy buộc ở ngón chân: "Chưa xác định danh tính, 13 năm". Bạn nhớ tới tờ báo cũ về nữ du khách mất tích trên Danova. Vậy ra thứ đang rình rập trên du thuyền... chính là cô ấy.'];
-const SHC=()=>[(AX(53)+.5)*T,AY(28)*T],SLC=()=>[(AX(57)+.5)*T,AY(28)*T];
+const SHC=()=>[(AX(38)+.5)*T,(AY(28)+.5)*T],SLC=()=>[(AX(36)+.5)*T,AY(26)*T];
 function target(P){
-  if(!S2.open){const c=SHC();if(P.x<c[0]&&Math.hypot(P.x-c[0],P.y-c[1])<26)return'push'}
+  if(!S2.open){const c=SHC();if(P.x>c[0]&&Math.hypot(P.x-c[0],P.y-c[1])<24)return'push'}
   else{const c=SLC();if(Math.hypot(P.x-c[0],P.y-c[1])<30)return'look'}
   return null}
 function act(P,t){
@@ -671,7 +666,7 @@ function act(P,t){
     const f=flo();if(!f||!f.hid||S2.open)return;
     S2.open=1;save();openC(f,true);
     try{shake=Math.max(shake,6)}catch(_){}
-    cap('P'+P.pl+' dồn sức đẩy hai chiếc kệ rỗng trượt sang hai bên... phía sau là một khe hẹp, hơi lạnh buốt phả ra.');return}
+    cap('P'+P.pl+' dồn sức đẩy hai chiếc kệ rỗng... phía sau là một khe hẹp, hơi lạnh buốt phả ra.');return}
   const i=S2.n%3;cap(TXT[i]);S2.n++;if(i===2)S2.read=1;save()}
 const modal=()=>{const a=$('abAsk'),iv=$('inv'),rd=$('cdRead');return !!TK||!!trans||!!(a&&!a.hidden)||!!(iv&&!iv.hidden)||!!(rd&&!rd.hidden)};
 addEventListener('keydown',e=>{
@@ -702,7 +697,7 @@ function tick(dt){
     ins.forEach(p=>{
       if(p.pl||!inB(p.fl))return;
       const lx=Math.floor(p.x/T)-DX0,ly=Math.floor(p.y/T)-DY0;
-      if(lx>=54&&lx<=59&&ly>=24&&ly<=30){p.x=p.tx=(AX(51)+.5)*T;p.y=p.ty=(AY(28)+.5)*T;p.path=[]}})}}
+            if(lx>=36&&lx<=37&&ly>=23&&ly<=28){p.x=p.tx=(AX(40)+.5)*T;p.y=p.ty=(AY(28)+.5)*T;p.path=[]}})}}
 const _step=step;
 step=function(){_step();if(state!=='island')return;try{tick(Math.min(.25,DM||.016))}catch(e){oops('tick',e)}};
 const _gen=gen;
