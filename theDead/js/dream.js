@@ -961,6 +961,7 @@ function stairCheck(P,i){
     }
 
 function tick(dt){
+  const Ps=ins.find(p=>p.pl===sel);
   function kickOut(p,rr){
     const rm=ROOMS[rr-1];if(!rm)return;
     rel(p);p.goal=null;p.ys=null;p.sn=null;p.seat=0;p.act='idle';p.path=[];

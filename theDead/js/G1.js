@@ -1530,21 +1530,7 @@ function tick(dt){
   sessTick();
   if(K.nid!==nidNow())resetNight();
   corpseTick(dt);
-  if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));
-  morningTick(dt);
-  if(frame%20===0)syncDead();
-  const A=memPlayers();
-  BP.forEach(q=>{if(q.rest)return;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.vz-=2.8*dt;if(q.z<=0){q.z=0;q.rest=1}});
-  if(!A.length){G=null;NT=0;PM={};return}
-  if(nightOK())NT+=dt;else NT=0;
-  updateDoors();
-  if(ins.some(p=>p.mem&&!p.g2)&&!ins.some(p=>p.mem&&p.g2))BT.clear();
-  ins.forEach(p=>{if(p.mem&&!p.g2&&!p.dead)npcInit(p)});
-  ins.slice().forEach(p=>{if(p.mem)npcTick(p,dt)});
-  if(C.firstOnly&&K.nid>0)G=null;
-  else if(nightOK())ghostTick(dt);
-  else G=null;
-  A.forEach(p=>{PM[p.pl]=!!p.mcl})}
+
 
   if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));
   if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));
