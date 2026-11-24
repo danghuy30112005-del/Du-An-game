@@ -942,14 +942,12 @@ const isM=f=>f>=FM&&f<FM+NF;
 const warned={};const oops=(n,e)=>{if(!warned[n]){warned[n]=1;console.error('[ghost-mem] lỗi trong '+n+':',e)}};
 const memPlayers=()=>ins.filter(p=>p.pl&&isM(p.fl));
 const npcs=()=>ins.filter(p=>p.mem&&!p.dead);
-let SESS=0,wasOn=false;
 let SESS=0,LASTG=0,WASON=false;
 const nidNow=()=>SESS*1000+Math.floor((YT.clock().g-900)/1440);
 function sessTick(){
   const c=YT.clock(),on=!!c.on;
   if((on&&!WASON)||(on&&c.g<LASTG-200))SESS++;   // vào du thuyền lần mới, hoặc đồng hồ bị reset = phiên mới
   WASON=on;LASTG=c.g}
-function sessTick(){const on=!!YT.clock().on;if(on&&!wasOn)SESS++;wasOn=on}   // mỗi lần vào du thuyền = phiên mới
 const nightOK=()=>{if(!YT.clock().on)return false;const h=hour();return h>=21||h<6};
 const keyOf=p=>[p.mroom,p.k,p.c,p.skin,p.hair].join('|');
 let NT=0;
@@ -967,10 +965,11 @@ function setup(){
   return true}
 function okT(j,x,y){const f=YT.floors()[j];if(!f||!f.im[y]||f.im[y][x]!==0)return false;const k=(f.kd[y]||[])[x]|0;return k===1||k===2||k===3||k===4||k===10}
 function roomAt(x,y,fl){if(fl!==FM)return null;const f=YT.floors()[0],r=((f.RID[Math.floor(y/T)]||[])[Math.floor(x/T)])|0;return r?ROOMS[r-1]:null}
-function roomNearDoor(x,y,fl){
+function roomNearDoor(x,y,fl,R){
   if(fl!==FM)return null;
-  const i=DOORS.findIndex(d=>Math.hypot(x-d.px,y-d.py)<40);
-  return i>=0?ROOMS[i]:null}function roomPoint(rm){for(let t=0;t<30;t++){const x=DX0+rm.x0+rnd(rm.x1-rm.x0+1),y=DY0+rm.y0+rnd(rm.y1-rm.y0+1);if(okT(0,x,y))return[x*T+4,y*T+4]}return null}
+  R=R||40;let bi=-1,bd=R;
+  DOORS.forEach((d,i)=>{const q=Math.hypot(x-d.px,y-d.py);if(q<bd){bd=q;bi=i}});
+  return bi>=0?ROOMS[bi]:null}
 function freeNear(j,tx,ty){
   const f=YT.floors()[j];
   for(let r=0;r<=14;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
@@ -1212,14 +1211,22 @@ function pickRoomVictim(){
   const A=S.length?S:L;
   return A[rnd(A.length)]}
 function startSearch(){
-  const wasPlayer=!!G.tp;                       // đang đuổi người chơi?
-  G.st='search';G.t=0;G.ph=0;G.path=[];G.goal=null;G.tgt=null;G.found=null;G.lk=0;
-  G.room=roomAt(G.lx,G.ly,G.fl)||roomNearDoor(G.lx,G.ly,G.fl);
-  G.fn=wasPlayer&&!!G.room&&K.kills<K.quota;    // không thấy người chơi trong phòng thì được giết 1 NPC
+  const wasPlayer=!!G.tp,e=G.tgt;
+  G.st='search';G.t=0;G.ph=0;G.path=[];G.goal=null;G.found=null;G.lk=0;
+  let rm=roomAt(G.lx,G.ly,G.fl)||roomNearDoor(G.lx,G.ly,G.fl,90);
+  /* mục tiêu vừa chạy vào phòng nào gần đó thì oan hồn nghe thấy tiếng cửa và vào đúng phòng đó */
+  if(!rm&&valid(e)&&e.fl===G.fl){
+    const er=roomAt(e.x,e.y,e.fl);
+    if(er){const d=DOORS[er.r];if(d&&Math.hypot(G.x-d.px,G.y-d.py)<200)rm=er}}
+  G.tgt=null;
+  G.room=rm;
+  G.fn=wasPlayer&&!!G.room&&K.kills<K.quota;
   G.dur=G.room?rf(C.check[0],C.check[1]):rf(2,3.5);
   if(G.room){
-    let ok=false;                               // thử vài điểm trong phòng tới khi có đường đi
+    const d=DOORS[G.room.r];
+    let ok=false;
     for(let t=0;t<6&&!ok;t++){const pt=roomPoint(G.room);if(pt)ok=pathTo(pt[0],pt[1])}
+    if(!ok&&d)ok=pathTo(d.px,d.py);
     if(!ok)pathTo(G.lx,G.ly);
   }else pathTo(G.lx,G.ly)}
 function startKill(v,isP){
@@ -1523,21 +1530,21 @@ function tick(dt){
   sessTick();
   if(K.nid!==nidNow())resetNight();
   corpseTick(dt);
-  if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));   // chỉ giữ 1 dòng (bản cũ bị trùng 2 dòng)
+  if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));
   morningTick(dt);
   if(frame%20===0)syncDead();
   const A=memPlayers();
-  // ... từ dòng "BP.forEach(q=>{if(q.rest)return;..." trở xuống giữ nguyên
-function sessTick(){
-  const c=YT.clock(),on=!!c.on;
-  if((on&&!WASON)||(on&&c.g<LASTG-200))SESS++;   // vào du thuyền lần mới, hoặc đồng hồ bị reset = phiên mới
-  WASON=on;LASTG=c.g}
-function sessTick(){
-  const c=YT.clock();
-  if(c.on&&c.g<LASTG-200)SESS++;   // đồng hồ bị reset = đêm mới
-  LASTG=c.g}
-  if(K.nid!==nidNow())resetNight();
-  corpseTick(dt);
+  BP.forEach(q=>{if(q.rest)return;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.vz-=2.8*dt;if(q.z<=0){q.z=0;q.rest=1}});
+  if(!A.length){G=null;NT=0;PM={};return}
+  if(nightOK())NT+=dt;else NT=0;
+  updateDoors();
+  if(ins.some(p=>p.mem&&!p.g2)&&!ins.some(p=>p.mem&&p.g2))BT.clear();
+  ins.forEach(p=>{if(p.mem&&!p.g2&&!p.dead)npcInit(p)});
+  ins.slice().forEach(p=>{if(p.mem)npcTick(p,dt)});
+  if(C.firstOnly&&K.nid>0)G=null;
+  else if(nightOK())ghostTick(dt);
+  else G=null;
+  A.forEach(p=>{PM[p.pl]=!!p.mcl})}
 
   if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));
   if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));
@@ -1655,9 +1662,9 @@ function dreamCorpses(){
     cx.fillStyle='#5a0508';cx.beginPath();cx.ellipse(x,y+2,14,5,0,0,6.283);cx.fill();
     cx.fillStyle='#8a0a12';cx.beginPath();cx.ellipse(x,y+2,10,3.5,0,0,6.283);cx.fill();
     if(c.kt==='slash')cx.drawImage(lieImg(c.p,true),x-15,y-16);
-    else{const h=halves(c.p);cx.drawImage(h[0],x-18,y-14);cx.drawImage(h[1],x+3,y-9)}});
-  cx.restore()
-    if(c.ct!==undefined&&c.ct>0){cx.font='9px sans-serif';cx.textAlign='center';cx.fillStyle='#fff';cx.fillText('🧹',x+Math.round(Math.sin(frame*.2)*3),y-10)}}
+    else{const h=halves(c.p);cx.drawImage(h[0],x-18,y-14);cx.drawImage(h[1],x+3,y-9)}
+    if(c.ct!==undefined&&c.ct>0){cx.font='9px sans-serif';cx.textAlign='center';cx.fillStyle='#fff';cx.fillText('🧹',x+Math.round(Math.sin(frame*.2)*3),y-10)}});
+  cx.restore()}
   
 const _diG=drawIn;
 drawIn=function(){
