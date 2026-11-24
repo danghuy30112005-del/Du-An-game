@@ -143,6 +143,20 @@ function newsSpr(){
   for(let y=6;y<=10;y+=2){g.fillRect(2,y,5,1);g.fillRect(9,y,5,1)}
   g.fillStyle='#6a604a';g.fillRect(7,6,1,5);
   return NWI=c}
+/* ---------- Ánh sáng trắng quanh đồ có thể nhặt ---------- */
+function glow2D(x,y,r){
+  const a=.35+.15*Math.sin(frame*.1);
+  cx.save();cx.globalCompositeOperation='lighter';
+  const g=cx.createRadialGradient(x,y,1,x,y,r);
+  g.addColorStop(0,'rgba(255,255,255,'+a.toFixed(3)+')');
+  g.addColorStop(1,'rgba(255,255,255,0)');
+  cx.fillStyle=g;cx.fillRect(x-r,y-r,r*2,r*2);cx.restore()}
+let GLWI=null;
+function glowImg(){
+  if(GLWI)return GLWI;
+  const c=mkc(32,32),g=c.getContext('2d'),r=g.createRadialGradient(16,16,1,16,16,16);
+  r.addColorStop(0,'rgba(255,255,255,.9)');r.addColorStop(.45,'rgba(255,255,255,.3)');r.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=r;g.fillRect(0,0,32,32);return GLWI=c}
 function draw2D(f){
   const vw=CW/IS,vh=CH/IS;
   const X0=AX(CAB.x0)*T,Y0=AY(CAB.y0)*T;
@@ -157,9 +171,11 @@ function draw2D(f){
     if(PR){for(let i=0;i<10;i++){const k=hs(i,frame>>1);R(i%2?'#e8faff':'#a9e2f4',dx+(k%12)-2,dy-4+((k>>4)%22),1+(k&1),1+(k&1))}}}
   cx.save();cx.imageSmoothingEnabled=false;
   if(!S.crow){const[x,y]=ipos(CROW);if(x>camX-20&&x<camX+vw+20&&y>camY-20&&y<camY+vh+20){
+    glow2D(x,y,16);
     R('rgba(0,0,0,.3)',x-8,y+3,16,2);cx.drawImage(crowImg(),Math.round(x-14),Math.round(y-8));
     if((frame>>4)%3===0)R('#ffffff',x+6,y-6,1,1)}}
   {const[x,y]=ipos(NEWS);if(x>camX-20&&x<camX+vw+20&&y>camY-20&&y<camY+vh+20){
+    glow2D(x,y,14);
     R('rgba(0,0,0,.3)',x-6,y+3,13,2);cx.drawImage(newsSpr(),Math.round(x-8),Math.round(y-6))}}
   cx.restore()}
 
@@ -224,6 +240,7 @@ function bills(P,B){
   const add=(on,pos,img,w,h)=>{
     if(!on)return;const[x,y]=ipos(pos);
     if(Math.abs(x-P.x)>260||Math.abs(y-P.y)>260)return;
+    B.push({x,y,img:glowImg(),wT:1.3,hT:1.3,pad:.3,a:.5+.2*Math.sin(frame*.1),add:1,nf:1});
     B.push({x,y,img,wT:w,hT:h,pad:0,a:1})};
   add(!S.crow,CROW,crowImg(),.9,.45);
   add(true,NEWS,newsSpr(),.6,.45)}
