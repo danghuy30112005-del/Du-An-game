@@ -982,7 +982,6 @@ function tick(dt){
     if(p.fl===F0){const rr=roomOf(p);if(rr&&rr!==p.room+1)kickOut(p,rr)}
     if(p.sn&&p.act==='idle'){const s=p.sn;p.x=p.tx=s.wx*T+4;p.y=p.ty=s.wy*T+4;p.sn=null;p.path=[]}
     if(p.seat&&p.act==='idle')p.seat=0});
-    if(YG.on&&!YG.ending&&YG.g>=1440&&!allPl().some(p=>p.fl>=FM&&p.fl<FM+NF))endDream();  const Ps=ins.find(p=>p.pl===sel);
   if(inside&&Ps&&isY(Ps.fl)){
     const tgt=(Ps.fl===F0&&roomOf(Ps))?CW/ZOOM:CW/VW;
     IS+=(tgt-IS)*.12;if(Math.abs(tgt-IS)<.003)IS=tgt}}
