@@ -981,6 +981,13 @@ function pickTileOn(j){
     if(j===0){const x=DX0+2+rnd(116),y=DY0+13+rnd(6);if(okT(0,x,y)&&((YT.floors()[0].kd[y]||[])[x]|0)===3)return[x*T+4,y*T+4]}
     else{const x=DX0+2+rnd(LENS[j]-12),y=DY0+2+rnd(28);if(okT(j,x,y))return[x*T+4,y*T+4]}}
   return null}
+  /* điểm ngẫu nhiên bên trong một phòng ngủ (tầng 4), trả về toạ độ pixel */
+function roomPoint(rm){
+  if(!rm)return null;
+  for(let t=0;t<40;t++){
+    const x=DX0+rm.x0+rnd(rm.x1-rm.x0+1),y=DY0+rm.y0+rnd(rm.y1-rm.y0+1);
+    if(okT(0,x,y))return[x*T+4,y*T+4]}
+  return null}
 /* đổi tầng bằng cầu thang (ghost và NPC dùng chung) */
 function swapFloor(e,d){
   const i=e.fl-FM,j=i+d;if(j<0||j>=NF)return;
@@ -1200,7 +1207,7 @@ function detect(){
   if(K.kills<K.quota)npcs().forEach(p=>{if(p.fl!==G.fl||!valid(p))return;const d=Math.hypot(p.x-G.x,p.y-G.y);if(d<C.sight&&canSee(p)&&d<bd){bd=d;best={e:p,isP:0}}});
   return best}
 function notice(det){
-  const e=det.e;G.tgt=e;G.tp=det.isP;G.st='laugh';G.t=0;G.path=[];G.goal=null;G.lx=e.x;G.ly=e.y;G.lost=0;
+  const e=det.e;G.tgt=e;G.tp=det.isP;G.st='laugh';G.t=0;G.path=[];G.goal=null;G.lx=e.x;G.ly=e.y;G.lost=0;G.lr=null;
   if(det.isP&&e.pl===sel){cap('Oan hồn đã thấy bạn! Chạy đi, hoặc trốn vào tủ đồ (E)!');flash=Math.max(flash,10)}}
 /* chọn 1 NPC (ưu tiên đang ngủ) trong phòng oan hồn đang kiểm tra */
 function pickRoomVictim(){
@@ -1213,7 +1220,8 @@ function pickRoomVictim(){
 function startSearch(){
   const wasPlayer=!!G.tp,e=G.tgt;
   G.st='search';G.t=0;G.ph=0;G.path=[];G.goal=null;G.found=null;G.lk=0;
-  let rm=roomAt(G.lx,G.ly,G.fl)||roomNearDoor(G.lx,G.ly,G.fl,90);
+  let rm=G.lr||roomAt(G.lx,G.ly,G.fl)||roomNearDoor(G.lx,G.ly,G.fl,90);
+G.lr=null;
   /* mục tiêu vừa chạy vào phòng nào gần đó thì oan hồn nghe thấy tiếng cửa và vào đúng phòng đó */
   if(!rm&&valid(e)&&e.fl===G.fl){
     const er=roomAt(e.x,e.y,e.fl);
@@ -1310,7 +1318,10 @@ function ghostTick(dt){
     const e=G.tgt;
     if(!valid(e)||e.fl!==G.fl){if(valid(e)||G.lx!==undefined)startSearch();break}
     const vis=G.found===e||canSee(e);
-    if(vis){G.lx=e.x;G.ly=e.y;G.lost=0}else G.lost+=dt;
+    if(vis){
+      G.lx=e.x;G.ly=e.y;G.lost=0;
+      G.lr=roomAt(e.x,e.y,e.fl)||roomNearDoor(e.x,e.y,e.fl,18)||null;   /* phòng/cửa người chơi vừa tới */
+    }else G.lost+=dt;
     if(!G.tp&&det&&det.isP){G.tgt=det.e;G.tp=true}
     const d=Math.hypot(e.x-G.x,e.y-G.y);
     if(vis&&d<C.catch){startKill(e,!!e.pl);break}
