@@ -233,6 +233,7 @@ function doorTick(dt){
     for(const p of ins){
       if(p.fl!==FM||!(p.pl||p.mem)||p.mcl)continue;
       if(Math.hypot(p.x-d.px,p.y-d.py)<36){near=true;break}}
+    if(!near&&window.GMEM&&GMEM.near(d.px,d.py,40))near=true;   // oan hồn cũng làm cửa mở
     d.o=clamp(d.o+(near?1:-1)*dt*4,0,1)})}
 const BLK=[[-1,-1],[1,-1],[-1,1],[1,1]];
 function doorBlock(P,nx,ny){
@@ -941,7 +942,14 @@ const isM=f=>f>=FM&&f<FM+NF;
 const warned={};const oops=(n,e)=>{if(!warned[n]){warned[n]=1;console.error('[ghost-mem] lỗi trong '+n+':',e)}};
 const memPlayers=()=>ins.filter(p=>p.pl&&isM(p.fl));
 const npcs=()=>ins.filter(p=>p.mem&&!p.dead);
-const nidNow=()=>Math.floor((YT.clock().g-900)/1440);
+let SESS=0,wasOn=false;
+let SESS=0,LASTG=0,WASON=false;
+const nidNow=()=>SESS*1000+Math.floor((YT.clock().g-900)/1440);
+function sessTick(){
+  const c=YT.clock(),on=!!c.on;
+  if((on&&!WASON)||(on&&c.g<LASTG-200))SESS++;   // vào du thuyền lần mới, hoặc đồng hồ bị reset = phiên mới
+  WASON=on;LASTG=c.g}
+function sessTick(){const on=!!YT.clock().on;if(on&&!wasOn)SESS++;wasOn=on}   // mỗi lần vào du thuyền = phiên mới
 const nightOK=()=>{if(!YT.clock().on)return false;const h=hour();return h>=21||h<6};
 const keyOf=p=>[p.mroom,p.k,p.c,p.skin,p.hair].join('|');
 let NT=0;
@@ -959,8 +967,10 @@ function setup(){
   return true}
 function okT(j,x,y){const f=YT.floors()[j];if(!f||!f.im[y]||f.im[y][x]!==0)return false;const k=(f.kd[y]||[])[x]|0;return k===1||k===2||k===3||k===4||k===10}
 function roomAt(x,y,fl){if(fl!==FM)return null;const f=YT.floors()[0],r=((f.RID[Math.floor(y/T)]||[])[Math.floor(x/T)])|0;return r?ROOMS[r-1]:null}
-function roomNearDoor(x,y,fl){if(fl!==FM)return null;const i=DOORS.findIndex(d=>Math.hypot(x-d.px,y-d.py)<30);return i>=0?ROOMS[i]:null}
-function roomPoint(rm){for(let t=0;t<30;t++){const x=DX0+rm.x0+rnd(rm.x1-rm.x0+1),y=DY0+rm.y0+rnd(rm.y1-rm.y0+1);if(okT(0,x,y))return[x*T+4,y*T+4]}return null}
+function roomNearDoor(x,y,fl){
+  if(fl!==FM)return null;
+  const i=DOORS.findIndex(d=>Math.hypot(x-d.px,y-d.py)<40);
+  return i>=0?ROOMS[i]:null}function roomPoint(rm){for(let t=0;t<30;t++){const x=DX0+rm.x0+rnd(rm.x1-rm.x0+1),y=DY0+rm.y0+rnd(rm.y1-rm.y0+1);if(okT(0,x,y))return[x*T+4,y*T+4]}return null}
 function freeNear(j,tx,ty){
   const f=YT.floors()[j];
   for(let r=0;r<=14;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
@@ -1202,13 +1212,16 @@ function pickRoomVictim(){
   const A=S.length?S:L;
   return A[rnd(A.length)]}
 function startSearch(){
-  const wasPlayer=!!G.tp;                       // <-- thêm: đang đuổi người chơi?
+  const wasPlayer=!!G.tp;                       // đang đuổi người chơi?
   G.st='search';G.t=0;G.ph=0;G.path=[];G.goal=null;G.tgt=null;G.found=null;G.lk=0;
   G.room=roomAt(G.lx,G.ly,G.fl)||roomNearDoor(G.lx,G.ly,G.fl);
-  G.fn=wasPlayer&&!!G.room&&K.kills<K.quota;    // <-- thêm: được phép giết NPC thay thế
+  G.fn=wasPlayer&&!!G.room&&K.kills<K.quota;    // không thấy người chơi trong phòng thì được giết 1 NPC
   G.dur=G.room?rf(C.check[0],C.check[1]):rf(2,3.5);
-  let sx=G.lx,sy=G.ly;if(G.room){const pt=roomPoint(G.room);if(pt){sx=pt[0];sy=pt[1]}}
-  pathTo(sx,sy)}
+  if(G.room){
+    let ok=false;                               // thử vài điểm trong phòng tới khi có đường đi
+    for(let t=0;t<6&&!ok;t++){const pt=roomPoint(G.room);if(pt)ok=pathTo(pt[0],pt[1])}
+    if(!ok)pathTo(G.lx,G.ly);
+  }else pathTo(G.lx,G.ly)}
 function startKill(v,isP){
   G.st='kill';G.t=0;G.hit=0;G.v=v;G.vp=isP;G.kt=Math.random()<.5?'slash':'rip';G.path=[];
   if(isP){v.gk=1;v.moving=0;if(v.mcl){v.mcl=null;v.mcy=undefined;cap('Oan hồn giật tung cánh cửa tủ!')}}
@@ -1502,11 +1515,23 @@ function arrowDraw(){
 
 /* ================= VÒNG LẶP ================= */
 function resetNight(){
-  K={nid:nidNow(),quota:ri(C.quota[0],C.quota[1]),kills:0,dead:K.dead||[],wk:0}; // giữ NPC đã chết
-  CORP=[];BP=[];BT=new Set();MOR=-9;}function tick(dt){
+  K={nid:nidNow(),quota:ri(C.quota[0],C.quota[1]),kills:0,dead:K.dead||[],wk:0};  // giữ NPC đã chết
+  CORP=[];BP=[];BT=new Set();MOR=-9}
+
+function tick(dt){
   if(!setup())return;
-let SESS=0,LASTG=0;
-const nidNow=()=>SESS;
+  sessTick();
+  if(K.nid!==nidNow())resetNight();
+  corpseTick(dt);
+  if(frame%6===0)discover(allPl().some(p=>isY(p.fl)));   // chỉ giữ 1 dòng (bản cũ bị trùng 2 dòng)
+  morningTick(dt);
+  if(frame%20===0)syncDead();
+  const A=memPlayers();
+  // ... từ dòng "BP.forEach(q=>{if(q.rest)return;..." trở xuống giữ nguyên
+function sessTick(){
+  const c=YT.clock(),on=!!c.on;
+  if((on&&!WASON)||(on&&c.g<LASTG-200))SESS++;   // vào du thuyền lần mới, hoặc đồng hồ bị reset = phiên mới
+  WASON=on;LASTG=c.g}
 function sessTick(){
   const c=YT.clock();
   if(c.on&&c.g<LASTG-200)SESS++;   // đồng hồ bị reset = đêm mới
